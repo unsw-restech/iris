@@ -1,0 +1,20 @@
+# Python bytecode — regenerated whenever workflows/*/src/*.py is run or
+# byte-compiled. The MNIST workflow ships a script users are told to run
+# from a checkout, so this reappears constantly without an ignore.
+__pycache__/
+*.py[cod]
+
+# Workflow outputs, if anyone points --outdir at a checkout instead of
+# scratch. The defaults write outside the repo, but this is cheap insurance
+# against committing a 1.8 MB model.pt or a copy of MNIST.
+*.pt
+*idx?-ubyte*
+metrics.json
+confusion_matrix.txt
+training_log.txt
+
+# OS and editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~

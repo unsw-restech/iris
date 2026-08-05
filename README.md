@@ -10,6 +10,7 @@ Landing page and workflow catalogue for UNSW ResTech research workflows.
 ares/
 ├── index.html                        # Landing page (GitHub Pages root)
 ├── .nojekyll                         # Empty — disables Jekyll processing
+├── .gitignore                        # Python bytecode, stray outputs, OS cruft
 ├── assets/
 │   └── ares.css                      # Shared styles for workflow detail pages
 └── workflows/
