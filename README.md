@@ -44,7 +44,7 @@ ares/
     └── <19 more>/index.html          # page-only entries — see Status
 ```
 
-Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; all 27 workflow detail pages share `assets/ares.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
+Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; all 28 workflow detail pages share `assets/ares.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
 
 `hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for how ARES provides an environment on Katana: **use a module**. It runs `module purge && module load pytorch/1.13.1` — nothing is installed, nothing large is downloaded, and the module name is a single editable variable at the top of the PBS script.
 
@@ -88,7 +88,7 @@ The catalogue lists **28 workflows across 11 research domains, all shown as Acti
 |---|---|---|
 | **Run and verified** | `hello-world`, `mnist-classification` | Page, job script, executed end to end |
 | **Scripted, never run** | `whisper-transcription`, `openfoam-cavity`, `r-statistics`, `dft-materials` | Page and a real PBS script; shell parses; not yet executed on Katana |
-| **Page only** | the other 22 | Detail page describing parameters, steps and outputs. No job script in this repo |
+| **Page only** | the other 23 | Detail page describing parameters, steps and outputs. No job script in this repo |
 
 The 19 pages in the last tier were generated on 2026-08-06 from a data table so an MVP demo could click through every card. They are specifications, not implementations — the parameters and outputs are plausible and module-accurate, but nothing runs yet.
 
