@@ -1,57 +1,60 @@
 # ===============================================================
-#  ARES - MNIST image classification (local / Docker - Windows)
-#  Runs the same training script, in the same container image, as
-#  the Katana job. Use it to check your changes before submitting.
+#  ARES - MNIST image classification (local - Windows)
+#  Runs exactly the same training script as the Katana job.
 #
-#  Requires: Docker Desktop for Windows
-#  The image is ~4 GB on first pull, then cached by Docker.
-#  A GPU is used if one is visible; otherwise it trains on CPU.
+#  Requires: Python 3 with PyTorch. Nothing else - MNIST is read
+#  with the standard library, so torchvision is not needed.
+#
+#      pip install torch
+#
+#  A GPU is used automatically if torch can see one.
 #
 #  Deliberately ASCII-only: Windows PowerShell 5.1 reads a UTF-8
-#  file without a BOM as ANSI, and a stray non-ASCII byte can be
-#  decoded as a smart quote that breaks the parse.
+#  file without a BOM as ANSI, and a non-ASCII byte can decode to
+#  a quote character that breaks the parse.
 #
 #  Docs: https://patricktung.github.io/ares/workflows/mnist-classification/
 # ===============================================================
 
 $ErrorActionPreference = "Stop"
 
-$Image = if ($env:ARES_IMAGE) { $env:ARES_IMAGE } else { "pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime" }
 $OutDir = if ($env:ARES_OUTDIR) { $env:ARES_OUTDIR } else { "$HOME\ares-mnist-classification" }
 $Epochs = if ($env:ARES_EPOCHS) { $env:ARES_EPOCHS } else { "3" }
+$Python = if ($env:ARES_PYTHON) { $env:ARES_PYTHON } else { "python" }
 
-$SrcDir = (Resolve-Path "$PSScriptRoot\..\src").Path
-New-Item -ItemType Directory -Force -Path $OutDir, "$OutDir\data" | Out-Null
+$DataDir = Join-Path $OutDir "data"
+$TrainScript = Join-Path $PSScriptRoot "..\src\train_mnist.py"
 
 Write-Host "========================================"
 Write-Host "  ARES MNIST classification - Local"
 Write-Host "========================================"
 Write-Host ""
-Write-Host "Image     : $Image"
-Write-Host "Source    : $SrcDir\train_mnist.py"
-Write-Host "Output    : $OutDir"
-Write-Host ""
 
-# Use the GPU only if Docker can actually see one - otherwise --gpus all
-# makes the run fail outright rather than falling back.
-$GpuArgs = @()
-$Runtimes = docker info --format '{{.Runtimes}}'
-if ($Runtimes -match 'nvidia') {
-    Write-Host "NVIDIA runtime detected - training on GPU."
-    $GpuArgs = @("--gpus", "all")
-} else {
-    Write-Host "No NVIDIA runtime - training on CPU (a few minutes)."
+if (-not (Test-Path $TrainScript)) {
+    Write-Host "ERROR: cannot find $TrainScript"
+    exit 1
 }
+
+& $Python -c "import torch" 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: PyTorch is not importable with '$Python'."
+    Write-Host ""
+    Write-Host "Install it with:"
+    Write-Host "    $Python -m pip install torch"
+    Write-Host ""
+    Write-Host "Or point this script at a different interpreter:"
+    Write-Host "    `$env:ARES_PYTHON='C:\path\to\python.exe'; .\run_local.ps1"
+    exit 1
+}
+
+& $Python -c "import torch; print('PyTorch : ' + torch.__version__); print('Device  : ' + ('cuda - ' + torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu (a few minutes)'))"
+
+Write-Host "Output  : $OutDir"
 Write-Host ""
 
-docker run --rm @GpuArgs `
-  -v "${SrcDir}:/src:ro" `
-  -v "${OutDir}:/output" `
-  $Image `
-  python3 /src/train_mnist.py `
-    --data-dir /output/data `
-    --outdir /output `
-    --epochs $Epochs
+New-Item -ItemType Directory -Force -Path $OutDir, $DataDir | Out-Null
+
+& $Python $TrainScript --data-dir $DataDir --outdir $OutDir --epochs $Epochs
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""

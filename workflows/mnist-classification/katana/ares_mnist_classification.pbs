@@ -7,14 +7,15 @@
 
 # ═══════════════════════════════════════════════════════════════
 #  ARES — MNIST image classification
-#  Trains a small CNN on MNIST inside a PyTorch container.
+#  Trains a small CNN on MNIST using Katana's PyTorch module.
 #
-#  The container is pulled from Docker Hub on first run and cached
-#  in scratch; later runs reuse it. No admin install required.
+#  Nothing is installed and nothing large is downloaded: the
+#  environment comes from `module load pytorch`, and the dataset
+#  is ~11 MB of IDX files. torch is the only dependency — MNIST
+#  is parsed with the standard library, so no torchvision needed.
 #
-#  Run katana/prepare.sh on a login node first — it does the two
-#  network-bound steps (container pull, MNIST download) where the
-#  internet is reliable, so this job can run offline.
+#  Run katana/prepare.sh on a login node first if the compute
+#  nodes have no outbound internet; it pre-fetches the dataset.
 #
 #  Output goes to: /srv/scratch/$USER/ares-mnist-classification/
 #  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
@@ -23,7 +24,7 @@
 # ── Parameters (edit if needed) ────────────────────────────────
 OUTDIR="/srv/scratch/$USER/ares-mnist-classification"
 DATADIR="/srv/scratch/$USER/ares-mnist-classification/data"
-CONTAINER_URI="docker://pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime"
+PYTORCH_MODULE="pytorch/1.13.1"
 EPOCHS=3
 BATCH_SIZE=128
 LR=0.001
@@ -32,11 +33,9 @@ LR=0.001
 set -euo pipefail
 
 WORKFLOW="ares-mnist-classification"
-VERSION="1.0.0"
+VERSION="1.1.0"
 STATUS="failed"          # flipped to success at the end; read by the exit trap
 COMPUTE="katana"         # upgraded to katana-gpu if a GPU turns out to be visible
-CACHE_ROOT="/srv/scratch/$USER/.ares"
-SIF="$CACHE_ROOT/containers/pytorch-2.4.0-cuda12.1.sif"
 RAW_BASE="https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/mnist-classification"
 
 echo "========================================"
@@ -50,7 +49,7 @@ echo "Hostname  : $(hostname)"
 echo "Work dir  : ${PBS_O_WORKDIR:-$PWD}"
 echo ""
 
-mkdir -p "$OUTDIR" "$DATADIR" "$CACHE_ROOT/containers" "$CACHE_ROOT/tmp"
+mkdir -p "$OUTDIR" "$DATADIR"
 
 # ── Usage logging on exit, success or failure ───────────────────
 log_usage() {
@@ -67,10 +66,7 @@ log_usage() {
 trap log_usage EXIT
 
 # ── GPU detection ───────────────────────────────────────────────
-# Decides both the apptainer --nv flag and what we report in the log.
-NV_FLAG=""
 if command -v nvidia-smi > /dev/null 2>&1 && nvidia-smi > /dev/null 2>&1; then
-    NV_FLAG="--nv"
     COMPUTE="katana-gpu"
     echo "GPU detected:"
     nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
@@ -79,54 +75,46 @@ else
 fi
 echo ""
 
-# ── Container runtime ───────────────────────────────────────────
-# Cache dirs must be set before any pull. The default is $HOME/.apptainer
-# and a multi-gigabyte image will blow a standard Katana home quota.
-export APPTAINER_CACHEDIR="$CACHE_ROOT/cache"
-export APPTAINER_TMPDIR="$CACHE_ROOT/tmp"
-export SINGULARITY_CACHEDIR="$APPTAINER_CACHEDIR"
-export SINGULARITY_TMPDIR="$APPTAINER_TMPDIR"
-mkdir -p "$APPTAINER_CACHEDIR"
-
-if command -v apptainer > /dev/null 2>&1; then
-    RUNTIME="apptainer"
-elif command -v singularity > /dev/null 2>&1; then
-    RUNTIME="singularity"
-else
-    echo "Neither apptainer nor singularity is on PATH — trying module load."
-    module load apptainer 2> /dev/null || module load singularity 2> /dev/null || true
-    if command -v apptainer > /dev/null 2>&1; then
-        RUNTIME="apptainer"
-    elif command -v singularity > /dev/null 2>&1; then
-        RUNTIME="singularity"
-    else
-        echo "ERROR: no container runtime available on this node."
-        echo "Ask ResTech which module provides apptainer or singularity on Katana,"
-        echo "then add a 'module load <name>' line above this block."
-        exit 1
-    fi
+# ── Environment: Katana modules ─────────────────────────────────
+# `module` is a shell function, so it may not exist in a non-interactive
+# shell. Source the init script if it is missing.
+if ! type module > /dev/null 2>&1; then
+    for init in /etc/profile.d/modules.sh /usr/share/Modules/init/bash; do
+        # shellcheck disable=SC1090
+        [ -f "$init" ] && . "$init" && break
+    done
 fi
-echo "Container runtime: $RUNTIME ($($RUNTIME --version))"
-
-# ── Container image (idempotent pull) ───────────────────────────
-if [ -f "$SIF" ]; then
-    echo "Using cached image: $SIF"
-else
-    echo "Pulling $CONTAINER_URI"
-    echo "(first run only — this takes a few minutes and needs outbound internet)"
-    # Pull to a .partial name so an interrupted download never leaves a
-    # truncated .sif that later runs would happily try to execute.
-    rm -f "$SIF.partial"
-    if ! "$RUNTIME" pull "$SIF.partial" "$CONTAINER_URI"; then
-        rm -f "$SIF.partial"
-        echo "ERROR: container pull failed."
-        echo "If this node has no outbound internet, run katana/prepare.sh on a"
-        echo "login node first — it pulls the image into $SIF."
-        exit 1
-    fi
-    mv "$SIF.partial" "$SIF"
-    echo "Cached image at: $SIF"
+if ! type module > /dev/null 2>&1; then
+    echo "ERROR: the 'module' command is not available on this node."
+    echo "Ask ResTech how to initialise Environment Modules in a batch job."
+    exit 1
 fi
+
+# Module scripts often reference unset variables, which trips `set -u`.
+set +u
+module purge
+module load "$PYTORCH_MODULE"
+set -u
+
+echo "Loaded modules:"
+module list 2>&1 | sed 's/^/  /'
+echo ""
+
+if ! python3 -c "import torch" > /dev/null 2>&1; then
+    echo "ERROR: '$PYTORCH_MODULE' loaded but 'import torch' failed."
+    echo ""
+    echo "Check what is actually available:"
+    echo "    module avail pytorch"
+    echo "then set PYTORCH_MODULE at the top of this script to a version that exists."
+    exit 1
+fi
+
+python3 - <<'PY'
+import torch
+print(f"PyTorch      : {torch.__version__}")
+print(f"CUDA build   : {torch.version.cuda or 'no (CPU-only build)'}")
+print(f"CUDA visible : {torch.cuda.is_available()}")
+PY
 echo ""
 
 # ── Training script ─────────────────────────────────────────────
@@ -159,15 +147,12 @@ echo ""
 
 # ── Run ─────────────────────────────────────────────────────────
 echo "----------------------------------------"
-"$RUNTIME" exec $NV_FLAG \
-    -B /srv/scratch:/srv/scratch \
-    "$SIF" \
-    python3 "$TRAIN_SCRIPT" \
-        --data-dir "$DATADIR" \
-        --outdir "$OUTDIR" \
-        --epochs "$EPOCHS" \
-        --batch-size "$BATCH_SIZE" \
-        --lr "$LR"
+python3 "$TRAIN_SCRIPT" \
+    --data-dir "$DATADIR" \
+    --outdir "$OUTDIR" \
+    --epochs "$EPOCHS" \
+    --batch-size "$BATCH_SIZE" \
+    --lr "$LR"
 echo "----------------------------------------"
 echo ""
 

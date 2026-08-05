@@ -5,24 +5,38 @@ ARES — MNIST image classification.
 Trains a small convolutional network on MNIST and writes metrics, a confusion
 matrix and the trained weights to an output directory.
 
-Only torch and torchvision are imported — both ship in the pytorch/pytorch
-container image, so this runs with no pip install at job time.
+**torch is the only third-party dependency.** MNIST is read straight from the
+IDX files with the standard library, so Katana's `pytorch` module is enough on
+its own — there is nothing to pip install and no container to pull. The dataset
+is ~11 MB.
 
 Usage:
     python3 train_mnist.py --data-dir DATA --outdir OUT [--epochs 3] ...
 """
 
 import argparse
+import array
+import gzip
 import json
 import os
+import struct
 import sys
 import time
+import urllib.request
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
+from torch.utils.data import DataLoader, TensorDataset
+
+# The mirror torchvision itself uses. The original yann.lecun.com URLs now 404.
+MNIST_URL = "https://ossci-datasets.s3.amazonaws.com/mnist/"
+MNIST_FILES = {
+    "train_images": "train-images-idx3-ubyte.gz",
+    "train_labels": "train-labels-idx1-ubyte.gz",
+    "test_images": "t10k-images-idx3-ubyte.gz",
+    "test_labels": "t10k-labels-idx1-ubyte.gz",
+}
 
 # MNIST channel statistics — the standard values used throughout the literature.
 MNIST_MEAN = 0.1307
@@ -33,9 +47,9 @@ NUM_CLASSES = 10
 class MnistCNN(nn.Module):
     """Two convolutional blocks, then a small classifier head.
 
-    Deliberately ordinary. The point of this workflow is the container and HPC
-    plumbing around the model, not the model — swap this class for your own and
-    the rest of the pipeline keeps working.
+    Deliberately ordinary. The point of this workflow is the HPC plumbing around
+    the model, not the model — swap this class for your own and the rest of the
+    pipeline keeps working.
     """
 
     def __init__(self, num_classes=NUM_CLASSES):
@@ -87,44 +101,102 @@ class Logger:
         self.handle.close()
 
 
+def download_mnist(data_dir, log):
+    """Fetch any missing IDX files. ~11 MB total; a no-op once cached.
+
+    urllib honours HTTP_PROXY/HTTPS_PROXY from the environment, which is what
+    lets this work from behind a proxy. Run katana/prepare.sh on a login node
+    if the compute nodes have no outbound access.
+    """
+    os.makedirs(data_dir, exist_ok=True)
+    for filename in MNIST_FILES.values():
+        target = os.path.join(data_dir, filename)
+        if os.path.exists(target):
+            continue
+        log(f"  downloading {filename}")
+        # Download to a .part file so an interrupted transfer can't leave a
+        # truncated archive that later runs would try to parse.
+        partial = target + ".part"
+        try:
+            urllib.request.urlretrieve(MNIST_URL + filename, partial)
+            os.replace(partial, target)
+        except Exception:
+            if os.path.exists(partial):
+                os.remove(partial)
+            raise
+
+
+def read_idx(path):
+    """Parse an IDX file. Returns (dims, array('B') of the payload).
+
+    IDX header: 2 zero bytes, a type byte, then a byte giving the number of
+    dimensions, followed by that many big-endian uint32 dimension sizes.
+    """
+    with gzip.open(path, "rb") as handle:
+        magic, = struct.unpack(">I", handle.read(4))
+        ndim = magic & 0xFF
+        dims = struct.unpack(">" + "I" * ndim, handle.read(4 * ndim))
+        payload = handle.read()
+
+    expected = 1
+    for d in dims:
+        expected *= d
+    if len(payload) != expected:
+        raise ValueError(
+            f"{os.path.basename(path)}: expected {expected} bytes for dims "
+            f"{dims}, got {len(payload)} — the file is probably truncated. "
+            f"Delete it and re-run to download again."
+        )
+    return dims, array.array("B", payload)
+
+
+def to_tensors(image_path, label_path):
+    """Read one IDX image/label pair into normalised (images, labels) tensors."""
+    (n_images, rows, cols), image_bytes = read_idx(image_path)
+    (n_labels,), label_bytes = read_idx(label_path)
+    if n_images != n_labels:
+        raise ValueError(f"{n_images} images but {n_labels} labels")
+
+    images = torch.frombuffer(bytearray(image_bytes), dtype=torch.uint8)
+    images = images.reshape(n_images, 1, rows, cols).float().div_(255.0)
+    images = images.sub_(MNIST_MEAN).div_(MNIST_STD)
+
+    labels = torch.frombuffer(bytearray(label_bytes), dtype=torch.uint8).long()
+    return images, labels
+
+
+def load_data(data_dir, batch_size, workers, log):
+    log("Loading MNIST")
+    download_mnist(data_dir, log)
+
+    paths = {k: os.path.join(data_dir, v) for k, v in MNIST_FILES.items()}
+    train_x, train_y = to_tensors(paths["train_images"], paths["train_labels"])
+    test_x, test_y = to_tensors(paths["test_images"], paths["test_labels"])
+
+    pin = torch.cuda.is_available()
+    train_loader = DataLoader(
+        TensorDataset(train_x, train_y), batch_size=batch_size,
+        shuffle=True, num_workers=workers, pin_memory=pin,
+    )
+    test_loader = DataLoader(
+        TensorDataset(test_x, test_y), batch_size=max(batch_size, 512),
+        shuffle=False, num_workers=workers, pin_memory=pin,
+    )
+    return train_loader, test_loader
+
+
 def resolve_device(requested):
     if requested == "cpu":
         return torch.device("cpu")
     if requested == "cuda":
         if not torch.cuda.is_available():
             raise RuntimeError(
-                "--device cuda was requested but torch.cuda.is_available() is False. "
-                "Check that the job asked for a GPU (ngpus=1) and that the container "
-                "was launched with --nv."
+                "--device cuda was requested but torch.cuda.is_available() is "
+                "False. Check that the job asked for a GPU (ngpus=1) and that "
+                "the loaded pytorch module is a CUDA build."
             )
         return torch.device("cuda")
-    # auto
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def load_data(data_dir, batch_size, workers):
-    """Build the MNIST train/test loaders.
-
-    download=True is a no-op once the cache is populated, which is what lets this
-    run on a compute node with no outbound internet — provided prepare.sh has
-    already been run on the login node.
-    """
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((MNIST_MEAN,), (MNIST_STD,)),
-    ])
-    train_set = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
-    test_set = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
-
-    train_loader = DataLoader(
-        train_set, batch_size=batch_size, shuffle=True,
-        num_workers=workers, pin_memory=torch.cuda.is_available(),
-    )
-    test_loader = DataLoader(
-        test_set, batch_size=max(batch_size, 512), shuffle=False,
-        num_workers=workers, pin_memory=torch.cuda.is_available(),
-    )
-    return train_loader, test_loader
 
 
 def train_one_epoch(model, loader, optimiser, device):
@@ -166,7 +238,7 @@ def format_confusion(confusion):
     """Plain-text confusion matrix — rows are true labels, columns predicted."""
     width = max(6, len(str(int(confusion.max()))) + 2)
     lines = [
-        "Confusion matrix — rows are true labels, columns are predictions.",
+        "Confusion matrix - rows are true labels, columns are predictions.",
         "",
         " " * 6 + "".join(f"{c:>{width}}" for c in range(NUM_CLASSES)),
     ]
@@ -179,7 +251,7 @@ def format_confusion(confusion):
 def parse_args():
     parser = argparse.ArgumentParser(description="ARES MNIST image classification")
     parser.add_argument("--data-dir", required=True,
-                        help="Directory holding (or to receive) the MNIST download")
+                        help="Directory holding (or to receive) the MNIST IDX files")
     parser.add_argument("--outdir", required=True,
                         help="Directory for metrics, logs and the trained model")
     parser.add_argument("--epochs", type=int, default=3,
@@ -208,29 +280,32 @@ def main():
     try:
         torch.manual_seed(args.seed)
         device = resolve_device(args.device)
+        cuda_available = torch.cuda.is_available()
 
         log("========================================")
-        log("  ARES — MNIST image classification")
+        log("  ARES - MNIST image classification")
         log("========================================")
         log("")
-        log(f"PyTorch     : {torch.__version__}")
-        log(f"Device      : {device.type}")
+        log(f"PyTorch      : {torch.__version__}")
+        log(f"CUDA build   : {torch.version.cuda or 'no (CPU-only build)'}")
+        log(f"CUDA visible : {cuda_available}")
+        log(f"Device       : {device.type}")
         if device.type == "cuda":
-            log(f"GPU         : {torch.cuda.get_device_name(0)}")
+            log(f"GPU          : {torch.cuda.get_device_name(0)}")
         else:
-            log("GPU         : none visible — running on CPU")
-        log(f"Data dir    : {args.data_dir}")
-        log(f"Output dir  : {args.outdir}")
-        log(f"Epochs      : {args.epochs}")
-        log(f"Batch size  : {args.batch_size}")
+            log("GPU          : none in use - training on CPU")
+        log(f"Data dir     : {args.data_dir}")
+        log(f"Output dir   : {args.outdir}")
+        log(f"Epochs       : {args.epochs}")
+        log(f"Batch size   : {args.batch_size}")
         log(f"Learning rate: {args.lr}")
         log("")
 
         train_loader, test_loader = load_data(
-            args.data_dir, args.batch_size, args.workers
+            args.data_dir, args.batch_size, args.workers, log
         )
-        log(f"Train images: {len(train_loader.dataset)}")
-        log(f"Test images : {len(test_loader.dataset)}")
+        log(f"Train images : {len(train_loader.dataset)}")
+        log(f"Test images  : {len(test_loader.dataset)}")
         log("")
 
         model = MnistCNN().to(device)
@@ -269,11 +344,13 @@ def main():
 
         metrics = {
             "workflow": "ares-mnist-classification",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "status": "success",
             "device": device.type,
             "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None,
             "torch_version": torch.__version__,
+            "torch_cuda_build": torch.version.cuda,
+            "cuda_available": cuda_available,
             "parameters": parameters,
             "epochs": epochs,
             "final_test_accuracy": final_accuracy,

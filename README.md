@@ -30,7 +30,9 @@ ares/
 
 Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the five workflow detail pages share `assets/ares.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
 
-`hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for the containerised pattern: the PyTorch image is pulled from Docker Hub with Apptainer at job time and cached under `/srv/scratch/$USER/.ares/containers/`, so nothing has to be installed on Katana. Run its `katana/prepare.sh` on a login node first — it does the container pull and dataset download where the network is reliable, leaving the job able to run offline.
+`hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for how ARES provides an environment on Katana: **use a module**. It runs `module purge && module load pytorch/1.13.1` — nothing is installed, nothing large is downloaded, and the module name is a single editable variable at the top of the PBS script.
+
+`torch` is its only dependency. MNIST is parsed straight from the IDX files with the standard library rather than via `torchvision`, which keeps the module sufficient on its own and reduces the download to the 11 MB dataset. Run `katana/prepare.sh` on a login node first — it fetches that dataset where the network is reliable, leaving the job able to run offline.
 
 Keep `.nojekyll` in place. Without it, Pages runs Jekyll and would silently drop any future directory beginning with an underscore.
 

@@ -20,12 +20,12 @@
   <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / MNIST Image Classification</div>
   <span class="wf-domain imaging">Imaging</span>
   <h1 class="wf-title">MNIST Image Classification</h1>
-  <p class="wf-desc">Train a small convolutional network to classify handwritten digits. The PyTorch environment is pulled as a container at job time and cached in your scratch space, so there is nothing to install. No input data required — MNIST downloads itself. A worked example for your first GPU job on Katana.</p>
+  <p class="wf-desc">Train a small convolutional network to classify handwritten digits. The environment comes from Katana's PyTorch module, so there is nothing to install and no image to pull — the only download is the 11 MB dataset, which fetches itself. A worked example for your first GPU job on Katana.</p>
   <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/mnist-classification" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
   <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
-  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v1.0.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">PyTorch 2.4</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana GPU</div></div><div class="meta-cell"><div class="meta-label">GPU (default)</div><div class="meta-val">1x</div></div></div>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v1.1.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">PyTorch module</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana GPU</div></div><div class="meta-cell"><div class="meta-label">GPU (default)</div><div class="meta-val">1x</div></div></div>
   <h2>What to expect</h2>
-  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>No input data is needed — the MNIST dataset is downloaded automatically on first run.</li><li>Set your output directory to your scratch space.</li><li>Adjust epochs, batch size and learning rate if you want to experiment.</li><li>Under advanced options, confirm GPU is set to 1.</li><li>Set walltime, then click <strong>Submit</strong>. The first run also pulls a ~4 GB container image, so allow a few extra minutes.</li></ol>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>No input data is needed — the 11 MB MNIST dataset is downloaded automatically on first run.</li><li>Set your output directory to your scratch space.</li><li>Adjust epochs, batch size and learning rate if you want to experiment.</li><li>Under advanced options, confirm GPU is set to 1.</li><li>Set walltime, then click <strong>Submit</strong>. Training takes about a minute on a GPU, a few minutes on CPU.</li></ol>
   <h2>Parameters</h2>
   <table class="param-table">
     <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
@@ -37,12 +37,12 @@
     <tbody><tr><td><code>metrics.json</code></td><td>Final test accuracy, per-epoch loss and accuracy, device used, and wall-clock time</td></tr><tr><td><code>confusion_matrix.txt</code></td><td>Plain-text 10×10 matrix — rows are true labels, columns are predictions</td></tr><tr><td><code>training_log.txt</code></td><td>Full run log, including which GPU the job landed on</td></tr><tr><td><code>model.pt</code></td><td>Trained weights, loadable with <code>torch.load</code></td></tr></tbody>
   </table>
   <h2>Run it without OnDemand</h2>
-  <p class="wf-desc">The job scripts are in the repository and can be submitted directly from a Katana login node. Run <code>prepare.sh</code> once — it pulls the container and the dataset while you still have reliable internet, so the job itself does not need any.</p>
+  <p class="wf-desc">The job scripts are in the repository and can be submitted directly from a Katana login node. Run <code>prepare.sh</code> once — it fetches the dataset while you still have reliable internet, so the job itself needs none. The environment is <code>module load pytorch</code>; nothing is installed into your account.</p>
   <pre class="code-block">cd /srv/scratch/$USER
 curl -O https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/mnist-classification/katana/prepare.sh
 curl -O https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/mnist-classification/katana/ares_mnist_classification.pbs
 
-bash prepare.sh                        <span class="comment"># once — pulls the container and MNIST</span>
+bash prepare.sh                        <span class="comment"># once — fetches MNIST (~11 MB)</span>
 qsub ares_mnist_classification.pbs     <span class="comment"># submit the training job</span></pre>
 </div>
 <footer>
