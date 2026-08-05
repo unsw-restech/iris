@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molecular Docking (AutoDock Vina) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Molecular Docking</div>
+  <span class="wf-domain structural">Structural biology</span>
+  <h1 class="wf-title">Molecular Docking (AutoDock Vina)</h1>
+  <p class="wf-desc">Virtual screening of ligand libraries against a protein target. Vina scores and ranks binding poses within a defined search box, parallelising naturally across the library — a standard first step in structure-based drug discovery.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/molecular-docking" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v1.2.5</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">AutoDock Vina</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>receptor</code> at your prepared protein structure (PDBQT).</li><li>Point <code>ligands</code> at your ligand library directory.</li><li>Define the search box centre and size around the binding site.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>receptor</code></td><td><code>—</code></td><td>Prepared receptor structure in PDBQT format</td></tr><tr><td><code>ligands</code></td><td><code>—</code></td><td>Directory of ligands to screen, in PDBQT format</td></tr><tr><td><code>center</code></td><td><code>—</code></td><td>Search box centre as x,y,z in angstrom</td></tr><tr><td><code>size</code></td><td><code>20,20,20</code></td><td>Search box dimensions in angstrom</td></tr><tr><td><code>exhaustiveness</code></td><td><code>8</code></td><td>Search thoroughness — raise for better sampling, at a cost</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>16</code></td><td>Number of CPU cores — Vina scales well across the library</td></tr><tr><td><code>walltime</code></td><td><code>12:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>*_out.pdbqt</code></td><td>Predicted binding poses per ligand, best first</td></tr><tr><td><code>scores.csv</code></td><td>Binding affinities in kcal/mol, ranked across the library</td></tr><tr><td><code>top_hits.csv</code></td><td>Highest-scoring ligands, for follow-up</td></tr><tr><td><code>vina.log</code></td><td>Per-ligand run log</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load autodock-vina/1.2.5</code>. Nothing is installed into your home directory.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

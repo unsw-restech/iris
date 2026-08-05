@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFT Geometry Optimisation (ORCA) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / DFT Geometry Optimisation</div>
+  <span class="wf-domain chemistry">Chemistry</span>
+  <h1 class="wf-title">DFT Geometry Optimisation (ORCA)</h1>
+  <p class="wf-desc">Molecular density functional theory — geometry optimisation, frequency analysis and single-point energies for isolated molecules. For periodic solids rather than molecules, see the Quantum ESPRESSO workflow under Engineering.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/orca-dft" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v6.1.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">ORCA</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>input</code> at your ORCA input file, or supply a structure and let the job build one.</li><li>Choose the functional and basis set.</li><li>Select the calculation type — optimisation, frequencies or single point.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>input</code></td><td><code>—</code></td><td>ORCA input file (.inp), or a structure in XYZ format</td></tr><tr><td><code>method</code></td><td><code>B3LYP</code></td><td>Density functional — B3LYP, PBE0, wB97X-D</td></tr><tr><td><code>basis</code></td><td><code>def2-TZVP</code></td><td>Basis set</td></tr><tr><td><code>calculation</code></td><td><code>Opt Freq</code></td><td>Calculation type — Opt, Freq, SP, or a combination</td></tr><tr><td><code>charge_mult</code></td><td><code>0 1</code></td><td>Total charge and spin multiplicity</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>8</code></td><td>Number of CPU cores — ORCA parallelises over MPI</td></tr><tr><td><code>mem</code></td><td><code>32gb</code></td><td>Memory allocation — must exceed ORCA's %maxcore total</td></tr><tr><td><code>walltime</code></td><td><code>24:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>*.out</code></td><td>Full ORCA output — energies, geometry, frequencies</td></tr><tr><td><code>*.xyz</code></td><td>Optimised geometry</td></tr><tr><td><code>*.hess</code></td><td>Hessian, for thermochemistry and IR spectra</td></tr><tr><td><code>summary.txt</code></td><td>Final energy, convergence status and any imaginary frequencies</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load orca/6.1.0</code>. Nothing is installed into your home directory.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

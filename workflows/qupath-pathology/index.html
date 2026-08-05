@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Pathology (QuPath) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Digital Pathology</div>
+  <span class="wf-domain imaging">Imaging</span>
+  <h1 class="wf-title">Digital Pathology (QuPath)</h1>
+  <p class="wf-desc">Batch whole-slide image analysis with QuPath running headless — tissue detection, cell counting, stain deconvolution and positive-cell scoring across slide cohorts too large to process interactively on a workstation.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/qupath-pathology" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v0.5.1</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">QuPath</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>slide_dir</code> at your whole-slide images.</li><li>Supply a QuPath script defining the analysis to apply to every slide.</li><li>Set the pixel size or magnification the analysis assumes.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>slide_dir</code></td><td><code>—</code></td><td>Directory of whole-slide images (SVS, NDPI, TIFF)</td></tr><tr><td><code>script</code></td><td><code>—</code></td><td>QuPath Groovy script applied to each slide</td></tr><tr><td><code>project</code></td><td><code>—</code></td><td>Existing QuPath project to add slides to, if you have one</td></tr><tr><td><code>downsample</code></td><td><code>1.0</code></td><td>Downsample factor — raise it to speed up large cohorts</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>8</code></td><td>Number of CPU cores</td></tr><tr><td><code>mem</code></td><td><code>32gb</code></td><td>Memory allocation — whole-slide images are large</td></tr><tr><td><code>walltime</code></td><td><code>08:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>measurements.tsv</code></td><td>Per-object measurements exported by the script</td></tr><tr><td><code>annotations.geojson</code></td><td>Detected regions and annotations, for reimport</td></tr><tr><td><code>summary.csv</code></td><td>Per-slide object counts and area statistics</td></tr><tr><td><code>qupath.log</code></td><td>Run log, including any per-slide failures</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load qupath/0.5.1</code>. Nothing is installed into your home directory.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neutronics (OpenMC) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Neutronics</div>
+  <span class="wf-domain physics">Physics</span>
+  <h1 class="wf-title">Neutronics (OpenMC)</h1>
+  <p class="wf-desc">Monte Carlo neutron and photon transport for reactor physics, criticality safety and shielding. OpenMC computes eigenvalues, flux distributions and reaction rates using continuous-energy cross sections, and runs MPI-parallel across nodes.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/openmc-neutronics" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v0.15.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">OpenMC</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>model_dir</code> at your OpenMC model — geometry, materials and settings.</li><li>Set the cross-section data library location.</li><li>Choose the run mode — eigenvalue or fixed source.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>model_dir</code></td><td><code>—</code></td><td>Directory holding geometry.xml, materials.xml and settings.xml</td></tr><tr><td><code>cross_sections</code></td><td><code>—</code></td><td>Path to the cross-section data library (cross_sections.xml)</td></tr><tr><td><code>mode</code></td><td><code>eigenvalue</code></td><td>Run mode — eigenvalue or fixed source</td></tr><tr><td><code>particles</code></td><td><code>100000</code></td><td>Particles per batch</td></tr><tr><td><code>batches</code></td><td><code>150</code></td><td>Number of batches, including inactive ones</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>16</code></td><td>Number of CPU cores — OpenMC is MPI and OpenMP parallel</td></tr><tr><td><code>walltime</code></td><td><code>12:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>statepoint.*.h5</code></td><td>Full simulation state including all tally results</td></tr><tr><td><code>summary.h5</code></td><td>Geometry and material summary for post-processing</td></tr><tr><td><code>keff.txt</code></td><td>Converged multiplication factor with uncertainty</td></tr><tr><td><code>tallies.out</code></td><td>Human-readable tally results</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load openmc/0.15.0-mpi</code>. Nothing is installed into your home directory.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

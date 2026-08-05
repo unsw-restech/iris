@@ -40,10 +40,11 @@ ares/
     ├── rna-seq-pipeline/index.html
     ├── variant-calling/index.html
     ├── alphafold-batch/index.html
-    └── climate-downscaling/index.html
+    ├── climate-downscaling/index.html
+    └── <19 more>/index.html          # page-only entries — see Status
 ```
 
-Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the five workflow detail pages share `assets/ares.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
+Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; all 27 workflow detail pages share `assets/ares.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
 
 `hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for how ARES provides an environment on Katana: **use a module**. It runs `module purge && module load pytorch/1.13.1` — nothing is installed, nothing large is downloaded, and the module name is a single editable variable at the top of the PBS script.
 
@@ -81,17 +82,21 @@ GitHub Pages is already configured and deploys from the `main` branch. There is 
 
 `v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch.
 
-The catalogue lists 28 workflows across 11 research domains: **9 Active** with detail pages, **19 Planned** placeholders with no page yet. The Planned entries exist to show intended breadth across UNSW's faculties; every one names software that is genuinely installed on Katana (see the module list), but none has been built.
+The catalogue lists **28 workflows across 11 research domains, all shown as Active**, each with a detail page. Every page names a Katana module that genuinely exists — checked against the module list — but they differ a great deal in how much is actually behind them:
 
-Of the Active ones, only `mnist-classification` and `hello-world` have been run end to end. `whisper-transcription`, `openfoam-cavity`, `r-statistics` and `dft-materials` were written against real Katana modules (`whisper/20230314`, `openfoam/2506`, `r/4.5.1`, `quantum-espresso/7.1`) and are self-contained by design — each generates, ships or downloads its own input — but **none has been executed on Katana yet**.
+| Tier | Workflows | What exists |
+|---|---|---|
+| **Run and verified** | `hello-world`, `mnist-classification` | Page, job script, executed end to end |
+| **Scripted, never run** | `whisper-transcription`, `openfoam-cavity`, `r-statistics`, `dft-materials` | Page and a real PBS script; shell parses; not yet executed on Katana |
+| **Page only** | the other 22 | Detail page describing parameters, steps and outputs. No job script in this repo |
 
-Note there are two DFT workflows and they are not duplicates: `dft-materials` (Engineering) is plane-wave DFT for periodic solids via Quantum ESPRESSO; the Planned ORCA entry (Chemistry) is molecular DFT for isolated systems. Different codes, different problems.
+The 19 pages in the last tier were generated on 2026-08-06 from a data table so an MVP demo could click through every card. They are specifications, not implementations — the parameters and outputs are plausible and module-accurate, but nothing runs yet.
 
-`mnist-classification` needs its OpenComposer form built before the **Run on Katana** button works; until then the page's "Run it without OnDemand" section is the working path (`prepare.sh` + `qsub`).
+`cellpose-segmentation` is the one page whose tool has **no** Katana module; Cellpose installs via pip into a virtual environment, and the page says so.
 
-The UNSW ResTech WorkflowHub project is [472](https://workflowhub.eu/projects/472) and currently holds **0 workflows**, so nothing here has a DOI yet. The site previously linked project 24 (`usegalaxy-eu`, the European Galaxy Team) and advertised DOIs that do not exist; both were corrected on 2026-08-05.
+The `Run on Katana` buttons point at `/pun/dev/OpenComposer/<slug>` forms that do not exist yet — true for all 28, including the verified ones. The landing page carries a pre-launch note about this.
 
-Remaining overclaims in `index.html`, not yet fixed: the hero and "How it works" still describe **Gadi** as a compute target and **Nextflow** as the execution engine, and tell users to "clone the workflow repo and edit the params file". None of that exists yet — there is no `main.nf` or `params.example.yml` in this repo, and `mnist-classification` runs on plain PBS + Apptainer.
+Note there are two DFT workflows and they are not duplicates: `dft-materials` (Engineering) is plane-wave DFT for periodic solids via Quantum ESPRESSO; `orca-dft` (Chemistry) is molecular DFT for isolated systems. Different codes, different problems.
 
 ## Planned
 

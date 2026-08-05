@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Large-scale Optimisation (Gurobi) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Large-scale Optimisation</div>
+  <span class="wf-domain social">Social &amp; economic</span>
+  <h1 class="wf-title">Large-scale Optimisation (Gurobi)</h1>
+  <p class="wf-desc">Linear, quadratic and mixed-integer programming for scheduling, logistics, network design and resource allocation. Gurobi handles problems far beyond spreadsheet solvers, and parallelises branch-and-bound across cores.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/gurobi-optimisation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v12.0.1</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">Gurobi</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>model</code> at your problem file, or supply a Python script building it.</li><li>Set the optimality gap and time limit you'll accept.</li><li>Choose whether to write the full solution or just the objective.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>model</code></td><td><code>—</code></td><td>Model file (.lp or .mps), or a Python script using gurobipy</td></tr><tr><td><code>mip_gap</code></td><td><code>0.0001</code></td><td>Relative optimality gap to stop at</td></tr><tr><td><code>time_limit</code></td><td><code>3600</code></td><td>Solver time limit in seconds</td></tr><tr><td><code>threads</code></td><td><code>8</code></td><td>Solver threads — should match ncpus</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>8</code></td><td>Number of CPU cores</td></tr><tr><td><code>mem</code></td><td><code>32gb</code></td><td>Memory allocation — branch-and-bound trees can grow large</td></tr><tr><td><code>walltime</code></td><td><code>12:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>solution.sol</code></td><td>Variable values at the best solution found</td></tr><tr><td><code>summary.json</code></td><td>Objective value, optimality gap, node count and runtime</td></tr><tr><td><code>gurobi.log</code></td><td>Full solver log including the root relaxation</td></tr><tr><td><code>iis.ilp</code></td><td>Irreducible infeasible subsystem, if the model is infeasible</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load gurobi/12.0.1</code>. Nothing is installed into your home directory. Gurobi is licensed to UNSW; jobs check out a licence at run time.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Single-cell RNA-seq (10x) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Single-cell RNA-seq</div>
+  <span class="wf-domain genomics">Genomics</span>
+  <h1 class="wf-title">Single-cell RNA-seq (10x)</h1>
+  <p class="wf-desc">Process 10x Genomics single-cell RNA-seq runs with Cell Ranger — demultiplexing, alignment, barcode counting and feature-barcode matrices, ready for downstream analysis in Seurat or Scanpy. Handles multi-sample projects in one submission.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/scrnaseq-10x" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v9.0.1</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">Cell Ranger</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>fastq_dir</code> at your 10x FASTQ directory.</li><li>Select the reference transcriptome — human or mouse.</li><li>Set the expected number of recovered cells, or leave it to be estimated.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>fastq_dir</code></td><td><code>—</code></td><td>Directory of 10x FASTQ files</td></tr><tr><td><code>sample</code></td><td><code>—</code></td><td>Sample name prefix, as used by <code>cellranger count</code></td></tr><tr><td><code>reference</code></td><td><code>GRCh38-2024-A</code></td><td>Reference transcriptome — GRCh38 or mm10</td></tr><tr><td><code>expect_cells</code></td><td><code>auto</code></td><td>Expected recovered cells; auto-estimates when unset</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>16</code></td><td>Number of CPU cores</td></tr><tr><td><code>mem</code></td><td><code>128gb</code></td><td>Memory allocation — Cell Ranger is memory-hungry</td></tr><tr><td><code>walltime</code></td><td><code>24:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>filtered_feature_bc_matrix/</code></td><td>Cell-by-gene count matrix for downstream analysis</td></tr><tr><td><code>web_summary.html</code></td><td>QC report — cell calling, sequencing saturation, mapping rates</td></tr><tr><td><code>possorted_genome_bam.bam</code></td><td>Position-sorted alignments</td></tr><tr><td><code>metrics_summary.csv</code></td><td>Per-sample summary metrics</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load cellranger/9.0.1</code>. Nothing is installed into your home directory.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

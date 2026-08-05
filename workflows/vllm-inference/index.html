@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Batch Inference (vLLM) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / LLM Batch Inference</div>
+  <span class="wf-domain ai">Data &amp; AI</span>
+  <h1 class="wf-title">LLM Batch Inference (vLLM)</h1>
+  <p class="wf-desc">Run an open-weight language model over a corpus on UNSW GPUs — classification, extraction, summarisation or scoring at scale. Because inference happens on Katana, sensitive or ethics-restricted text never leaves the university, which commercial APIs cannot offer.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/vllm-inference" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v0.18.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">vLLM</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana GPU</div></div><div class="meta-cell"><div class="meta-label">GPU (default)</div><div class="meta-val">1x</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>input_file</code> at your prompts, one JSON record per line.</li><li>Choose the model to serve from a local weights directory.</li><li>Set the sampling parameters — temperature, maximum tokens.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>input_file</code></td><td><code>—</code></td><td>JSONL file of prompts to process</td></tr><tr><td><code>model</code></td><td><code>—</code></td><td>Path to model weights in your scratch space</td></tr><tr><td><code>max_tokens</code></td><td><code>512</code></td><td>Maximum tokens to generate per prompt</td></tr><tr><td><code>temperature</code></td><td><code>0.0</code></td><td>Sampling temperature — 0 is deterministic</td></tr><tr><td><code>batch_size</code></td><td><code>auto</code></td><td>Requests batched together; vLLM schedules automatically</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ngpus</code></td><td><code>1</code></td><td>Number of GPUs — larger models need more</td></tr><tr><td><code>walltime</code></td><td><code>12:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>completions.jsonl</code></td><td>Model output, one record per input prompt</td></tr><tr><td><code>metrics.json</code></td><td>Throughput, token counts and total runtime</td></tr><tr><td><code>failed.jsonl</code></td><td>Prompts that errored, for retrying</td></tr><tr><td><code>vllm.log</code></td><td>Server log including model load and batching behaviour</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load vllm/0.18.0</code>. Nothing is installed into your home directory. Model weights are not downloaded for you — stage them in your scratch space first.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

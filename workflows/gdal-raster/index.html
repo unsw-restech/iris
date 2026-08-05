@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raster Processing (GDAL) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Raster Processing</div>
+  <span class="wf-domain geospatial">Geospatial</span>
+  <h1 class="wf-title">Raster Processing (GDAL)</h1>
+  <p class="wf-desc">Batch processing of satellite and aerial imagery — reprojection, mosaicking, clipping, resampling and zonal statistics across large raster archives. The routine geospatial work that becomes impractical on a laptop once the archive passes a few hundred gigabytes.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/gdal-raster" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v3.13.1</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">GDAL</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>input_dir</code> at your raster files.</li><li>Set the target coordinate reference system.</li><li>Choose the operation — reproject, mosaic, clip or compute statistics.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>input_dir</code></td><td><code>—</code></td><td>Directory of input rasters (GeoTIFF, JP2, NetCDF)</td></tr><tr><td><code>operation</code></td><td><code>reproject</code></td><td>Operation — reproject, mosaic, clip, zonal_stats</td></tr><tr><td><code>target_crs</code></td><td><code>EPSG:7855</code></td><td>Target CRS — default is GDA2020 / MGA zone 55</td></tr><tr><td><code>resampling</code></td><td><code>bilinear</code></td><td>Resampling method — nearest, bilinear, cubic, average</td></tr><tr><td><code>vector_mask</code></td><td><code>—</code></td><td>Vector layer to clip or compute zonal statistics against</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>8</code></td><td>Number of CPU cores</td></tr><tr><td><code>walltime</code></td><td><code>06:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>*_reprojected.tif</code></td><td>Rasters in the target CRS</td></tr><tr><td><code>mosaic.tif</code></td><td>Merged mosaic, when mosaicking</td></tr><tr><td><code>zonal_stats.csv</code></td><td>Per-zone summary statistics</td></tr><tr><td><code>gdal.log</code></td><td>Full processing log with per-file timings</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load gdal/3.13.1</code>. Nothing is installed into your home directory.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>fMRI Preprocessing (fMRIPrep) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / fMRI Preprocessing</div>
+  <span class="wf-domain neuro">Neuroimaging</span>
+  <h1 class="wf-title">fMRI Preprocessing (fMRIPrep)</h1>
+  <p class="wf-desc">Standardised functional MRI preprocessing — motion correction, susceptibility distortion correction, coregistration, normalisation to a template and confound extraction. BIDS in, BIDS-derivatives out, with a visual QC report per subject.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/fmriprep" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v23.0.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">fMRIPrep</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>bids_dir</code> at your BIDS-formatted dataset.</li><li>Select the participants to process, or leave it to run the whole cohort.</li><li>Choose the output spaces — for example MNI152NLin2009cAsym and T1w.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>bids_dir</code></td><td><code>—</code></td><td>BIDS-formatted dataset root</td></tr><tr><td><code>participants</code></td><td><code>all</code></td><td>Participant labels to process</td></tr><tr><td><code>output_spaces</code></td><td><code>MNI152NLin2009cAsym</code></td><td>Template spaces to resample into</td></tr><tr><td><code>fs_license</code></td><td><code>—</code></td><td>FreeSurfer licence file — required by fMRIPrep</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>16</code></td><td>Number of CPU cores</td></tr><tr><td><code>mem</code></td><td><code>64gb</code></td><td>Memory allocation — fMRIPrep needs headroom per subject</td></tr><tr><td><code>walltime</code></td><td><code>48:00</code></td><td>Maximum walltime — allow several hours per subject</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>sub-*/func/</code></td><td>Preprocessed BOLD series in the requested output spaces</td></tr><tr><td><code>sub-*_desc-confounds_timeseries.tsv</code></td><td>Motion parameters and nuisance regressors</td></tr><tr><td><code>sub-*.html</code></td><td>Per-subject visual QC report</td></tr><tr><td><code>dataset_description.json</code></td><td>BIDS-derivatives metadata</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load neurodesk/fmriprep/23.0.0</code>. Nothing is installed into your home directory. Neurodesk provides the tool as a container image managed for you.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

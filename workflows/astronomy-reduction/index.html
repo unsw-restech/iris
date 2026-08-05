@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astronomy Data Reduction — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Astronomy Reduction</div>
+  <span class="wf-domain physics">Physics</span>
+  <h1 class="wf-title">Astronomy Data Reduction</h1>
+  <p class="wf-desc">Reduction of ESO instrument data with EsoReflex — bias and flat correction, wavelength calibration, extraction and quality control. Runs the standard ESO pipelines headless so whole observing runs can be reduced in one submission.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/astronomy-reduction" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v2023.03</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">EsoReflex</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">8</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>raw_dir</code> at your raw ESO frames and calibrations.</li><li>Select the instrument pipeline matching your data.</li><li>Set the calibration database location, or let the job resolve it.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime and resources if needed, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>raw_dir</code></td><td><code>—</code></td><td>Directory of raw ESO FITS frames</td></tr><tr><td><code>instrument</code></td><td><code>—</code></td><td>ESO instrument pipeline — e.g. XSHOOTER, MUSE, UVES</td></tr><tr><td><code>calib_dir</code></td><td><code>auto</code></td><td>Static calibration data; resolved automatically when unset</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>8</code></td><td>Number of CPU cores</td></tr><tr><td><code>mem</code></td><td><code>32gb</code></td><td>Memory allocation — raise it for integral field data</td></tr><tr><td><code>walltime</code></td><td><code>12:00</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>Output</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>*_reduced.fits</code></td><td>Science-ready reduced frames</td></tr><tr><td><code>qc_report.pdf</code></td><td>Quality control plots produced by the pipeline</td></tr><tr><td><code>calib/</code></td><td>Master bias, flat and wavelength solutions</td></tr><tr><td><code>reflex.log</code></td><td>Full pipeline log with recipe parameters</td></tr></tbody>
+  </table>
+  <h2>Environment</h2>
+  <p class="wf-desc">Runs on Katana with <code>module load esoreflex/20230313</code>. Nothing is installed into your home directory.</p>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>
