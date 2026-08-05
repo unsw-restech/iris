@@ -33,6 +33,10 @@ ares/
     │   ├── index.html
     │   ├── katana/ares_r_statistics.pbs
     │   └── src/fit_models.R
+    ├── dft-materials/                # Quantum ESPRESSO module example
+    │   ├── index.html
+    │   ├── katana/ares_dft_materials.pbs
+    │   └── inputs/si_scf.in
     ├── rna-seq-pipeline/index.html
     ├── variant-calling/index.html
     ├── alphafold-batch/index.html
@@ -77,9 +81,11 @@ GitHub Pages is already configured and deploys from the `main` branch. There is 
 
 `v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch.
 
-The catalogue lists 27 workflows across 11 research domains: **8 Active** with detail pages, **19 Planned** placeholders with no page yet. The Planned entries exist to show intended breadth across UNSW's faculties; every one names software that is genuinely installed on Katana (see the module list), but none has been built.
+The catalogue lists 28 workflows across 11 research domains: **9 Active** with detail pages, **19 Planned** placeholders with no page yet. The Planned entries exist to show intended breadth across UNSW's faculties; every one names software that is genuinely installed on Katana (see the module list), but none has been built.
 
-Of the Active ones, only `mnist-classification` and `hello-world` have been run end to end. `whisper-transcription`, `openfoam-cavity` and `r-statistics` were written against real Katana modules (`whisper/20230314`, `openfoam/2506`, `r/4.5.1`) and are self-contained by design — each generates or ships its own input — but **none has been executed on Katana yet**.
+Of the Active ones, only `mnist-classification` and `hello-world` have been run end to end. `whisper-transcription`, `openfoam-cavity`, `r-statistics` and `dft-materials` were written against real Katana modules (`whisper/20230314`, `openfoam/2506`, `r/4.5.1`, `quantum-espresso/7.1`) and are self-contained by design — each generates, ships or downloads its own input — but **none has been executed on Katana yet**.
+
+Note there are two DFT workflows and they are not duplicates: `dft-materials` (Engineering) is plane-wave DFT for periodic solids via Quantum ESPRESSO; the Planned ORCA entry (Chemistry) is molecular DFT for isolated systems. Different codes, different problems.
 
 `mnist-classification` needs its OpenComposer form built before the **Run on Katana** button works; until then the page's "Run it without OnDemand" section is the working path (`prepare.sh` + `qsub`).
 

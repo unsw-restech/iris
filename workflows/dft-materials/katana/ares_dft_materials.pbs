@@ -1,0 +1,189 @@
+#!/bin/bash
+#PBS -N ARES_dft_materials
+#PBS -l select=1:ncpus=8:mem=16gb
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o /srv/scratch/$USER/ares-dft-materials/ares_dft_materials.log
+
+# ═══════════════════════════════════════════════════════════════
+#  ARES — Materials DFT (Quantum ESPRESSO)
+#  Plane-wave density functional theory for periodic solids.
+#
+#  Runs a self-consistent field calculation on bulk silicon —
+#  the standard first calculation in solid-state DFT. Converges
+#  in seconds, and is a working starting point for your own
+#  structure, cutoffs and k-point mesh.
+#
+#  Nothing is installed: the environment comes from `module load`.
+#  The only download is a 74 KB pseudopotential.
+#
+#  Output goes to: /srv/scratch/$USER/ares-dft-materials/
+#  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
+# ═══════════════════════════════════════════════════════════════
+
+# ── Parameters (edit if needed) ────────────────────────────────
+OUTDIR="/srv/scratch/$USER/ares-dft-materials"
+INPUT=""                              # leave empty to use the bundled si_scf.in
+QE_MODULE="quantum-espresso/7.1"
+PSEUDO="Si.pz-vbc.UPF"
+PSEUDO_URL="https://pseudopotentials.quantum-espresso.org/upf_files"
+# ───────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+WORKFLOW="ares-dft-materials"
+VERSION="1.0.0"
+STATUS="failed"
+COMPUTE="katana"
+RAW_BASE="https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/dft-materials"
+
+echo "========================================"
+echo "  ARES Materials DFT — Katana"
+echo "========================================"
+echo ""
+echo "Timestamp : $(date)"
+echo "User      : $USER"
+echo "Job ID    : ${PBS_JOBID:-<interactive>}"
+echo "Hostname  : $(hostname)"
+echo ""
+
+mkdir -p "$OUTDIR"
+
+log_usage() {
+    local logdir="/srv/scratch/ares/usage-log"
+    if [ -d "$logdir" ]; then
+        echo "{\"workflow\":\"$WORKFLOW\",\"version\":\"$VERSION\",\"user\":\"$USER\",\"job_id\":\"${PBS_JOBID:-none}\",\"status\":\"$STATUS\",\"compute\":\"$COMPUTE\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$logdir/usage.jsonl"
+        echo "Usage logged to: $logdir/usage.jsonl"
+    else
+        echo "Warning: usage log directory not found at $logdir — skipping log."
+    fi
+}
+trap log_usage EXIT
+
+# ── Environment ─────────────────────────────────────────────────
+if ! type module > /dev/null 2>&1; then
+    for init in /etc/profile.d/modules.sh /usr/share/Modules/init/bash; do
+        # shellcheck disable=SC1090
+        [ -f "$init" ] && . "$init" && break
+    done
+fi
+if ! type module > /dev/null 2>&1; then
+    echo "ERROR: the 'module' command is not available on this node."
+    exit 1
+fi
+
+# Module scripts reference unset variables, which trips `set -u`.
+set +u
+module purge
+module load "$QE_MODULE"
+set -u
+
+if ! command -v pw.x > /dev/null 2>&1; then
+    echo "ERROR: '$QE_MODULE' loaded but pw.x is not on PATH."
+    echo "Run 'module avail quantum-espresso' and update QE_MODULE at the top."
+    exit 1
+fi
+echo "Loaded modules:"
+module list 2>&1 | sed 's/^/  /'
+echo "Solver: $(command -v pw.x)"
+echo ""
+
+# ── Input file ──────────────────────────────────────────────────
+if [ -z "$INPUT" ]; then
+    for candidate in \
+        "${PBS_O_WORKDIR:-$PWD}/si_scf.in" \
+        "${PBS_O_WORKDIR:-$PWD}/../inputs/si_scf.in" \
+        "${PBS_O_WORKDIR:-$PWD}/inputs/si_scf.in" \
+        "$OUTDIR/si_scf.in"
+    do
+        if [ -f "$candidate" ]; then
+            INPUT="$candidate"
+            break
+        fi
+    done
+fi
+
+if [ -z "$INPUT" ]; then
+    echo "si_scf.in not found nearby — fetching it from GitHub."
+    if curl -fsSL "$RAW_BASE/inputs/si_scf.in" -o "$OUTDIR/si_scf.in"; then
+        INPUT="$OUTDIR/si_scf.in"
+    else
+        echo "ERROR: could not find or download si_scf.in."
+        echo "  curl -O $RAW_BASE/inputs/si_scf.in"
+        exit 1
+    fi
+elif [ ! -f "$INPUT" ]; then
+    echo "ERROR: input file not found: $INPUT"
+    exit 1
+fi
+echo "Input: $INPUT"
+
+RUNDIR="$OUTDIR/run"
+mkdir -p "$RUNDIR/pseudo" "$RUNDIR/out"
+cp "$INPUT" "$RUNDIR/"
+cd "$RUNDIR"
+echo "Run directory: $RUNDIR"
+echo ""
+
+# ── Pseudopotential ─────────────────────────────────────────────
+# Prefer one the module already provides; otherwise fetch it (74 KB).
+if [ -f "pseudo/$PSEUDO" ]; then
+    echo "Pseudopotential already present: pseudo/$PSEUDO"
+elif [ -n "${ESPRESSO_PSEUDO:-}" ] && [ -f "$ESPRESSO_PSEUDO/$PSEUDO" ]; then
+    cp "$ESPRESSO_PSEUDO/$PSEUDO" "pseudo/"
+    echo "Pseudopotential from \$ESPRESSO_PSEUDO: $ESPRESSO_PSEUDO/$PSEUDO"
+else
+    echo "Fetching pseudopotential $PSEUDO (74 KB)"
+    if ! curl -fsSL "$PSEUDO_URL/$PSEUDO" -o "pseudo/$PSEUDO.part"; then
+        rm -f "pseudo/$PSEUDO.part"
+        echo "ERROR: could not download $PSEUDO."
+        echo "If this node has no outbound internet, fetch it on a login node:"
+        echo "  mkdir -p $RUNDIR/pseudo"
+        echo "  curl -o $RUNDIR/pseudo/$PSEUDO $PSEUDO_URL/$PSEUDO"
+        exit 1
+    fi
+    mv "pseudo/$PSEUDO.part" "pseudo/$PSEUDO"
+    echo "Cached at: $RUNDIR/pseudo/$PSEUDO"
+fi
+echo ""
+
+# ── Run ─────────────────────────────────────────────────────────
+NCPUS="${NCPUS:-${PBS_NCPUS:-1}}"
+BASENAME="$(basename "${INPUT%.*}")"
+LOGFILE="$RUNDIR/$BASENAME.out"
+
+echo "----------------------------------------"
+if command -v mpirun > /dev/null 2>&1 && [ "$NCPUS" -gt 1 ]; then
+    echo "Running pw.x on $NCPUS cores"
+    mpirun -np "$NCPUS" pw.x -in "$(basename "$INPUT")" > "$LOGFILE" 2>&1 || true
+else
+    echo "Running pw.x serially"
+    pw.x -in "$(basename "$INPUT")" > "$LOGFILE" 2>&1 || true
+fi
+echo "----------------------------------------"
+echo ""
+
+# ── Results ─────────────────────────────────────────────────────
+if grep -q 'JOB DONE' "$LOGFILE"; then
+    echo "Quantum ESPRESSO finished."
+else
+    echo "ERROR: pw.x did not report JOB DONE. Last 30 lines:"
+    tail -30 "$LOGFILE" | sed 's/^/  /'
+    exit 1
+fi
+echo ""
+
+echo "Key results:"
+grep -E '^!\s+total energy' "$LOGFILE" | tail -1 | sed 's/^/  /'
+grep -E 'the Fermi energy is|highest occupied' "$LOGFILE" | tail -1 | sed 's/^/  /' || true
+grep -E 'Total force' "$LOGFILE" | tail -1 | sed 's/^/  /' || true
+grep -E 'convergence has been achieved' "$LOGFILE" | tail -1 | sed 's/^/  /' || true
+echo ""
+
+STATUS="success"
+echo "Full output: $LOGFILE"
+echo "Results in:  $RUNDIR"
+echo ""
+echo "========================================"
+echo "  ARES Materials DFT — Complete"
+echo "========================================"
