@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Transcription (Whisper) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Audio Transcription</div>
+  <span class="wf-domain ai">Data &amp; AI</span>
+  <h1 class="wf-title">Audio Transcription (Whisper)</h1>
+  <p class="wf-desc">Transcribe interviews, lectures, oral histories or fieldwork recordings to text on a GPU. Your audio never leaves UNSW — no commercial transcription service is involved, which matters for ethics-approved and sensitive recordings. If you don't supply a file, the job synthesises a short sample and transcribes that, so you can try it with no input data.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/whisper-transcription" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v1.0.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">Whisper module</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana GPU</div></div><div class="meta-cell"><div class="meta-label">GPU (default)</div><div class="meta-val">1x</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>Point <code>audio</code> at a file in your scratch space — or leave it empty to transcribe a synthesised sample.</li><li>Choose a model size. <code>base</code> is a good default; <code>medium</code> and <code>large</code> are more accurate but slower.</li><li>Set the language, or leave it as <code>en</code>.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime to suit the recording length, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>audio</code></td><td><code>—</code></td><td>Path to your audio or video file — leave empty to synthesise a sample</td></tr><tr><td><code>model</code></td><td><code>base</code></td><td>Model size — tiny, base, small, medium, large</td></tr><tr><td><code>language</code></td><td><code>en</code></td><td>Spoken language, as an ISO code</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>4</code></td><td>Number of CPU cores</td></tr><tr><td><code>mem</code></td><td><code>16gb</code></td><td>Memory allocation — increase for the large model</td></tr><tr><td><code>ngpus</code></td><td><code>1</code></td><td>Number of GPUs — set to 0 for CPU, but expect it to be much slower</td></tr><tr><td><code>walltime</code></td><td><code>00:30</code></td><td>Maximum walltime — roughly real-time on CPU, far faster on GPU</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>File</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>&lt;name&gt;.txt</code></td><td>Plain-text transcript</td></tr><tr><td><code>&lt;name&gt;.srt</code></td><td>Subtitles with timestamps, for video</td></tr><tr><td><code>&lt;name&gt;.vtt</code></td><td>WebVTT captions</td></tr><tr><td><code>&lt;name&gt;.json</code></td><td>Full output including per-segment timings and confidence</td></tr></tbody>
+  </table>
+  <h2>Run it without OnDemand</h2>
+  <p class="wf-desc">The job script is in the repository and can be submitted directly from a Katana login node. The environment is <code>module load whisper</code>; nothing is installed into your account.</p>
+  <pre class="code-block">cd /srv/scratch/$USER
+curl -O https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/whisper-transcription/katana/ares_whisper_transcription.pbs
+
+qsub ares_whisper_transcription.pbs    <span class="comment"># transcribes a synthesised sample</span></pre>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

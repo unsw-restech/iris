@@ -18,11 +18,21 @@ ares/
     │   ├── index.html
     │   ├── katana/ares_hello_world.pbs
     │   └── local/run_local.sh, run_local.ps1
-    ├── mnist-classification/         # Containerised PyTorch example
+    ├── mnist-classification/         # PyTorch module example
     │   ├── index.html
     │   ├── katana/ares_mnist_classification.pbs, prepare.sh
     │   ├── src/train_mnist.py
     │   └── local/run_local.sh, run_local.ps1
+    ├── whisper-transcription/        # Whisper module example
+    │   ├── index.html
+    │   └── katana/ares_whisper_transcription.pbs
+    ├── openfoam-cavity/              # OpenFOAM module example
+    │   ├── index.html
+    │   └── katana/ares_openfoam_cavity.pbs
+    ├── r-statistics/                 # R module example
+    │   ├── index.html
+    │   ├── katana/ares_r_statistics.pbs
+    │   └── src/fit_models.R
     ├── rna-seq-pipeline/index.html
     ├── variant-calling/index.html
     ├── alphafold-batch/index.html
@@ -67,7 +77,9 @@ GitHub Pages is already configured and deploys from the `main` branch. There is 
 
 `v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch.
 
-Two catalogue entries — Cellpose and single-cell RNA-seq — are shown as *Planned* and have no detail page yet.
+The catalogue lists 27 workflows across 11 research domains: **8 Active** with detail pages, **19 Planned** placeholders with no page yet. The Planned entries exist to show intended breadth across UNSW's faculties; every one names software that is genuinely installed on Katana (see the module list), but none has been built.
+
+Of the Active ones, only `mnist-classification` and `hello-world` have been run end to end. `whisper-transcription`, `openfoam-cavity` and `r-statistics` were written against real Katana modules (`whisper/20230314`, `openfoam/2506`, `r/4.5.1`) and are self-contained by design — each generates or ships its own input — but **none has been executed on Katana yet**.
 
 `mnist-classification` needs its OpenComposer form built before the **Run on Katana** button works; until then the page's "Run it without OnDemand" section is the working path (`prepare.sh` + `qsub`).
 

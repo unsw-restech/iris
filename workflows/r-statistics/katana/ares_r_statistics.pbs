@@ -1,0 +1,131 @@
+#!/bin/bash
+#PBS -N ARES_r_statistics
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=00:15:00
+#PBS -j oe
+#PBS -o /srv/scratch/$USER/ares-r-statistics/ares_r_statistics.log
+
+# ═══════════════════════════════════════════════════════════════
+#  ARES — Statistical modelling in R
+#  Fits and compares linear models, writing plain-text tables.
+#
+#  Base R only — no CRAN packages — so `module load r` is the
+#  whole environment and nothing is installed into your home
+#  directory. The default dataset ships with R, so the job runs
+#  with no input data.
+#
+#  Output goes to: /srv/scratch/$USER/ares-r-statistics/
+#  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
+# ═══════════════════════════════════════════════════════════════
+
+# ── Parameters (edit if needed) ────────────────────────────────
+OUTDIR="/srv/scratch/$USER/ares-r-statistics"
+DATASET="swiss"                       # any numeric dataset built into R
+RESPONSE="Fertility"                  # the variable being modelled
+CSV=""                                # set to your own .csv to use real data
+R_MODULE="r/4.5.1"
+# ───────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+WORKFLOW="ares-r-statistics"
+VERSION="1.0.0"
+STATUS="failed"
+COMPUTE="katana"
+RAW_BASE="https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/r-statistics"
+
+echo "========================================"
+echo "  ARES R statistics — Katana"
+echo "========================================"
+echo ""
+echo "Timestamp : $(date)"
+echo "User      : $USER"
+echo "Job ID    : ${PBS_JOBID:-<interactive>}"
+echo "Hostname  : $(hostname)"
+echo ""
+
+mkdir -p "$OUTDIR"
+
+log_usage() {
+    local logdir="/srv/scratch/ares/usage-log"
+    if [ -d "$logdir" ]; then
+        echo "{\"workflow\":\"$WORKFLOW\",\"version\":\"$VERSION\",\"user\":\"$USER\",\"job_id\":\"${PBS_JOBID:-none}\",\"status\":\"$STATUS\",\"compute\":\"$COMPUTE\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$logdir/usage.jsonl"
+        echo "Usage logged to: $logdir/usage.jsonl"
+    else
+        echo "Warning: usage log directory not found at $logdir — skipping log."
+    fi
+}
+trap log_usage EXIT
+
+# ── Environment ─────────────────────────────────────────────────
+if ! type module > /dev/null 2>&1; then
+    for init in /etc/profile.d/modules.sh /usr/share/Modules/init/bash; do
+        # shellcheck disable=SC1090
+        [ -f "$init" ] && . "$init" && break
+    done
+fi
+if ! type module > /dev/null 2>&1; then
+    echo "ERROR: the 'module' command is not available on this node."
+    exit 1
+fi
+
+# Module scripts reference unset variables, which trips `set -u`.
+set +u
+module purge
+module load "$R_MODULE"
+set -u
+
+if ! command -v Rscript > /dev/null 2>&1; then
+    echo "ERROR: '$R_MODULE' loaded but Rscript is not on PATH."
+    echo "Run 'module avail r' and update R_MODULE at the top of this script."
+    exit 1
+fi
+echo "Loaded modules:"
+module list 2>&1 | sed 's/^/  /'
+Rscript --version 2>&1 | sed 's/^/  /'
+echo ""
+
+# ── Analysis script ─────────────────────────────────────────────
+R_SCRIPT=""
+for candidate in \
+    "${PBS_O_WORKDIR:-$PWD}/fit_models.R" \
+    "${PBS_O_WORKDIR:-$PWD}/../src/fit_models.R" \
+    "${PBS_O_WORKDIR:-$PWD}/src/fit_models.R" \
+    "$OUTDIR/fit_models.R"
+do
+    if [ -f "$candidate" ]; then
+        R_SCRIPT="$candidate"
+        break
+    fi
+done
+
+if [ -z "$R_SCRIPT" ]; then
+    echo "fit_models.R not found nearby — fetching it from GitHub."
+    if curl -fsSL "$RAW_BASE/src/fit_models.R" -o "$OUTDIR/fit_models.R"; then
+        R_SCRIPT="$OUTDIR/fit_models.R"
+    else
+        echo "ERROR: could not find or download fit_models.R."
+        echo "  curl -O $RAW_BASE/src/fit_models.R"
+        exit 1
+    fi
+fi
+echo "Analysis script: $R_SCRIPT"
+echo ""
+
+# ── Run ─────────────────────────────────────────────────────────
+ARGS=(--outdir "$OUTDIR" --data "$DATASET" --response "$RESPONSE")
+if [ -n "$CSV" ]; then
+    ARGS+=(--csv "$CSV")
+fi
+
+echo "----------------------------------------"
+Rscript "$R_SCRIPT" "${ARGS[@]}"
+echo "----------------------------------------"
+echo ""
+
+STATUS="success"
+echo "Results in: $OUTDIR"
+echo ""
+echo "========================================"
+echo "  ARES R statistics — Complete"
+echo "========================================"

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statistical Modelling (R) — ARES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/ares.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">A</div>
+    <span class="nav-logo-text">ARES</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Statistical Modelling</div>
+  <span class="wf-domain social">Social &amp; economic</span>
+  <h1 class="wf-title">Statistical Modelling (R)</h1>
+  <p class="wf-desc">Fit and compare linear models, with coefficient tables, an analysis of variance and a correlation matrix written as plain text. Base R only — no CRAN packages — so nothing is installed into your home directory. The default dataset ships with R, so it runs with no input data; point it at your own CSV when you're ready.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/r-statistics" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Version</div><div class="meta-val">v1.0.0</div></div><div class="meta-cell"><div class="meta-label">Engine</div><div class="meta-val">R module</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">Katana</div></div><div class="meta-cell"><div class="meta-label">CPUs (default)</div><div class="meta-val">2</div></div></div>
+  <h2>What to expect</h2>
+  <ol class="steps"><li>Click <strong>Run on Katana</strong> and log in with your zID.</li><li>No input data is needed — the built-in <code>swiss</code> dataset is used unless you set <code>csv</code>.</li><li>To use your own data, set <code>csv</code> to a file in your scratch space; numeric columns are modelled.</li><li>Set <code>response</code> to the variable you want to explain.</li><li>Set your output directory to your scratch space.</li><li>Adjust walltime if your dataset is large, then click <strong>Submit</strong>.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>csv</code></td><td><code>—</code></td><td>Path to your own CSV — leave empty to use a built-in dataset</td></tr><tr><td><code>dataset</code></td><td><code>swiss</code></td><td>Built-in R dataset to use when no CSV is given</td></tr><tr><td><code>response</code></td><td><code>Fertility</code></td><td>The variable being modelled; all other numeric columns become predictors</td></tr><tr><td><code>outdir</code></td><td><code>—</code></td><td>Output directory — use your scratch space</td></tr><tr><td><code>ncpus</code></td><td><code>2</code></td><td>Number of CPU cores</td></tr><tr><td><code>mem</code></td><td><code>8gb</code></td><td>Memory allocation — raise it for large datasets</td></tr><tr><td><code>walltime</code></td><td><code>00:15</code></td><td>Maximum walltime (hours:minutes)</td></tr></tbody>
+  </table>
+  <h2>Outputs</h2>
+  <table class="param-table">
+    <thead><tr><th>File</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>model_summary.txt</code></td><td>Full and reduced model summaries — coefficients, standard errors, R²</td></tr><tr><td><code>model_comparison.txt</code></td><td>Analysis of variance between the two models, plus AIC for each</td></tr><tr><td><code>coefficients.csv</code></td><td>Coefficient table as CSV, for importing into a paper or report</td></tr><tr><td><code>correlations.txt</code></td><td>Correlation matrix across all numeric variables</td></tr><tr><td><code>metrics.json</code></td><td>R², adjusted R², AIC and the comparison p-value in machine-readable form</td></tr></tbody>
+  </table>
+  <h2>Run it without OnDemand</h2>
+  <p class="wf-desc">The job script is in the repository and can be submitted directly from a Katana login node. The environment is <code>module load r</code>; nothing is installed into your account.</p>
+  <pre class="code-block">cd /srv/scratch/$USER
+curl -O https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/r-statistics/katana/ares_r_statistics.pbs
+
+qsub ares_r_statistics.pbs             <span class="comment"># fetches fit_models.R if needed</span></pre>
+</div>
+<footer>
+  <span>ARES · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

@@ -1,0 +1,142 @@
+#!/bin/bash
+#PBS -N ARES_whisper_transcription
+#PBS -l select=1:ncpus=4:mem=16gb:ngpus=1
+#PBS -l walltime=00:30:00
+#PBS -j oe
+#PBS -o /srv/scratch/$USER/ares-whisper-transcription/ares_whisper_transcription.log
+
+# ═══════════════════════════════════════════════════════════════
+#  ARES — Audio transcription with Whisper
+#  Transcribes an audio file to text using Katana's whisper module.
+#
+#  If you don't supply audio, the job synthesises a short sample
+#  with espeak-ng and transcribes that — so it runs end to end
+#  with no input data, which makes it a safe first job.
+#
+#  Nothing is installed: the environment comes from `module load`.
+#
+#  Output goes to: /srv/scratch/$USER/ares-whisper-transcription/
+#  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
+# ═══════════════════════════════════════════════════════════════
+
+# ── Parameters (edit if needed) ────────────────────────────────
+OUTDIR="/srv/scratch/$USER/ares-whisper-transcription"
+AUDIO=""                              # leave empty to synthesise a sample
+MODEL="base"                          # tiny | base | small | medium | large
+LANGUAGE="en"
+WHISPER_MODULE="whisper/20230314"
+ESPEAK_MODULE="espeak-ng/1.52.0"      # only used when AUDIO is empty
+# ───────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+WORKFLOW="ares-whisper-transcription"
+VERSION="1.0.0"
+STATUS="failed"
+COMPUTE="katana"
+
+echo "========================================"
+echo "  ARES Whisper transcription — Katana"
+echo "========================================"
+echo ""
+echo "Timestamp : $(date)"
+echo "User      : $USER"
+echo "Job ID    : ${PBS_JOBID:-<interactive>}"
+echo "Hostname  : $(hostname)"
+echo ""
+
+mkdir -p "$OUTDIR"
+
+log_usage() {
+    local logdir="/srv/scratch/ares/usage-log"
+    if [ -d "$logdir" ]; then
+        echo "{\"workflow\":\"$WORKFLOW\",\"version\":\"$VERSION\",\"user\":\"$USER\",\"job_id\":\"${PBS_JOBID:-none}\",\"status\":\"$STATUS\",\"compute\":\"$COMPUTE\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$logdir/usage.jsonl"
+        echo "Usage logged to: $logdir/usage.jsonl"
+    else
+        echo "Warning: usage log directory not found at $logdir — skipping log."
+    fi
+}
+trap log_usage EXIT
+
+if command -v nvidia-smi > /dev/null 2>&1 && nvidia-smi > /dev/null 2>&1; then
+    COMPUTE="katana-gpu"
+    echo "GPU detected:"
+    nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+else
+    echo "No GPU visible — Whisper will run on CPU (much slower)."
+fi
+echo ""
+
+# ── Environment ─────────────────────────────────────────────────
+# `module` is a shell function and may not exist in a batch shell.
+if ! type module > /dev/null 2>&1; then
+    for init in /etc/profile.d/modules.sh /usr/share/Modules/init/bash; do
+        # shellcheck disable=SC1090
+        [ -f "$init" ] && . "$init" && break
+    done
+fi
+if ! type module > /dev/null 2>&1; then
+    echo "ERROR: the 'module' command is not available on this node."
+    exit 1
+fi
+
+# Module scripts reference unset variables, which trips `set -u`.
+set +u
+module purge
+module load "$WHISPER_MODULE"
+set -u
+
+if ! command -v whisper > /dev/null 2>&1; then
+    echo "ERROR: '$WHISPER_MODULE' loaded but 'whisper' is not on PATH."
+    echo "Run 'module avail whisper' and update WHISPER_MODULE at the top."
+    exit 1
+fi
+echo "Loaded modules:"
+module list 2>&1 | sed 's/^/  /'
+echo ""
+
+# ── Input audio ─────────────────────────────────────────────────
+if [ -z "$AUDIO" ]; then
+    echo "No AUDIO set — synthesising a sample with $ESPEAK_MODULE."
+    AUDIO="$OUTDIR/sample.wav"
+    set +u
+    module load "$ESPEAK_MODULE"
+    set -u
+    if ! command -v espeak-ng > /dev/null 2>&1; then
+        echo "ERROR: could not load espeak-ng to make a sample."
+        echo "Set AUDIO at the top of this script to your own file instead."
+        exit 1
+    fi
+    espeak-ng -w "$AUDIO" \
+        "This is a test recording for the ARES workflow catalogue at UNSW. \
+         Research technology services runs the Katana high performance computing cluster."
+    echo "Sample written to: $AUDIO"
+elif [ ! -f "$AUDIO" ]; then
+    echo "ERROR: audio file not found: $AUDIO"
+    exit 1
+fi
+echo ""
+
+# ── Transcribe ──────────────────────────────────────────────────
+echo "----------------------------------------"
+whisper "$AUDIO" \
+    --model "$MODEL" \
+    --language "$LANGUAGE" \
+    --output_dir "$OUTDIR" \
+    --output_format all
+echo "----------------------------------------"
+echo ""
+
+TRANSCRIPT="$OUTDIR/$(basename "${AUDIO%.*}").txt"
+if [ -f "$TRANSCRIPT" ]; then
+    echo "Transcript:"
+    sed 's/^/  /' "$TRANSCRIPT"
+    echo ""
+fi
+
+STATUS="success"
+echo "Results in: $OUTDIR"
+echo ""
+echo "========================================"
+echo "  ARES Whisper transcription — Complete"
+echo "========================================"
