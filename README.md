@@ -94,7 +94,7 @@ The 19 pages in the last tier were generated on 2026-08-06 from a data table so 
 
 `cellpose-segmentation` is the one page whose tool has **no** Katana module; Cellpose installs via pip into a virtual environment, and the page says so.
 
-The `Run on Katana` buttons point at `/pun/dev/OpenComposer/<slug>` forms that do not exist yet — true for all 28, including the verified ones. The landing page carries a pre-launch note about this.
+The `Run on Katana` buttons point at `/pun/dev/OpenComposer/<slug>`. OpenComposer form definitions now exist for all of them — kept outside this repo, since they are deployed to the OnDemand host rather than published here — but only three are confirmed installed and opening: hello-world, whisper-transcription and mnist-classification. The landing page carries a pre-launch note about the `/pun/dev/` instance.
 
 Note there are two DFT workflows and they are not duplicates: `dft-materials` (Engineering) is plane-wave DFT for periodic solids via Quantum ESPRESSO; `orca-dft` (Chemistry) is molecular DFT for isolated systems. Different codes, different problems.
 
