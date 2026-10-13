@@ -10,7 +10,7 @@
 #  A minimal test to confirm your IRIS + Katana setup is working.
 #
 #  Output goes to: /srv/scratch/$USER/iris-hello-world/
-#  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
+#  Usage log:      /srv/scratch/iris/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
@@ -57,7 +57,7 @@ echo "Result written to: $RESULT"
 echo ""
 
 # ── Usage logging ───────────────────────────────────────────────
-LOGDIR="/srv/scratch/ares/usage-log"
+LOGDIR="/srv/scratch/iris/usage-log"
 LOGFILE="$LOGDIR/usage.jsonl"
 
 if [ -d "$LOGDIR" ]; then
@@ -69,7 +69,7 @@ EOF
     echo "Usage logged to: $LOGFILE"
 else
     echo "Warning: usage log directory not found at $LOGDIR — skipping log."
-    echo "(Ask ResTech to create /srv/scratch/ares/usage-log/)"
+    echo "(Ask ResTech to create /srv/scratch/iris/usage-log/)"
 fi
 
 echo ""

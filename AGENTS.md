@@ -8,11 +8,7 @@ The platform is **IRIS — the ResTech AI Imaging Gateway**. It was called ARES 
 
 The GitHub repo was renamed `PatrickTung/ares` → `PatrickTung/iris` the same day, which moved the site to `patricktung.github.io/iris/`. The old `/ares/` Pages address does not redirect.
 
-The old name survives in three places, each naming something outside the working tree. Don't rename these in the files until the thing itself is renamed, or they break:
-
-- the deployed OpenComposer app `OpenComposer/ARES` that the `hello-world` page links
-- the shared usage-log directory `/srv/scratch/ares/usage-log` on Katana
-- the parent directory `ARES_github_pages\`
+The old name survives only in the parent directory `ARES_github_pages\`, which is outside the repo. The PBS scripts log usage to `/srv/scratch/iris/usage-log`; that directory has never existed under either name, so no usage has been logged yet.
 
 ## Layout
 
@@ -46,7 +42,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazi
 
 `..\katana-forms-and-manifests\<slug>\` holds `form.yml.erb` + `manifest.yml` for every workflow, one directory per site slug — **29 of each, a strict 1:1 match with `iris\workflows\`**. Keep that match: the directory name becomes the OnDemand URL segment, which is what each page's "Run on Katana" button points at.
 
-**One exception, unresolved:** `hello-world`'s page links `OpenComposer/ARES`, not `OpenComposer/hello-world`, so its form directory name and its URL disagree. Either the app is deployed as `ARES` (and the directory should be renamed) or the page URL is wrong. Every other page matches its directory exactly. Don't "fix" either side until Patrick confirms which is deployed.
+**One exception:** `hello-world`'s page links `OpenComposer/IRIS`, not `OpenComposer/hello-world`. That is correct — the app is deployed under the name `IRIS` (confirmed by Patrick, 2026-10-13; it was `ARES` before the rename). So the local form directory `hello-world` is copied to the host as `IRIS`. Every other page matches its directory exactly.
 
 These are **not** in the git repo and are not published. They get copied to the OnDemand host's OpenComposer `apps` directory.
 

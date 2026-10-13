@@ -15,7 +15,7 @@
 #  Nothing is installed: the environment comes from `module load`.
 #
 #  Output goes to: /srv/scratch/$USER/iris-openfoam-cavity/
-#  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
+#  Usage log:      /srv/scratch/iris/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
@@ -45,7 +45,7 @@ echo ""
 mkdir -p "$OUTDIR"
 
 log_usage() {
-    local logdir="/srv/scratch/ares/usage-log"
+    local logdir="/srv/scratch/iris/usage-log"
     if [ -d "$logdir" ]; then
         echo "{\"workflow\":\"$WORKFLOW\",\"version\":\"$VERSION\",\"user\":\"$USER\",\"job_id\":\"${PBS_JOBID:-none}\",\"status\":\"$STATUS\",\"compute\":\"$COMPUTE\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$logdir/usage.jsonl"
         echo "Usage logged to: $logdir/usage.jsonl"

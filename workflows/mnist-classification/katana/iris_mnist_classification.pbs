@@ -18,7 +18,7 @@
 #  nodes have no outbound internet; it pre-fetches the dataset.
 #
 #  Output goes to: /srv/scratch/$USER/iris-mnist-classification/
-#  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
+#  Usage log:      /srv/scratch/iris/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
@@ -53,14 +53,14 @@ mkdir -p "$OUTDIR" "$DATADIR"
 
 # ── Usage logging on exit, success or failure ───────────────────
 log_usage() {
-    local logdir="/srv/scratch/ares/usage-log"
+    local logdir="/srv/scratch/iris/usage-log"
     local logfile="$logdir/usage.jsonl"
     if [ -d "$logdir" ]; then
         echo "{\"workflow\":\"$WORKFLOW\",\"version\":\"$VERSION\",\"user\":\"$USER\",\"job_id\":\"${PBS_JOBID:-none}\",\"status\":\"$STATUS\",\"compute\":\"$COMPUTE\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$logfile"
         echo "Usage logged to: $logfile"
     else
         echo "Warning: usage log directory not found at $logdir — skipping log."
-        echo "(Ask ResTech to create /srv/scratch/ares/usage-log/)"
+        echo "(Ask ResTech to create /srv/scratch/iris/usage-log/)"
     fi
 }
 trap log_usage EXIT
