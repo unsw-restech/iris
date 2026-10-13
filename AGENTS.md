@@ -56,8 +56,6 @@ Three traps, all of which cost real time:
 
 To regenerate en masse, the throwaway generator lives in the session scratchpad (`gen_forms.py` + `gen_forms_data.py`), not the repo. Hand-editing a single form is fine and expected.
 
-**Agent files may live inside `ares\`.** `AGENTS.md`, `AGENTS.md`, `docs\agents\`, `GLOSSARY.md`, `docs\adr\`, work plans, notes and scratch files are all fine in the repo — Patrick lifted the old "no the coding agent files in `ares\` at all" rule on 2026-10-13. Two things still hold: the repo is public and a push to `main` serves every committed file on the live site, so nothing sensitive goes in; and a file being in the working tree is not a reason to commit it — check `git status` before staging and commit only what was asked for.
-
 `ares\.gitignore` exists (added 2026-08-05, at Patrick's request) and covers build and OS artifacts only — `__pycache__/`, stray workflow outputs, `.DS_Store`. It does not ignore any agent file, so plans and scratch files show up as untracked. `__pycache__/` was the real driver: the MNIST workflow ships a Python script users run from a checkout, and it reappeared three times in one session.
 
 Patrick wants working plans at `plan.md` (lowercase, repo root, beside this file) rather than left in `~\.agent\plans\` under an auto-generated name. Delete `plan.md` once the work is done — a stale plan is worse than none, and anything durable belongs here or in memory instead.
