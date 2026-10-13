@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ARES — MNIST image classification.
+IRIS — MNIST image classification.
 
 Trains a small convolutional network on MNIST and writes metrics, a confusion
 matrix and the trained weights to an output directory.
@@ -249,7 +249,7 @@ def format_confusion(confusion):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="ARES MNIST image classification")
+    parser = argparse.ArgumentParser(description="IRIS MNIST image classification")
     parser.add_argument("--data-dir", required=True,
                         help="Directory holding (or to receive) the MNIST IDX files")
     parser.add_argument("--outdir", required=True,
@@ -283,7 +283,7 @@ def main():
         cuda_available = torch.cuda.is_available()
 
         log("========================================")
-        log("  ARES - MNIST image classification")
+        log("  IRIS - MNIST image classification")
         log("========================================")
         log("")
         log(f"PyTorch      : {torch.__version__}")
@@ -343,7 +343,7 @@ def main():
         torch.save(model.state_dict(), model_path)
 
         metrics = {
-            "workflow": "ares-mnist-classification",
+            "workflow": "iris-mnist-classification",
             "version": "1.1.0",
             "status": "success",
             "device": device.type,

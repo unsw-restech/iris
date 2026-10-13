@@ -1,12 +1,12 @@
 #!/bin/bash
-#PBS -N ARES_dft_materials
+#PBS -N IRIS_dft_materials
 #PBS -l select=1:ncpus=8:mem=16gb
 #PBS -l walltime=01:00:00
 #PBS -j oe
-#PBS -o /srv/scratch/$USER/ares-dft-materials/ares_dft_materials.log
+#PBS -o /srv/scratch/$USER/iris-dft-materials/iris_dft_materials.log
 
 # ═══════════════════════════════════════════════════════════════
-#  ARES — Materials DFT (Quantum ESPRESSO)
+#  IRIS — Materials DFT (Quantum ESPRESSO)
 #  Plane-wave density functional theory for periodic solids.
 #
 #  Runs a self-consistent field calculation on bulk silicon —
@@ -17,12 +17,12 @@
 #  Nothing is installed: the environment comes from `module load`.
 #  The only download is a 74 KB pseudopotential.
 #
-#  Output goes to: /srv/scratch/$USER/ares-dft-materials/
+#  Output goes to: /srv/scratch/$USER/iris-dft-materials/
 #  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
-OUTDIR="/srv/scratch/$USER/ares-dft-materials"
+OUTDIR="/srv/scratch/$USER/iris-dft-materials"
 INPUT=""                              # leave empty to use the bundled si_scf.in
 QE_MODULE="quantum-espresso/7.1"
 PSEUDO="Si.pz-vbc.UPF"
@@ -31,14 +31,14 @@ PSEUDO_URL="https://pseudopotentials.quantum-espresso.org/upf_files"
 
 set -euo pipefail
 
-WORKFLOW="ares-dft-materials"
+WORKFLOW="iris-dft-materials"
 VERSION="1.0.0"
 STATUS="failed"
 COMPUTE="katana"
-RAW_BASE="https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/dft-materials"
+RAW_BASE="https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/dft-materials"
 
 echo "========================================"
-echo "  ARES Materials DFT — Katana"
+echo "  IRIS Materials DFT — Katana"
 echo "========================================"
 echo ""
 echo "Timestamp : $(date)"
@@ -185,5 +185,5 @@ echo "Full output: $LOGFILE"
 echo "Results in:  $RUNDIR"
 echo ""
 echo "========================================"
-echo "  ARES Materials DFT — Complete"
+echo "  IRIS Materials DFT — Complete"
 echo "========================================"

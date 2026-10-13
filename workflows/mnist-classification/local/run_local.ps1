@@ -1,5 +1,5 @@
 # ===============================================================
-#  ARES - MNIST image classification (local - Windows)
+#  IRIS - MNIST image classification (local - Windows)
 #  Runs exactly the same training script as the Katana job.
 #
 #  Requires: Python 3 with PyTorch. Nothing else - MNIST is read
@@ -13,20 +13,20 @@
 #  file without a BOM as ANSI, and a non-ASCII byte can decode to
 #  a quote character that breaks the parse.
 #
-#  Docs: https://patricktung.github.io/ares/workflows/mnist-classification/
+#  Docs: https://patricktung.github.io/iris/workflows/mnist-classification/
 # ===============================================================
 
 $ErrorActionPreference = "Stop"
 
-$OutDir = if ($env:ARES_OUTDIR) { $env:ARES_OUTDIR } else { "$HOME\ares-mnist-classification" }
-$Epochs = if ($env:ARES_EPOCHS) { $env:ARES_EPOCHS } else { "3" }
-$Python = if ($env:ARES_PYTHON) { $env:ARES_PYTHON } else { "python" }
+$OutDir = if ($env:IRIS_OUTDIR) { $env:IRIS_OUTDIR } else { "$HOME\iris-mnist-classification" }
+$Epochs = if ($env:IRIS_EPOCHS) { $env:IRIS_EPOCHS } else { "3" }
+$Python = if ($env:IRIS_PYTHON) { $env:IRIS_PYTHON } else { "python" }
 
 $DataDir = Join-Path $OutDir "data"
 $TrainScript = Join-Path $PSScriptRoot "..\src\train_mnist.py"
 
 Write-Host "========================================"
-Write-Host "  ARES MNIST classification - Local"
+Write-Host "  IRIS MNIST classification - Local"
 Write-Host "========================================"
 Write-Host ""
 
@@ -43,7 +43,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "    $Python -m pip install torch"
     Write-Host ""
     Write-Host "Or point this script at a different interpreter:"
-    Write-Host "    `$env:ARES_PYTHON='C:\path\to\python.exe'; .\run_local.ps1"
+    Write-Host "    `$env:IRIS_PYTHON='C:\path\to\python.exe'; .\run_local.ps1"
     exit 1
 }
 
@@ -70,5 +70,5 @@ Write-Host "  training_log.txt      full run log"
 Write-Host "  model.pt              trained weights"
 Write-Host ""
 Write-Host "========================================"
-Write-Host "  ARES MNIST classification - Complete"
+Write-Host "  IRIS MNIST classification - Complete"
 Write-Host "========================================"

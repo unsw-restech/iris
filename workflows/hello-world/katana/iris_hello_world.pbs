@@ -1,26 +1,26 @@
 #!/bin/bash
-#PBS -N ARES_hello_world
+#PBS -N IRIS_hello_world
 #PBS -l select=1:ncpus=1:mem=1gb
 #PBS -l walltime=00:05:00
 #PBS -j oe
-#PBS -o /srv/scratch/$USER/ares-hello-world/ares_hello_world.log
+#PBS -o /srv/scratch/$USER/iris-hello-world/iris_hello_world.log
 
 # ═══════════════════════════════════════════════════════════════
-#  ARES — Hello World workflow
-#  A minimal test to confirm your ARES + Katana setup is working.
+#  IRIS — Hello World workflow
+#  A minimal test to confirm your IRIS + Katana setup is working.
 #
-#  Output goes to: /srv/scratch/$USER/ares-hello-world/
+#  Output goes to: /srv/scratch/$USER/iris-hello-world/
 #  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
-OUTDIR="/srv/scratch/$USER/ares-hello-world"
+OUTDIR="/srv/scratch/$USER/iris-hello-world"
 # ───────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
 echo "========================================"
-echo "  ARES Hello World — Katana"
+echo "  IRIS Hello World — Katana"
 echo "========================================"
 echo ""
 echo "Timestamp : $(date)"
@@ -37,7 +37,7 @@ mkdir -p "$OUTDIR"
 RESULT="$OUTDIR/hello_world_result.txt"
 cat > "$RESULT" << EOF
 ========================================
-  ARES Hello World — Success
+  IRIS Hello World — Success
 ========================================
 Timestamp : $(date)
 User      : $USER
@@ -48,7 +48,7 @@ OS        : $(uname -o)
 CPUs      : $(nproc)
 Memory    : $(free -h | awk '/^Mem:/ {print $2}')
 
-If you can read this, your ARES → Katana
+If you can read this, your IRIS → Katana
 pipeline is working correctly.
 ========================================
 EOF
@@ -62,7 +62,7 @@ LOGFILE="$LOGDIR/usage.jsonl"
 
 if [ -d "$LOGDIR" ]; then
     ENTRY=$(cat << EOF
-{"workflow":"ares-hello-world","version":"1.0.0","user":"$USER","job_id":"$PBS_JOBID","status":"success","compute":"katana","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+{"workflow":"iris-hello-world","version":"1.0.0","user":"$USER","job_id":"$PBS_JOBID","status":"success","compute":"katana","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 EOF
 )
     echo "$ENTRY" >> "$LOGFILE"
@@ -74,5 +74,5 @@ fi
 
 echo ""
 echo "========================================"
-echo "  ARES Hello World — Complete"
+echo "  IRIS Hello World — Complete"
 echo "========================================"

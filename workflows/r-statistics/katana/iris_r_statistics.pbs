@@ -1,12 +1,12 @@
 #!/bin/bash
-#PBS -N ARES_r_statistics
+#PBS -N IRIS_r_statistics
 #PBS -l select=1:ncpus=2:mem=8gb
 #PBS -l walltime=00:15:00
 #PBS -j oe
-#PBS -o /srv/scratch/$USER/ares-r-statistics/ares_r_statistics.log
+#PBS -o /srv/scratch/$USER/iris-r-statistics/iris_r_statistics.log
 
 # ═══════════════════════════════════════════════════════════════
-#  ARES — Statistical modelling in R
+#  IRIS — Statistical modelling in R
 #  Fits and compares linear models, writing plain-text tables.
 #
 #  Base R only — no CRAN packages — so `module load r` is the
@@ -14,12 +14,12 @@
 #  directory. The default dataset ships with R, so the job runs
 #  with no input data.
 #
-#  Output goes to: /srv/scratch/$USER/ares-r-statistics/
+#  Output goes to: /srv/scratch/$USER/iris-r-statistics/
 #  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
-OUTDIR="/srv/scratch/$USER/ares-r-statistics"
+OUTDIR="/srv/scratch/$USER/iris-r-statistics"
 DATASET="swiss"                       # any numeric dataset built into R
 RESPONSE="Fertility"                  # the variable being modelled
 CSV=""                                # set to your own .csv to use real data
@@ -28,14 +28,14 @@ R_MODULE="r/4.5.1"
 
 set -euo pipefail
 
-WORKFLOW="ares-r-statistics"
+WORKFLOW="iris-r-statistics"
 VERSION="1.0.0"
 STATUS="failed"
 COMPUTE="katana"
-RAW_BASE="https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/r-statistics"
+RAW_BASE="https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/r-statistics"
 
 echo "========================================"
-echo "  ARES R statistics — Katana"
+echo "  IRIS R statistics — Katana"
 echo "========================================"
 echo ""
 echo "Timestamp : $(date)"
@@ -127,5 +127,5 @@ STATUS="success"
 echo "Results in: $OUTDIR"
 echo ""
 echo "========================================"
-echo "  ARES R statistics — Complete"
+echo "  IRIS R statistics — Complete"
 echo "========================================"

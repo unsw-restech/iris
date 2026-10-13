@@ -1,12 +1,12 @@
 #!/bin/bash
-#PBS -N ARES_whisper_transcription
+#PBS -N IRIS_whisper_transcription
 #PBS -l select=1:ncpus=4:mem=16gb:ngpus=1
 #PBS -l walltime=00:30:00
 #PBS -j oe
-#PBS -o /srv/scratch/$USER/ares-whisper-transcription/ares_whisper_transcription.log
+#PBS -o /srv/scratch/$USER/iris-whisper-transcription/iris_whisper_transcription.log
 
 # ═══════════════════════════════════════════════════════════════
-#  ARES — Audio transcription with Whisper
+#  IRIS — Audio transcription with Whisper
 #  Transcribes an audio file to text using Katana's whisper module.
 #
 #  If you don't supply audio, the job synthesises a short sample
@@ -15,12 +15,12 @@
 #
 #  Nothing is installed: the environment comes from `module load`.
 #
-#  Output goes to: /srv/scratch/$USER/ares-whisper-transcription/
+#  Output goes to: /srv/scratch/$USER/iris-whisper-transcription/
 #  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
-OUTDIR="/srv/scratch/$USER/ares-whisper-transcription"
+OUTDIR="/srv/scratch/$USER/iris-whisper-transcription"
 AUDIO=""                              # leave empty to synthesise a sample
 MODEL="base"                          # tiny | base | small | medium | large
 LANGUAGE="en"
@@ -30,13 +30,13 @@ ESPEAK_MODULE="espeak-ng/1.52.0"      # only used when AUDIO is empty
 
 set -euo pipefail
 
-WORKFLOW="ares-whisper-transcription"
+WORKFLOW="iris-whisper-transcription"
 VERSION="1.0.0"
 STATUS="failed"
 COMPUTE="katana"
 
 echo "========================================"
-echo "  ARES Whisper transcription — Katana"
+echo "  IRIS Whisper transcription — Katana"
 echo "========================================"
 echo ""
 echo "Timestamp : $(date)"
@@ -108,7 +108,7 @@ if [ -z "$AUDIO" ]; then
         exit 1
     fi
     espeak-ng -w "$AUDIO" \
-        "This is a test recording for the ARES workflow catalogue at UNSW. \
+        "This is a test recording for the IRIS workflow catalogue at UNSW. \
          Research technology services runs the Katana high performance computing cluster."
     echo "Sample written to: $AUDIO"
 elif [ ! -f "$AUDIO" ]; then
@@ -138,5 +138,5 @@ STATUS="success"
 echo "Results in: $OUTDIR"
 echo ""
 echo "========================================"
-echo "  ARES Whisper transcription — Complete"
+echo "  IRIS Whisper transcription — Complete"
 echo "========================================"

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-#  ARES — MNIST image classification: one-time preparation
+#  IRIS — MNIST image classification: one-time preparation
 #
 #  Run this ON A KATANA LOGIN NODE, not inside a job.
 #
@@ -15,9 +15,9 @@
 #  Safe to re-run: existing files are skipped.
 # ═══════════════════════════════════════════════════════════════
 
-# ── Parameters (keep in step with ares_mnist_classification.pbs) ─
-OUTDIR="/srv/scratch/$USER/ares-mnist-classification"
-DATADIR="/srv/scratch/$USER/ares-mnist-classification/data"
+# ── Parameters (keep in step with iris_mnist_classification.pbs) ─
+OUTDIR="/srv/scratch/$USER/iris-mnist-classification"
+DATADIR="/srv/scratch/$USER/iris-mnist-classification/data"
 PYTORCH_MODULE="pytorch/1.13.1"
 # ───────────────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ MNIST_URL="https://ossci-datasets.s3.amazonaws.com/mnist"
 MNIST_FILES="train-images-idx3-ubyte.gz train-labels-idx1-ubyte.gz t10k-images-idx3-ubyte.gz t10k-labels-idx1-ubyte.gz"
 
 echo "========================================"
-echo "  ARES MNIST classification — prepare"
+echo "  IRIS MNIST classification — prepare"
 echo "========================================"
 echo ""
 
@@ -89,7 +89,7 @@ if type module > /dev/null 2>&1; then
         set -u
         echo "      WARNING: could not load '$PYTORCH_MODULE'."
         echo "      Run 'module avail pytorch' and update PYTORCH_MODULE in both"
-        echo "      this script and ares_mnist_classification.pbs."
+        echo "      this script and iris_mnist_classification.pbs."
     fi
 else
     echo "      WARNING: 'module' command unavailable on this node."
@@ -99,7 +99,7 @@ echo ""
 echo "========================================"
 echo "  Prepared. Submit the job with:"
 echo ""
-echo "    qsub ares_mnist_classification.pbs"
+echo "    qsub iris_mnist_classification.pbs"
 echo ""
 echo "  Results will appear in:"
 echo "    $OUTDIR"

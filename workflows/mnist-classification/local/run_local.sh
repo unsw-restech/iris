@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-#  ARES — MNIST image classification (local)
+#  IRIS — MNIST image classification (local)
 #  Runs exactly the same training script as the Katana job.
 #
 #  Requires: Python 3 with PyTorch. Nothing else — MNIST is read
@@ -10,21 +10,21 @@
 #
 #  A GPU is used automatically if torch can see one.
 #
-#  Docs: https://patricktung.github.io/ares/workflows/mnist-classification/
+#  Docs: https://patricktung.github.io/iris/workflows/mnist-classification/
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
 
-OUTDIR="${ARES_OUTDIR:-$HOME/ares-mnist-classification}"
+OUTDIR="${IRIS_OUTDIR:-$HOME/iris-mnist-classification}"
 DATADIR="$OUTDIR/data"
-EPOCHS="${ARES_EPOCHS:-3}"
-PYTHON="${ARES_PYTHON:-python3}"
+EPOCHS="${IRIS_EPOCHS:-3}"
+PYTHON="${IRIS_PYTHON:-python3}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRAIN_SCRIPT="$SCRIPT_DIR/../src/train_mnist.py"
 
 echo "========================================"
-echo "  ARES MNIST classification — Local"
+echo "  IRIS MNIST classification — Local"
 echo "========================================"
 echo ""
 
@@ -40,7 +40,7 @@ if ! "$PYTHON" -c "import torch" > /dev/null 2>&1; then
     echo "    $PYTHON -m pip install torch"
     echo ""
     echo "Or point this script at a different interpreter:"
-    echo "    ARES_PYTHON=/path/to/python bash run_local.sh"
+    echo "    IRIS_PYTHON=/path/to/python bash run_local.sh"
     exit 1
 fi
 
@@ -68,5 +68,5 @@ echo "  training_log.txt      full run log"
 echo "  model.pt              trained weights"
 echo ""
 echo "========================================"
-echo "  ARES MNIST classification — Complete"
+echo "  IRIS MNIST classification — Complete"
 echo "========================================"

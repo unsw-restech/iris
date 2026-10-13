@@ -1,4 +1,4 @@
-/* Shared styles for ARES workflow detail pages (workflows/<name>/index.html). */
+/* Shared styles for IRIS workflow detail pages (workflows/<name>/index.html). */
 /* The landing page keeps its own inline styles; hello-world is a separate variant. */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

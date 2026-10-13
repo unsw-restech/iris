@@ -1,12 +1,12 @@
 #!/bin/bash
-#PBS -N ARES_mnist_classification
+#PBS -N IRIS_mnist_classification
 #PBS -l select=1:ncpus=4:mem=16gb:ngpus=1
 #PBS -l walltime=00:30:00
 #PBS -j oe
-#PBS -o /srv/scratch/$USER/ares-mnist-classification/ares_mnist_classification.log
+#PBS -o /srv/scratch/$USER/iris-mnist-classification/iris_mnist_classification.log
 
 # ═══════════════════════════════════════════════════════════════
-#  ARES — MNIST image classification
+#  IRIS — MNIST image classification
 #  Trains a small CNN on MNIST using Katana's PyTorch module.
 #
 #  Nothing is installed and nothing large is downloaded: the
@@ -17,13 +17,13 @@
 #  Run katana/prepare.sh on a login node first if the compute
 #  nodes have no outbound internet; it pre-fetches the dataset.
 #
-#  Output goes to: /srv/scratch/$USER/ares-mnist-classification/
+#  Output goes to: /srv/scratch/$USER/iris-mnist-classification/
 #  Usage log:      /srv/scratch/ares/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
-OUTDIR="/srv/scratch/$USER/ares-mnist-classification"
-DATADIR="/srv/scratch/$USER/ares-mnist-classification/data"
+OUTDIR="/srv/scratch/$USER/iris-mnist-classification"
+DATADIR="/srv/scratch/$USER/iris-mnist-classification/data"
 PYTORCH_MODULE="pytorch/1.13.1"
 EPOCHS=3
 BATCH_SIZE=128
@@ -32,14 +32,14 @@ LR=0.001
 
 set -euo pipefail
 
-WORKFLOW="ares-mnist-classification"
+WORKFLOW="iris-mnist-classification"
 VERSION="1.1.0"
 STATUS="failed"          # flipped to success at the end; read by the exit trap
 COMPUTE="katana"         # upgraded to katana-gpu if a GPU turns out to be visible
-RAW_BASE="https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/mnist-classification"
+RAW_BASE="https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/mnist-classification"
 
 echo "========================================"
-echo "  ARES MNIST classification — Katana"
+echo "  IRIS MNIST classification — Katana"
 echo "========================================"
 echo ""
 echo "Timestamp : $(date)"
@@ -160,5 +160,5 @@ STATUS="success"
 echo "Results in: $OUTDIR"
 echo ""
 echo "========================================"
-echo "  ARES MNIST classification — Complete"
+echo "  IRIS MNIST classification — Complete"
 echo "========================================"

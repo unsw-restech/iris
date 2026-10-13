@@ -1,6 +1,18 @@
-# ARES — project instructions
+# IRIS — project instructions
 
 This file is project knowledge only. `AGENTS.md` is the source of truth; `AGENTS.md` beside it is a one-line `@AGENTS.md` import, so edit this file and never the mirror.
+
+## Name
+
+The platform is **IRIS — the ResTech AI Imaging Gateway**. It was called ARES ("AI & Research Execution Stack") until 2026-10-13, when Patrick renamed it because that scope was too large. The catalogue itself was not narrowed: it still spans 11 domains, most of them not imaging.
+
+The GitHub repo was renamed `PatrickTung/ares` → `PatrickTung/iris` the same day, which moved the site to `patricktung.github.io/iris/`. The old `/ares/` Pages address does not redirect.
+
+The old name survives in three places, each naming something outside the working tree. Don't rename these in the files until the thing itself is renamed, or they break:
+
+- the deployed OpenComposer app `OpenComposer/ARES` that the `hello-world` page links
+- the shared usage-log directory `/srv/scratch/ares/usage-log` on Katana
+- the parent directory `ARES_github_pages\`
 
 ## Layout
 
@@ -8,19 +20,19 @@ This file is project knowledge only. `AGENTS.md` is the source of truth; `AGENTS
 ARES_github_pages\      <- parent directory, NOT a git repo
 ├── .agent\            <- the coding agent settings + available-modules.md
 ├── katana-forms-and-manifests\   <- OpenComposer apps, NOT in the repo
-└── ares\               <- THE GIT REPO (github.com/PatrickTung/ares)
+└── iris\               <- THE GIT REPO (github.com/PatrickTung/iris)
     ├── AGENTS.md       <- this file
     ├── AGENTS.md       <- mirror: imports AGENTS.md
     └── docs\agents\    <- config the engineering skills read
 ```
 
-Paths below written as `ares/...` or `ares\...` are relative to the parent directory; `..\` paths are relative to the repo root.
+Paths below written as `iris/...` or `iris\...` are relative to the parent directory; `..\` paths are relative to the repo root.
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues live in GitHub Issues on `PatrickTung/ares`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues on `PatrickTung/iris`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
@@ -32,7 +44,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazi
 
 ## OpenComposer forms
 
-`..\katana-forms-and-manifests\<slug>\` holds `form.yml.erb` + `manifest.yml` for every workflow, one directory per site slug — **29 of each, a strict 1:1 match with `ares\workflows\`**. Keep that match: the directory name becomes the OnDemand URL segment, which is what each page's "Run on Katana" button points at.
+`..\katana-forms-and-manifests\<slug>\` holds `form.yml.erb` + `manifest.yml` for every workflow, one directory per site slug — **29 of each, a strict 1:1 match with `iris\workflows\`**. Keep that match: the directory name becomes the OnDemand URL segment, which is what each page's "Run on Katana" button points at.
 
 **One exception, unresolved:** `hello-world`'s page links `OpenComposer/ARES`, not `OpenComposer/hello-world`, so its form directory name and its URL disagree. Either the app is deployed as `ARES` (and the directory should be renamed) or the page URL is wrong. Every other page matches its directory exactly. Don't "fix" either side until Patrick confirms which is deployed.
 
@@ -56,21 +68,21 @@ Three traps, all of which cost real time:
 
 To regenerate en masse, the throwaway generator lives in the session scratchpad (`gen_forms.py` + `gen_forms_data.py`), not the repo. Hand-editing a single form is fine and expected.
 
-`ares\.gitignore` exists (added 2026-08-05, at Patrick's request) and covers build and OS artifacts only — `__pycache__/`, stray workflow outputs, `.DS_Store`. It does not ignore any agent file, so plans and scratch files show up as untracked. `__pycache__/` was the real driver: the MNIST workflow ships a Python script users run from a checkout, and it reappeared three times in one session.
+`iris\.gitignore` exists (added 2026-08-05, at Patrick's request) and covers build and OS artifacts only — `__pycache__/`, stray workflow outputs, `.DS_Store`. It does not ignore any agent file, so plans and scratch files show up as untracked. `__pycache__/` was the real driver: the MNIST workflow ships a Python script users run from a checkout, and it reappeared three times in one session.
 
 Patrick wants working plans at `plan.md` (lowercase, repo root, beside this file) rather than left in `~\.agent\plans\` under an auto-generated name. Delete `plan.md` once the work is done — a stale plan is worse than none, and anything durable belongs here or in memory instead.
 
 ## What this is
 
-ARES ("AI & Research Execution Stack") — a static landing page and workflow catalogue for UNSW ResTech. Researchers browse validated pipelines (RNA-seq, variant calling, AlphaFold2, climate downscaling, MNIST image classification) and launch them on the Katana HPC via Open OnDemand / OpenComposer.
+IRIS ("the ResTech AI Imaging Gateway") — a static landing page and workflow catalogue for UNSW ResTech. Researchers browse validated pipelines (RNA-seq, variant calling, AlphaFold2, climate downscaling, MNIST image classification) and launch them on the Katana HPC via Open OnDemand / OpenComposer.
 
 Static HTML5. **No build system, no dependencies, no CI, no tests.** Editing means editing `.html` files directly, and the repo must stay that way. (Nineteen pages were emitted on 2026-08-06 by a one-off script kept *outside* the repo — the committed output is still plain hand-editable HTML. Don't add a generator to the repo, and don't assume a page can be regenerated: edit it directly.) Google Fonts is the only external dependency.
 
-Deployed by GitHub Pages from branch `main` of `PatrickTung/ares` → **https://patricktung.github.io/ares/**. There is no Actions workflow; pushing to `main` deploys.
+Deployed by GitHub Pages from branch `main` of `PatrickTung/iris` → **https://patricktung.github.io/iris/**. There is no Actions workflow; pushing to `main` deploys.
 
 ## Hard rule: no root-absolute links
 
-The site is served from the **`/ares/` subpath**, not a domain root. So `href="/"` resolves to `patricktung.github.io/` — a 404, not the ARES home page.
+The site is served from the **`/iris/` subpath**, not a domain root. So `href="/"` resolves to `patricktung.github.io/` — a 404, not the IRIS home page.
 
 **Always use relative paths.** From a workflow page (2 levels down) that means `../../` and `../../#workflows`. This was the cause of a production bug where every workflow page's nav logo, breadcrumb and "Back to catalogue" link was dead. Don't reintroduce it.
 
@@ -79,31 +91,31 @@ The site is served from the **`/ares/` subpath**, not a domain root. So `href="/
 ```
 cd C:\Users\Patrick\Downloads\ARES_github_pages
 python -m http.server 8000
-# open http://localhost:8000/ares/
+# open http://localhost:8000/iris/
 ```
 
-Serve the **parent** directory, not `ares\`. That puts the site at `/ares/`, reproducing the real base path exactly. Opening `index.html` over `file://` does not reproduce it and will hide link bugs.
+Serve the **parent** directory, not `iris\`. That puts the site at `/iris/`, reproducing the real base path exactly. Opening `index.html` over `file://` does not reproduce it and will hide link bugs.
 
 Useful checks before shipping — all should return nothing:
 
 ```
-grep -rn 'href="/'  ares/ --include=*.html                      # root-absolute links
-grep -rn 'href="#"' ares/index.html                             # dead placeholder cards
-grep -rn 'unsw-restech' ares/ --exclude-dir=.git --exclude=AGENTS.md                # wrong repo URL
-grep -rn 'patricktung-unsw\|ares-pages' ares/ --exclude-dir=.git --exclude=AGENTS.md  # stale account / old repo (404s)
-grep -rn 'workflowhub.eu/projects/24' ares/ --include=*.html    # wrong WorkflowHub project
-LC_ALL=C grep -rl '[^ -~]' ares/ --include=*.ps1                # non-ASCII breaks PowerShell 5.1
+grep -rn 'href="/'  iris/ --include=*.html                      # root-absolute links
+grep -rn 'href="#"' iris/index.html                             # dead placeholder cards
+grep -rn 'unsw-restech' iris/ --exclude-dir=.git --exclude=AGENTS.md                # wrong repo URL
+grep -rn 'patricktung-unsw\|ares-pages' iris/ --exclude-dir=.git --exclude=AGENTS.md  # stale account / old repo (404s)
+grep -rn 'workflowhub.eu/projects/24' iris/ --include=*.html    # wrong WorkflowHub project
+LC_ALL=C grep -rl '[^ -~]' iris/ --include=*.ps1                # non-ASCII breaks PowerShell 5.1
 
 # every card links to a page that exists (28 cards, 29 dirs — hello-world isn't carded)
-for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' ares/index.html | sed 's/href="//;s/"//' | sort -u); do
-  [ -f "ares/$p/index.html" ] || echo "BROKEN CARD LINK: $p"
+for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' iris/index.html | sed 's/href="//;s/"//' | sort -u); do
+  [ -f "iris/$p/index.html" ] || echo "BROKEN CARD LINK: $p"
 done
 ```
 
 The last three each correspond to a bug that actually shipped. Note the flags — they are not decoration:
 
 - `--exclude-dir=.git` matters because commit messages in `.git/` mention the very strings being grepped for, and match otherwise.
-- `--exclude=AGENTS.md` is there for the same reason: this file names those strings and now sits inside `ares/`.
+- `--exclude=AGENTS.md` is there for the same reason: this file names those strings and now sits inside `iris/`.
 - `--include=*.html` on the WorkflowHub check keeps it from matching `README.md`, which documents the bug.
 - `LC_ALL=C` with `[^ -~]` is the portable non-ASCII test. **`grep -P` does not work here** — this Git Bash build reports "`-P` supports only unibyte and UTF-8 locales" and exits 2, which a `||` chain silently reads as "clean". A check that can't fail is worse than no check.
 
@@ -112,7 +124,7 @@ The last three each correspond to a bug that actually shipped. Note the flags �
 Pushing `main` publishes; there's no Actions workflow and no staging. Pages takes roughly 40–60 seconds to serve the new build, so verify against the live site rather than assuming — poll for a file the commit changed, then check the actual fix:
 
 ```
-curl -s -o /dev/null -w '%{http_code}' https://patricktung.github.io/ares/assets/ares.css
+curl -s -o /dev/null -w '%{http_code}' https://patricktung.github.io/iris/assets/iris.css
 ```
 
 Because a push is an immediate public deploy, confirm with Patrick before pushing unless they've already said to.
@@ -127,13 +139,13 @@ Clearing it is Patrick's call, not something to do unasked.
 
 ## Conventions
 
-- **Shared CSS** is `ares/assets/ares.css`, linked by all 28 workflow detail pages (every one except `hello-world`). `index.html` keeps its landing-specific styles inline. Workflow pages are thin templates (~43 lines) — if you're editing CSS in more than one workflow page, it belongs in the stylesheet instead.
+- **Shared CSS** is `iris/assets/iris.css`, linked by all 28 workflow detail pages (every one except `hello-world`). `index.html` keeps its landing-specific styles inline. Workflow pages are thin templates (~43 lines) — if you're editing CSS in more than one workflow page, it belongs in the stylesheet instead.
 - **`hello-world` is deliberately NOT on the shared stylesheet.** It looks similar but is a genuine variant: 800px page width vs 900px, `.badge`/`.desc`/`h1` instead of `.wf-domain`/`.wf-desc`/`.wf-title`, a 3-column meta grid, and `.output-box` instead of `.param-table`. Folding it in would mean changing its appearance or piling on overrides. This was checked by diff on 2026-08-04 — don't redo it.
-- **Adding a workflow**: create `workflows/<name>/index.html` (copy an existing one), link `../../assets/ares.css`, add a card to the grid in `index.html`, and bump the stats-bar count. Relative links only. If it introduces a **new domain**, four things must change together or it renders wrong: a `.card-domain.<x>` rule in `index.html`, a matching `.wf-domain.<x>` in `ares.css`, a `filterCards('<x>', this)` button, and `data-domain="<x>"` on the card. Check the module actually exists in `..\.agent\available-modules.md` before naming it.
+- **Adding a workflow**: create `workflows/<name>/index.html` (copy an existing one), link `../../assets/iris.css`, add a card to the grid in `index.html`, and bump the stats-bar count. Relative links only. If it introduces a **new domain**, four things must change together or it renders wrong: a `.card-domain.<x>` rule in `index.html`, a matching `.wf-domain.<x>` in `iris.css`, a `filterCards('<x>', this)` button, and `data-domain="<x>"` on the card. Check the module actually exists in `..\.agent\available-modules.md` before naming it.
 - **`.nojekyll`** (empty file, repo root) turns off Jekyll processing so Pages serves the tree as-is. Don't delete it — without it any future `_`-prefixed directory would be silently dropped.
-- **Canonical repo URL** is `github.com/PatrickTung/ares`. Not `unsw-restech/ares` — that org doesn't hold this repo.
+- **Canonical repo URL** is `github.com/PatrickTung/iris`. Not `unsw-restech/ares` — that org doesn't hold this repo.
 - **Katana links intentionally point at `/pun/dev/`** (the development OnDemand instance), not `/pun/sys/`. This is deliberate pre-launch, confirmed 2026-08-04 — don't "fix" it. Switching all 28 workflow pages to `/pun/sys/` is a known launch task.
-- **WorkflowHub**: the UNSW ResTech project is **`https://workflowhub.eu/projects/472`**. Verified against the WorkflowHub API on 2026-08-05: id 472 is titled "UNSW ResTech", 1 member, **0 workflows**. This file previously said project **24** — that is `usegalaxy-eu`, the European Galaxy Team, an unrelated org. All three links in `ares/index.html` were corrected on 2026-08-05. The old `workflowhub.eu/projects/ares` slug never existed.
+- **WorkflowHub**: the UNSW ResTech project is **`https://workflowhub.eu/projects/472`**. Verified against the WorkflowHub API on 2026-08-05: id 472 is titled "UNSW ResTech", 1 member, **0 workflows**. This file previously said project **24** — that is `usegalaxy-eu`, the European Galaxy Team, an unrelated org. All three links in `iris/index.html` were corrected on 2026-08-05. The old `workflowhub.eu/projects/ares` slug never existed.
 - **PowerShell scripts must be ASCII-only.** Windows PowerShell 5.1 reads a UTF-8 file without a BOM as ANSI, so an em dash or box-drawing character decodes into a byte it treats as a string delimiter — the script fails to parse and can never run. `hello-world/local/run_local.ps1` shipped broken this way until 2026-08-05. Use `-` and `=` in `.ps1` banners, never `—` or `═`. The `.sh` files are unaffected; leave their box drawing alone.
 - **Environments on Katana: modules first.** `..\.agent\available-modules.md` is the list of what is actually installed — **check it before designing an environment**. It already carries `pytorch/1.13.1`, `tensorflow/2.11.0`, `python/3.10.8(default)`, `cuda/*`, `cudnn/*`, `opencv/4.6.0`, `nextflow/22.10.1`–`25.10.4` and much else. A module costs nothing to download; prefer it to anything you have to fetch. `workflows/mnist-classification/` is the reference: `module purge && module load pytorch/1.13.1`, with the module name as a single editable variable at the top of the PBS script. Two gotchas that cost real time: `module` is a shell function and may not exist in a batch shell (source `/etc/profile.d/modules.sh` first), and module scripts reference unset variables, so wrap `module` calls in `set +u` / `set -u`.
 - **Containers on Katana** — verified 2026-08-05 against `https://nf-co.re/configs/unsw_katana/`, which is nf-core's institutional config for this cluster:
@@ -169,21 +181,21 @@ Cards for workflows without a detail page use `<div class="workflow-card planned
 2. **Scripted, never executed** — `whisper-transcription`, `openfoam-cavity`, `r-statistics`, `dft-materials`. Real PBS scripts against real modules; `bash -n` passes; nobody has run them on Katana.
 3. **Page only, no code** — the remaining 23. Nineteen of these were generated on 2026-08-06 by a throwaway script (`gen_pages.py`, kept in the session scratchpad, not the repo) from a data table, so a demo could click every card. They are specifications: module-accurate and plausible, but nothing runs. The other **four** (`rna-seq-pipeline`, `variant-calling`, `alphafold-batch`, `climate-downscaling`) predate this and never had code either.
 
-Patrick chose all-Active on 2026-08-06 knowing the trade-off, after being shown the alternative of keeping them Planned. That is a deliberate decision, not an oversight — don't "fix" it back. But it does mean the site no longer distinguishes tiers, so this file and `ares/README.md` are the only record.
+Patrick chose all-Active on 2026-08-06 knowing the trade-off, after being shown the alternative of keeping them Planned. That is a deliberate decision, not an oversight — don't "fix" it back. But it does mean the site no longer distinguishes tiers, so this file and `iris/README.md` are the only record.
 
 `cellpose-segmentation` is the one entry whose tool has **no** Katana module — Cellpose is pip-only, and its page says so. Every other page names a module verified present in `..\.agent\available-modules.md`.
 
-Domains and their accent colours are defined twice and must be kept in step: `.card-domain.*` in `index.html` and `.wf-domain.*` in `assets/ares.css`.
+Domains and their accent colours are defined twice and must be kept in step: `.card-domain.*` in `index.html` and `.wf-domain.*` in `assets/iris.css`.
 
 **Two DFT workflows exist and are not duplicates.** `dft-materials` (Engineering) is plane-wave DFT for periodic solids with Quantum ESPRESSO; `orca-dft` (Chemistry) is molecular DFT for isolated systems. Different codes, different physics — don't merge them.
 
 **Fixed 2026-08-05** (audit): the WorkflowHub links now point at `projects/472` (all three: nav, catalogue header, footer); the fabricated **DOI** stat was removed from the stats bar, which now reads 5 / 4 / 3; and the two "How it works" DOI claims were corrected. Step 01 also claimed searching "by tool, or compute target" and "example inputs" — the filter bar only filters by domain, and `params.example.yml` is still Planned, so that copy was rewritten too.
 
-**Still overclaiming in `ares/index.html` — not fixed, because rewriting product copy is Patrick's call:**
+**Still overclaiming in `iris/index.html` — not fixed, because rewriting product copy is Patrick's call:**
 
 1. Line ~527 (hero): "Find, cite, and run validated pipelines on Katana, **Gadi**, or your own hardware — with no setup required." Nothing targets Gadi.
 2. Line ~724 (step 02): "**Clone the workflow repo and edit the params file.** Every parameter is documented with defaults and valid ranges." No workflow ships a params file — `params.example.yml` is Planned. The real flow is the OnDemand form.
-3. Line ~729 (step 03): "One command to run on Katana or Gadi. **Nextflow** handles job scheduling, retries, and resource allocation automatically." There is no Nextflow anywhere in the repo; `main.nf` is Planned. `mnist-classification` uses plain PBS + a module. Note though that this claim is more achievable than the others: Katana carries `nextflow/22.10.1`–`25.10.4` modules and nf-core already publishes a working `unsw_katana` profile, so `nextflow run <pipeline> -profile singularity,unsw_katana` is a real option if ARES ever wants it.
+3. Line ~729 (step 03): "One command to run on Katana or Gadi. **Nextflow** handles job scheduling, retries, and resource allocation automatically." There is no Nextflow anywhere in the repo; `main.nf` is Planned. `mnist-classification` uses plain PBS + a module. Note though that this claim is more achievable than the others: Katana carries `nextflow/22.10.1`–`25.10.4` modules and nf-core already publishes a working `unsw_katana` profile, so `nextflow run <pipeline> -profile singularity,unsw_katana` is a real option if IRIS ever wants it.
 4. Line ~757: a Gadi compute card.
 
 These are the same class of overclaim as the DOI stat. Raise them before adding new copy.

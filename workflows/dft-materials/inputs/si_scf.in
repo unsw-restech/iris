@@ -1,4 +1,4 @@
-! ARES - Quantum ESPRESSO: bulk silicon, self-consistent field
+! IRIS - Quantum ESPRESSO: bulk silicon, self-consistent field
 !
 ! The standard first calculation in plane-wave DFT. Silicon in the
 ! diamond structure, 2 atoms in the primitive cell, converged in

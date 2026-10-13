@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MNIST Image Classification — ARES</title>
+  <title>MNIST Image Classification — IRIS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../assets/ares.css">
+  <link rel="stylesheet" href="../../assets/iris.css">
 </head>
 <body>
 <nav>
   <a href="../../" class="nav-logo">
-    <div class="nav-logo-mark">A</div>
-    <span class="nav-logo-text">ARES</span>
+    <div class="nav-logo-mark">I</div>
+    <span class="nav-logo-text">IRIS</span>
   </a>
   <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
 </nav>
 <div class="page">
-  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / MNIST Image Classification</div>
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / MNIST Image Classification</div>
   <span class="wf-domain imaging">Imaging</span>
   <h1 class="wf-title">MNIST Image Classification</h1>
   <p class="wf-desc">Train a small convolutional network to classify handwritten digits. The environment comes from Katana's PyTorch module, so there is nothing to install and no image to pull — the only download is the 11 MB dataset, which fetches itself. A worked example for your first GPU job on Katana.</p>
@@ -39,17 +39,17 @@
   <h2>Run it without OnDemand</h2>
   <p class="wf-desc">The job scripts are in the repository and can be submitted directly from a Katana login node. Run <code>prepare.sh</code> once — it fetches the dataset while you still have reliable internet, so the job itself needs none. The environment is <code>module load pytorch</code>; nothing is installed into your account.</p>
   <pre class="code-block">cd /srv/scratch/$USER
-curl -O https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/mnist-classification/katana/prepare.sh
-curl -O https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/mnist-classification/katana/ares_mnist_classification.pbs
+curl -O https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/mnist-classification/katana/prepare.sh
+curl -O https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/mnist-classification/katana/iris_mnist_classification.pbs
 
 bash prepare.sh                        <span class="comment"># once — fetches MNIST (~11 MB)</span>
-qsub ares_mnist_classification.pbs     <span class="comment"># submit the training job</span></pre>
+qsub iris_mnist_classification.pbs     <span class="comment"># submit the training job</span></pre>
 </div>
 <footer>
-  <span>ARES · UNSW ResTech</span>
+  <span>IRIS · UNSW ResTech</span>
   <span>
     <a href="../../#workflows">← Back to catalogue</a> ·
-    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="https://github.com/PatrickTung/iris" target="_blank">GitHub</a> ·
     <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
   </span>
 </footer>

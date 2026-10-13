@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# ARES - Statistical modelling in R
+# IRIS - Statistical modelling in R
 #
 # Fits and compares linear models, writing plain-text tables and a small
 # JSON summary. Base R only - no CRAN packages - so Katana's `r` module is
@@ -42,7 +42,7 @@ say <- function(...) {
 }
 
 say("========================================")
-say("  ARES - Statistical modelling in R")
+say("  IRIS - Statistical modelling in R")
 say("========================================")
 say("")
 say("R version : ", R.version.string)
@@ -145,7 +145,7 @@ write.csv(coefs, file.path(outdir, "coefficients.csv"), row.names = FALSE)
 # Small JSON summary, written without a package so no CRAN install is needed.
 json <- sprintf(
   paste0('{\n',
-         '  "workflow": "ares-r-statistics",\n',
+         '  "workflow": "iris-r-statistics",\n',
          '  "version": "1.0.0",\n',
          '  "status": "success",\n',
          '  "r_version": "%s",\n',

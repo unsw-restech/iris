@@ -12,7 +12,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 
-The repo is `PatrickTung/ares`. `gh` infers it when run inside the clone (`ares\`); from the parent `ARES_github_pages\` directory, which is not a git repo, pass `-R PatrickTung/ares`.
+The repo is `PatrickTung/iris`. `gh` infers it when run inside the clone (`iris\`); from the parent `ARES_github_pages\` directory, which is not a git repo, pass `-R PatrickTung/iris`.
 
 ## Pull requests as a triage surface
 

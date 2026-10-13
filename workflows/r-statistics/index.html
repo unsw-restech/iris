@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Statistical Modelling (R) — ARES</title>
+  <title>Statistical Modelling (R) — IRIS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../assets/ares.css">
+  <link rel="stylesheet" href="../../assets/iris.css">
 </head>
 <body>
 <nav>
   <a href="../../" class="nav-logo">
-    <div class="nav-logo-mark">A</div>
-    <span class="nav-logo-text">ARES</span>
+    <div class="nav-logo-mark">I</div>
+    <span class="nav-logo-text">IRIS</span>
   </a>
   <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
 </nav>
 <div class="page">
-  <div class="breadcrumb"><a href="../../">ARES</a> / <a href="../../#workflows">Workflows</a> / Statistical Modelling</div>
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / Statistical Modelling</div>
   <span class="wf-domain social">Social &amp; economic</span>
   <h1 class="wf-title">Statistical Modelling (R)</h1>
   <p class="wf-desc">Fit and compare linear models, with coefficient tables, an analysis of variance and a correlation matrix written as plain text. Base R only — no CRAN packages — so nothing is installed into your home directory. The default dataset ships with R, so it runs with no input data; point it at your own CSV when you're ready.</p>
@@ -39,15 +39,15 @@
   <h2>Run it without OnDemand</h2>
   <p class="wf-desc">The job script is in the repository and can be submitted directly from a Katana login node. The environment is <code>module load r</code>; nothing is installed into your account.</p>
   <pre class="code-block">cd /srv/scratch/$USER
-curl -O https://raw.githubusercontent.com/PatrickTung/ares/main/workflows/r-statistics/katana/ares_r_statistics.pbs
+curl -O https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/r-statistics/katana/iris_r_statistics.pbs
 
-qsub ares_r_statistics.pbs             <span class="comment"># fetches fit_models.R if needed</span></pre>
+qsub iris_r_statistics.pbs             <span class="comment"># fetches fit_models.R if needed</span></pre>
 </div>
 <footer>
-  <span>ARES · UNSW ResTech</span>
+  <span>IRIS · UNSW ResTech</span>
   <span>
     <a href="../../#workflows">← Back to catalogue</a> ·
-    <a href="https://github.com/PatrickTung/ares" target="_blank">GitHub</a> ·
+    <a href="https://github.com/PatrickTung/iris" target="_blank">GitHub</a> ·
     <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
   </span>
 </footer>

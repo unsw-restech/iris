@@ -1,41 +1,41 @@
-# ARES — AI & Research Execution Stack
+# IRIS — the ResTech AI Imaging Gateway
 
 Landing page and workflow catalogue for UNSW ResTech research workflows.
 
-**Live site**: https://patricktung.github.io/ares
+**Live site**: https://patricktung.github.io/iris
 
 ## Structure
 
 ```
-ares/
+iris/
 ├── index.html                        # Landing page (GitHub Pages root)
 ├── .nojekyll                         # Empty — disables Jekyll processing
 ├── .gitignore                        # Python bytecode, stray outputs, OS cruft
 ├── assets/
-│   └── ares.css                      # Shared styles for workflow detail pages
+│   └── iris.css                      # Shared styles for workflow detail pages
 └── workflows/
     ├── hello-world/                  # Test job — start here
     │   ├── index.html
-    │   ├── katana/ares_hello_world.pbs
+    │   ├── katana/iris_hello_world.pbs
     │   └── local/run_local.sh, run_local.ps1
     ├── mnist-classification/         # PyTorch module example
     │   ├── index.html
-    │   ├── katana/ares_mnist_classification.pbs, prepare.sh
+    │   ├── katana/iris_mnist_classification.pbs, prepare.sh
     │   ├── src/train_mnist.py
     │   └── local/run_local.sh, run_local.ps1
     ├── whisper-transcription/        # Whisper module example
     │   ├── index.html
-    │   └── katana/ares_whisper_transcription.pbs
+    │   └── katana/iris_whisper_transcription.pbs
     ├── openfoam-cavity/              # OpenFOAM module example
     │   ├── index.html
-    │   └── katana/ares_openfoam_cavity.pbs
+    │   └── katana/iris_openfoam_cavity.pbs
     ├── r-statistics/                 # R module example
     │   ├── index.html
-    │   ├── katana/ares_r_statistics.pbs
+    │   ├── katana/iris_r_statistics.pbs
     │   └── src/fit_models.R
     ├── dft-materials/                # Quantum ESPRESSO module example
     │   ├── index.html
-    │   ├── katana/ares_dft_materials.pbs
+    │   ├── katana/iris_dft_materials.pbs
     │   └── inputs/si_scf.in
     ├── rna-seq-pipeline/index.html
     ├── variant-calling/index.html
@@ -44,9 +44,9 @@ ares/
     └── <19 more>/index.html          # page-only entries — see Status
 ```
 
-Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; all 28 workflow detail pages share `assets/ares.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
+Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; all 28 workflow detail pages share `assets/iris.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
 
-`hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for how ARES provides an environment on Katana: **use a module**. It runs `module purge && module load pytorch/1.13.1` — nothing is installed, nothing large is downloaded, and the module name is a single editable variable at the top of the PBS script.
+`hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for how IRIS provides an environment on Katana: **use a module**. It runs `module purge && module load pytorch/1.13.1` — nothing is installed, nothing large is downloaded, and the module name is a single editable variable at the top of the PBS script.
 
 `torch` is its only dependency. MNIST is parsed straight from the IDX files with the standard library rather than via `torchvision`, which keeps the module sufficient on its own and reduces the download to the 11 MB dataset. Run `katana/prepare.sh` on a login node first — it fetches that dataset where the network is reliable, leaving the job able to run offline.
 
@@ -54,12 +54,12 @@ Keep `.nojekyll` in place. Without it, Pages runs Jekyll and would silently drop
 
 ## Local preview
 
-The site is served from the `/ares/` subpath, so preview it that way — serve the **parent** directory:
+The site is served from the `/iris/` subpath, so preview it that way — serve the **parent** directory:
 
 ```
-cd ..            # the directory containing ares/
+cd ..            # the directory containing iris/
 python -m http.server 8000
-# open http://localhost:8000/ares/
+# open http://localhost:8000/iris/
 ```
 
 Opening `index.html` directly over `file://` will not reproduce the real base path and will hide broken links.
@@ -67,8 +67,8 @@ Opening `index.html` directly over `file://` will not reproduce the real base pa
 ## Adding a new workflow
 
 1. Create a folder under `workflows/your-workflow-name/`
-2. Add `index.html` — copy the RNA-seq example and link `../../assets/ares.css`
-3. **Use relative links only** (`../../`, `../../#workflows`). Root-absolute links like `href="/"` resolve outside `/ares/` and 404.
+2. Add `index.html` — copy the RNA-seq example and link `../../assets/iris.css`
+3. **Use relative links only** (`../../`, `../../#workflows`). Root-absolute links like `href="/"` resolve outside `/iris/` and 404.
 4. Add a card to the workflow grid in `index.html`
 5. Push to `main` — GitHub Pages redeploys automatically
 
