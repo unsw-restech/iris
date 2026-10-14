@@ -1,6 +1,6 @@
 # IRIS — project instructions
 
-`AGENTS.md` is the source of truth; `AGENTS.md` is a one-line `@AGENTS.md` import. Edit this file.
+`AGENTS.md` is the source of truth for agent instructions. Edit this file.
 
 IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and it stays that way. `README.md` covers structure, previewing, adding a workflow and the **tier table** of which workflows actually run. Read the tier table before telling anyone a workflow "works": all 28 cards look identical and are marked Active by Patrick's deliberate choice (2026-08-06), but only two have been run.
 
@@ -8,7 +8,7 @@ IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and i
 
 ```
 IRIS_github_pages\               <- parent directory, not a git repo
-├── .agent\available-modules.md <- what is installed on Katana
+├── available-modules.md         <- what is installed on Katana
 ├── katana-forms-and-manifests\  <- OpenComposer forms, not in the repo
 └── iris\                        <- the git repo (github.com/PatrickTung/iris)
 ```
@@ -67,7 +67,7 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 ## Katana
 
 - **Login nodes stay light**: editing, `qsub`, short checks (Patrick, 2026-10-14). Anything that loads CPU, memory or I/O runs as a PBS job. Transfers over 10 GB go through the data mover (`katana-dm`), never a login node or the OnDemand Files app.
-- **Modules first.** Check `..\.agent\available-modules.md` before designing an environment or naming a module. `workflows/mnist-classification/` is the reference.
+- **Modules first.** Check `..\available-modules.md` before designing an environment or naming a module. `workflows/mnist-classification/` is the reference.
 - **`module` in batch scripts**: source `/etc/profile.d/modules.sh` first, and run it without `set -u`.
 - **Containers** are for software that genuinely isn't installed. Apptainer/Singularity are on the path, not modules, so there is no `module load apptainer`. Docker is unsupported. Cache images in `/srv/scratch/$USER/.images`. Executor is `pbspro`.
 - **GPU models for queued jobs**: A100, H100, H200, L40S, V100. `RP6000` in `pbsnodes` is ResTech's in-house development node and never runs queued jobs (Patrick, 2026-10-14).
