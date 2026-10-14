@@ -10,7 +10,7 @@ IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and i
 IRIS_github_pages\               <- parent directory, not a git repo
 ├── .agent\available-modules.md <- what is installed on Katana
 ├── katana-forms-and-manifests\  <- OpenComposer forms, not in the repo
-└── ares\                        <- the git repo (github.com/PatrickTung/iris); local directory keeps the old name
+└── iris\                        <- the git repo (github.com/PatrickTung/iris)
 ```
 
 Renamed from ARES on 2026-10-13. The catalogue still spans 11 domains, most of them not imaging. The old `patricktung.github.io/ares/` address does not redirect.
