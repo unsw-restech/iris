@@ -36,6 +36,10 @@ _Avoid_: Project, study
 The single file where a researcher's runs and experiments are recorded for comparison. Each researcher has their own.
 _Avoid_: Database, log
 
+**Usage count**:
+ResTech's tally of runs per workflow per month, taken from Katana's own job records. It is separate from the tracking store, which belongs to the researcher.
+_Avoid_: Usage log, telemetry
+
 **Environment**:
 The shared, versioned set of software a workflow's runs use. It is built ahead of time and never changed, and nothing is installed into it when a run starts.
 _Avoid_: Image, container, setup
