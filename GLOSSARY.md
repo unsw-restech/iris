@@ -28,6 +28,10 @@ _Avoid_: One-click run
 One submission of a form, producing one job on Katana and one set of outputs.
 _Avoid_: Experiment, execution
 
+**Environment**:
+The shared, versioned set of software a workflow's runs use. It is built ahead of time and never changed, and nothing is installed into it when a run starts.
+_Avoid_: Image, container, setup
+
 **Volume**:
 A 3D image dataset; for IRIS v1, microCT data arriving as netCDF.
 _Avoid_: Stack, scan
