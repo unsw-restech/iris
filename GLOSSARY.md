@@ -26,7 +26,15 @@ _Avoid_: One-click run
 
 **Run**:
 One submission of a form, producing one job on Katana and one set of outputs.
-_Avoid_: Experiment, execution
+_Avoid_: Execution
+
+**Experiment**:
+A named group of one researcher's runs that are compared with each other, such as runs on the same dataset with different hyperparameters. The researcher names it on the form.
+_Avoid_: Project, study
+
+**Tracking store**:
+The single file where a researcher's runs and experiments are recorded for comparison. Each researcher has their own.
+_Avoid_: Database, log
 
 **Environment**:
 The shared, versioned set of software a workflow's runs use. It is built ahead of time and never changed, and nothing is installed into it when a run starts.
