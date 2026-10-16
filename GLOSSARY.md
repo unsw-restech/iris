@@ -59,3 +59,7 @@ _Avoid_: Project, input folder
 **Training pair**:
 An image slice and its label slice, matched by filename, used to train a workflow's model.
 _Avoid_: Sample, annotation
+
+**Run directory**:
+The folder inside a dataset where one run writes all its outputs: the label volume, the trained weights and the record of what the run did.
+_Avoid_: Output folder, results
