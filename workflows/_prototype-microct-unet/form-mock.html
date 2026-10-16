@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!-- PROTOTYPE, throwaway. Rough render of form.yml.erb in two field groupings, ?variant=A|B.
+     Not OpenComposer's real look: only field order, visibility, defaults and help text are under review. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PROTOTYPE form mock</title>
+<style>
+  body { font: 14px system-ui, sans-serif; background: #f4f5f7; color: #222; margin: 0; padding: 30px 0 90px; }
+  .form { max-width: 640px; margin: 0 auto; background: #fff; border: 1px solid #ccd; border-radius: 6px; padding: 24px 28px; }
+  h1 { font-size: 18px; margin: 0 0 4px; } .sub { color: #777; margin-bottom: 18px; }
+  .f { margin: 14px 0; } .f.indent { margin-left: 24px; }
+  label { display: block; font-weight: 600; margin-bottom: 4px; }
+  input, select { font: inherit; padding: 5px 8px; border: 1px solid #bbc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+  input.half { width: 48%; }
+  .help { color: #667; font-size: 12px; margin-top: 3px; }
+  .sec { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #99a; border-bottom: 1px solid #eee; margin-top: 22px; padding-bottom: 3px; }
+  .adv { margin-top: 18px; } .adv summary { cursor: pointer; font-weight: 600; }
+  .submit { margin-top: 22px; background: #2a6ebd; color: #fff; border: 0; padding: 9px 22px; border-radius: 4px; font-weight: 600; }
+  .note { max-width: 640px; margin: 0 auto 14px; font-size: 12px; color: #a50; }
+</style>
+</head>
+<body>
+<p class="note">PROTOTYPE. Field content is identical in both variants; only what's visible before "advanced" differs.</p>
+
+<template id="dataset"><div class="f"><label>Dataset folder</label><input value="/srv/scratch/z1234567/my-scan"><div class="help">The folder you copied to scratch, holding volume/ and train/. Results go into its runs/ folder.</div></div></template>
+<template id="experiment"><div class="f"><label>Experiment name</label><input value="microct-segmentation"><div class="help">Runs with the same name are grouped together for comparison in your MLflow tracking store (/srv/scratch/$USER/iris/tracking.db). Open it later with iris-compare in a Virtual Desktop.</div></div></template>
+<template id="training">
+  <div class="f"><label>Epochs</label><input value="50"><div class="help">Passes over the training patches. With 5-30 labelled slices, more epochs are cheap.</div></div>
+  <div class="f"><label>Patch size (pixels)</label><select><option>128</option><option selected>256</option><option>512</option></select><div class="help">Slices are cut into square patches on a non-overlapping grid. Larger patches give more context per patch but fewer patches.</div></div>
+  <div class="f"><label>Learning rate</label><input value="0.001"><div class="help">Adam learning rate.</div></div>
+  <div class="f"><label>Validation patches (%)</label><input value="20"><div class="help">Share of patches held out to score the model (per-class Dice and IoU). The split is random; its seed is recorded with the run.</div></div>
+</template>
+<template id="resources">
+  <div class="f"><label>GPUs (0 = CPU only)</label><input value="1"><div class="help">Any GPU type on Katana works. Use 0 only for a small test: CPU is far slower on a full volume.</div></div>
+  <div class="f"><label>CPU cores (1 - 16)</label><input value="8"><div class="help">Used for reading the volume and preparing patches.</div></div>
+  <div class="f"><label>Memory</label><select><option>16 GB</option><option selected>32 GB</option><option>64 GB</option><option>124 GB</option></select><div class="help">32 GB covers a 2520 x 2520 scan. Larger slices may need more.</div></div>
+  <div class="f"><label>Walltime hours (0 - 200) / minutes (0 - 59)</label><input class="half" value="4"> <input class="half" value="0"><div class="help">Training plus segmenting the whole volume. Jobs up to 12 hours can run on any node.</div></div>
+</template>
+<template id="advanced">
+  <div class="f indent"><label>Batch size</label><select><option>4</option><option>8</option><option selected>16</option><option>32</option></select><div class="help">Patches per training step. Lower it if the job runs out of GPU memory.</div></div>
+  <div class="f indent"><label>Random seed</label><input value=""><div class="help">Leave blank for a new random split each run; the seed used is recorded. Set it to repeat a split exactly.</div></div>
+  <div class="f indent"><label>PBS Job name</label><input value="iris_microct"><div class="help">No spaces or special characters. Not used for anything but your own reference.</div></div>
+  <div class="f indent"><label>Mail events</label><label style="font-weight:400"><input type="checkbox" checked style="width:auto"> ends abnormally &nbsp;<input type="checkbox" style="width:auto"> starts &nbsp;<input type="checkbox" checked style="width:auto"> ends</label></div>
+</template>
+
+<div class="form" data-variant="A" data-name="Training and resources visible (mnist style)">
+  <h1>microct-segmentation</h1><div class="sub">OpenComposer · Katana</div>
+  <div class="sec">Data</div><div data-t="dataset"></div><div data-t="experiment"></div>
+  <div class="sec">Training</div><div data-t="training"></div>
+  <div class="sec">Resources</div><div data-t="resources"></div>
+  <details class="adv"><summary>☐ Show advanced options</summary><div data-t="advanced"></div></details>
+  <button class="submit">Submit</button>
+</div>
+
+<div class="form" data-variant="B" data-name="Only data visible, all else advanced">
+  <h1>microct-segmentation</h1><div class="sub">OpenComposer · Katana</div>
+  <div data-t="dataset"></div><div data-t="experiment"></div>
+  <details class="adv"><summary>☐ Show advanced options (training, resources, seed)</summary>
+    <div class="sec">Training</div><div data-t="training"></div>
+    <div class="sec">Resources</div><div data-t="resources"></div>
+    <div class="sec">Other</div><div data-t="advanced"></div></details>
+  <button class="submit">Submit</button>
+</div>
+
+<script>
+  document.querySelectorAll('[data-t]').forEach(function (s) {
+    s.replaceWith(document.getElementById(s.dataset.t).content.cloneNode(true));
+  });
+</script>
+<script src="prototype-switcher.js"></script>
+</body>
+</html>

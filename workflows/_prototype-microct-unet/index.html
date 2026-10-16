@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<!-- PROTOTYPE, throwaway. Three page layouts for the microCT reference workflow, switchable via ?variant=A|B|C.
+     For "What do the reference workflow's form and page look like?" (PatrickTung/iris#19).
+     Branch prototype/reference-form-page only; never merged. Slug "microct-segmentation" is a placeholder. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROTOTYPE microCT Segmentation — IRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/iris.css">
+  <style>
+    /* prototype-only helpers */
+    .tree { font-family: 'DM Mono', monospace; font-size: 13px; line-height: 1.7; white-space: pre; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 16px 0; color: var(--text); }
+    .tree .c { color: var(--muted); }
+    .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px 0; }
+    .col { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .col h3 { font-family: 'Syne', sans-serif; color: #fff; font-size: 18px; margin-bottom: 4px; }
+    .col .when { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .col p { font-size: 14px; line-height: 1.6; color: var(--muted); margin-bottom: 10px; }
+    .col code, details code, .ck code, .tl code { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--blue2); }
+    details { border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; margin: 10px 0; background: var(--bg2); }
+    details summary { cursor: pointer; font-weight: 500; color: #fff; }
+    details[open] summary { margin-bottom: 12px; }
+    details p, details li { font-size: 14px; line-height: 1.7; color: var(--text); }
+    .ck { list-style: none; margin: 16px 0 24px; }
+    .ck li { padding: 8px 0 8px 30px; position: relative; font-size: 15px; border-bottom: 1px solid var(--border); }
+    .ck li::before { content: '☐'; position: absolute; left: 4px; color: var(--gold); }
+    .tl { border-left: 2px solid var(--border2); margin: 20px 0 20px 8px; padding-left: 24px; }
+    .tl > div { position: relative; margin-bottom: 22px; }
+    .tl > div::before { content: ''; position: absolute; left: -31px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); }
+    .tl b { color: #fff; } .tl p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-top: 4px; }
+    .callout { border-left: 3px solid var(--amber); background: rgba(232,168,74,0.07); padding: 12px 16px; margin: 16px 0; font-size: 14px; line-height: 1.6; }
+    .twoclick { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--green); margin: 8px 0 0; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">I</div>
+    <span class="nav-logo-text">IRIS</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+
+<!-- ============================================================ A -->
+<div class="page" data-variant="A" data-name="Long guide, three stages in order">
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT Segmentation</div>
+  <span class="wf-domain imaging">Imaging</span>
+  <h1 class="wf-title">microCT Segmentation (2D U-Net)</h1>
+  <p class="wf-desc">Train a U-Net on a handful of labelled slices, then segment your whole reconstructed scan with it, all in one job. You get a 3D label volume, the trained weights, and per-class Dice and IoU scores logged so you can compare runs.</p>
+  <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Input</div><div class="meta-val">netCDF blocks + 5–30 labelled TIFF slices</div></div><div class="meta-cell"><div class="meta-label">Output</div><div class="meta-val">3D label TIFF</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">1 GPU, any type</div></div><div class="meta-cell"><div class="meta-label">Typical run</div><div class="meta-val">? h (TBC)</div></div></div>
+
+  <h2>1. Before you start: get your data into scratch</h2>
+  <p class="wf-desc">Once per dataset. Arrange it like this on your computer:</p>
+  <div class="tree">my-scan/
+  volume/          <span class="c">all block*.nc files of one scan</span>
+  train/
+    images/        <span class="c">2D TIFF slices, same dtype as the volume</span>
+    labels/        <span class="c">same file names as images/; 0 = unlabelled</span></div>
+  <p class="wf-desc">Then copy it to your scratch through the data mover:</p>
+  <pre class="code-block">rsync -av --progress my-scan/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-scan/</pre>
+  <p class="wf-desc">On Windows: WinSCP to the same host and folder. Your scratch holds 128 GB, about seven 16 GB scans.</p>
+
+  <h2>2. Run it</h2>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
+  <ol class="steps"><li>Pick your <strong>Dataset folder</strong> (e.g. <code>/srv/scratch/zID/my-scan</code>). The form checks its layout before submitting.</li><li>Optionally give an <strong>Experiment name</strong> to group runs you want to compare.</li><li>Click <strong>Submit</strong>. Everything else has a working default.</li><li>On later runs, use <strong>Load parameters</strong> in the form's history to start from a previous run.</li></ol>
+  <h2>Parameters</h2>
+  <table class="param-table">
+    <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>dataset</code></td><td>—</td><td>Your dataset folder in scratch</td></tr><tr><td><code>experiment_name</code></td><td><code>microct-segmentation</code></td><td>Groups runs in your tracking store</td></tr><tr><td><code>epochs</code></td><td><code>50</code></td><td>Passes over the training patches</td></tr><tr><td><code>patch_size</code></td><td><code>256</code></td><td>Square patch side, pixels</td></tr><tr><td><code>learning_rate</code></td><td><code>0.001</code></td><td>Adam learning rate</td></tr><tr><td><code>val_percent</code></td><td><code>20</code></td><td>Patches held out for Dice/IoU</td></tr><tr><td><code>ngpus</code> / <code>ncpus</code> / <code>mem</code></td><td><code>1</code> / <code>8</code> / <code>32gb</code></td><td>Resources</td></tr><tr><td><code>walltime</code></td><td><code>04:00</code></td><td>Maximum run time</td></tr></tbody>
+  </table>
+
+  <h2>3. See your results</h2>
+  <p class="wf-desc">Everything lands in <code>my-scan/runs/&lt;job ID&gt;/</code>:</p>
+  <table class="param-table">
+    <thead><tr><th>File</th><th>Description</th></tr></thead>
+    <tbody><tr><td><code>labels.tif</code></td><td>3D label volume, one uint8 slice per z, opens in napari or Fiji</td></tr><tr><td><code>model.pt</code></td><td>Trained weights</td></tr><tr><td><code>metrics.json</code></td><td>Per-class Dice and IoU, per epoch and final</td></tr><tr><td><code>params.json</code></td><td>Every setting, including the split seed</td></tr><tr><td><code>commit.txt</code></td><td>The code version that ran</td></tr></tbody>
+  </table>
+  <p class="wf-desc">The job's output file, <code>my-scan/runs/&lt;job ID&gt;.OU</code>, ends with the exact command to view it. To open it:</p>
+  <ol class="steps"><li>In OnDemand, start a <strong>Virtual Desktop</strong>: CPU only, 4 cores, 16 GB, 4 hours.</li><li>Open a terminal in the desktop and paste the <code>iris-view …</code> line. Or run <code>iris-view</code> alone to pick from recent runs.</li><li>Scroll through slices with the labels over the raw scan.</li><li>To compare runs, run <code>iris-compare</code> in the same desktop.</li></ol>
+  <p class="wf-desc">For 3D, open a cropped region in ParaView (<code>module load paraview</code>). Fiji opens <code>labels.tif</code> on its own. To copy results home, swap the rsync source and destination.</p>
+</div>
+
+<!-- ============================================================ B -->
+<div class="page" data-variant="B" data-name="At a glance, three columns, details folded">
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT Segmentation</div>
+  <span class="wf-domain imaging">Imaging</span>
+  <h1 class="wf-title">microCT Segmentation (2D U-Net)</h1>
+  <p class="wf-desc">Label a few slices, get the whole scan segmented.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Your data must already be in scratch (step 1).</span>
+
+  <div class="cols">
+    <div class="col"><div class="when">Once per dataset</div><h3>1 · Stage</h3>
+      <p>Folder with <code>volume/</code> and <code>train/images</code> + <code>train/labels</code>.</p>
+      <p>Copy it with rsync to <code>kdm.restech.unsw.edu.au</code>, or WinSCP.</p></div>
+    <div class="col"><div class="when">Every run · 2 clicks</div><h3>2 · Run</h3>
+      <p>Pick the dataset folder. Submit.</p>
+      <p>Defaults work; tweak epochs, patch size, learning rate to compare.</p></div>
+    <div class="col"><div class="when">After it finishes</div><h3>3 · View</h3>
+      <p>Virtual Desktop (CPU, 4 cores, 16 GB) → terminal → paste the <code>iris-view</code> line from the job output.</p>
+      <p><code>iris-compare</code> to compare runs.</p></div>
+  </div>
+
+  <details><summary>1 · How to lay out and copy your dataset</summary>
+    <div class="tree">my-scan/
+  volume/          <span class="c">all block*.nc files of one scan</span>
+  train/images/    <span class="c">2D TIFFs, same dtype as volume</span>
+  train/labels/    <span class="c">same names as images/, 0 = unlabelled</span>
+  runs/            <span class="c">created by IRIS, one folder per run</span></div>
+    <pre class="code-block">rsync -av --progress my-scan/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-scan/</pre>
+    <p>On Windows: WinSCP to the same host and folder. Never copy through a login node.</p>
+  </details>
+  <details><summary>2 · What each form field does</summary>
+    <table class="param-table"><thead><tr><th>Field</th><th>Default</th><th>Change it when</th></tr></thead>
+    <tbody><tr><td>Dataset folder</td><td>—</td><td>Always: pick yours</td></tr><tr><td>Experiment name</td><td>microct-segmentation</td><td>Starting a new comparison</td></tr><tr><td>Epochs</td><td>50</td><td>Dice still rising at the end</td></tr><tr><td>Patch size</td><td>256</td><td>Features are large relative to 256 px</td></tr><tr><td>Learning rate</td><td>0.001</td><td>Loss jumps around or stalls</td></tr><tr><td>Validation %</td><td>20</td><td>Very few labelled slices</td></tr><tr><td>GPUs</td><td>1</td><td>0 for a tiny CPU test only</td></tr><tr><td>Walltime</td><td>4 h</td><td>Large scan or many epochs</td></tr></tbody></table>
+  </details>
+  <details><summary>3 · Where results are and how to view them</summary>
+    <p><code>my-scan/runs/&lt;job ID&gt;/</code> holds <code>labels.tif</code>, <code>model.pt</code>, <code>metrics.json</code>, <code>params.json</code>. The job output <code>runs/&lt;job ID&gt;.OU</code> ends with the <code>iris-view</code> line.</p>
+    <p>3D: ParaView on a cropped region. Fiji: opens <code>labels.tif</code>. Copy home: swap the rsync arguments.</p>
+  </details>
+  <details><summary>Something went wrong</summary>
+    <p>"Environment missing": contact patrick.tung@unsw.edu.au. Form refuses to submit: the message names the folder rule that failed.</p>
+  </details>
+</div>
+
+<!-- ============================================================ C -->
+<div class="page" data-variant="C" data-name="Readiness first, run gated on a checklist">
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT Segmentation</div>
+  <span class="wf-domain imaging">Imaging</span>
+  <h1 class="wf-title">microCT Segmentation (2D U-Net)</h1>
+  <p class="wf-desc">Segment a full microCT scan from 5–30 slices you've labelled in Dragonfly or any tool.</p>
+
+  <h2>Your dataset folder</h2>
+  <p class="wf-desc">This folder is the whole interface. Get it into your scratch once and every run reads from it and writes back into it.</p>
+  <div class="tree">/srv/scratch/zID/my-scan/
+  volume/
+    block00000000.nc … block00000031.nc
+  train/
+    images/  z0640.tif  z0700.tif  …
+    labels/  z0640.tif  z0700.tif  …   <span class="c">same names, 0 = unlabelled</span>
+  runs/
+    1234567.kman.restech.unsw.edu.au/   <span class="c">← each run lands here</span></div>
+  <pre class="code-block">rsync -av --progress my-scan/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-scan/   <span class="comment"># or WinSCP</span></pre>
+
+  <h2>You're ready when</h2>
+  <ul class="ck"><li>The folder is under <code>/srv/scratch/zID</code></li><li><code>volume/</code> has the scan's <code>.nc</code> blocks</li><li><code>train/images</code> and <code>train/labels</code> hold the same file names</li></ul>
+  <p class="wf-desc">The form checks all three and tells you which failed.</p>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <p class="twoclick">Pick the folder → Submit. That's it.</p>
+
+  <h2>After you submit</h2>
+  <div class="tl">
+    <div><b>Queued, then running</b><p>Usually a few hours in total. You get an email when it ends.</p></div>
+    <div><b>Open the job output</b><p>In your Files app: <code>my-scan/runs/&lt;job ID&gt;.OU</code>. The last line is <code>iris-view /srv/scratch/zID/my-scan/runs/&lt;job ID&gt;</code>.</p></div>
+    <div><b>Start a Virtual Desktop</b><p>CPU only, 4 cores, 16 GB, 4 hours. Open a terminal and paste that line.</p></div>
+    <div><b>Compare with earlier runs</b><p>Run <code>iris-compare</code> in the same desktop: Dice and IoU per class, side by side.</p></div>
+  </div>
+
+  <h2>Tuning</h2>
+  <div class="callout">Defaults are a reasonable first run. Change one thing at a time and keep the same Experiment name, so <code>iris-compare</code> shows what helped.</div>
+  <p class="wf-desc"><strong>Epochs</strong> (50) · <strong>Patch size</strong> (256) · <strong>Learning rate</strong> (0.001) · <strong>Validation %</strong> (20). Resources and seed are under Advanced.</p>
+  <details><summary>Other viewers and copying results home</summary>
+    <p>ParaView for 3D on a cropped region; Fiji opens <code>labels.tif</code>. To copy home, swap the rsync arguments.</p>
+  </details>
+</div>
+
+<footer>
+  <span>IRIS · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/iris" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+<script src="prototype-switcher.js"></script>
+</body>
+</html>

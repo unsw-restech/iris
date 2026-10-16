@@ -1,0 +1,209 @@
+# PROTOTYPE, throwaway. Draft form for the microCT reference workflow, for the ticket
+# "What do the reference workflow's form and page look like?" (PatrickTung/iris#19).
+# Lives on branch prototype/reference-form-page only. Never deployed.
+# Lines marked "OPEN:" are the questions to settle. Structure follows hello-world.
+---
+form:
+
+  # -- Data ------------------------------------------------------
+  # First field: the only one a researcher must touch on a first run.
+  dataset:
+    widget: path
+    label: "Dataset folder"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "The folder you copied to scratch, holding volume/ and train/. Results go into its runs/ folder."
+
+  experiment_name:
+    widget: text
+    label: "Experiment name"
+    value: "microct-segmentation"   # OPEN: the slug, which isn't chosen yet
+    help: "Runs with the same name are grouped together for comparison in your MLflow tracking store (/srv/scratch/$USER/iris/tracking.db). Open it later with iris-compare in a Virtual Desktop."
+
+  # -- Training --------------------------------------------------
+  epochs:
+    widget: number
+    label: "Epochs"
+    value: 50          # OPEN: default needs a timing run on the sample data
+    min: 1
+    max: 500
+    step: 1
+    help: "Passes over the training patches. With 5-30 labelled slices, more epochs are cheap."
+
+  patch_size:
+    widget: select
+    label: "Patch size (pixels)"
+    value: "256"
+    options:
+      - [ "128", "128" ]
+      - [ "256", "256" ]
+      - [ "512", "512" ]
+    help: "Slices are cut into square patches on a non-overlapping grid. Larger patches give more context per patch but fewer patches."
+
+  learning_rate:
+    widget: number
+    label: "Learning rate"
+    value: 0.001
+    min: 0.00001
+    max: 0.1
+    step: 0.00001
+    help: "Adam learning rate."
+
+  val_percent:
+    widget: number
+    label: "Validation patches (%)"
+    value: 20
+    min: 5
+    max: 50
+    step: 5
+    help: "Share of patches held out to score the model (per-class Dice and IoU). The split is random; its seed is recorded with the run."
+
+  # -- Resources -------------------------------------------------
+  # OPEN: resources visible (as in mnist) or behind "advanced" (form variant B)?
+  ngpus:
+    widget: number
+    label: "GPUs (0 = CPU only)"
+    value: 1
+    min: 0
+    max: 1
+    step: 1
+    help: "Any GPU type on Katana works. Use 0 only for a small test: CPU is far slower on a full volume."
+
+  ncpus:
+    widget: number
+    label: "CPU cores (1 - 16)"
+    value: 8
+    min: 1
+    max: 16
+    step: 1
+    help: "Used for reading the volume and preparing patches."
+
+  mem:
+    widget: select
+    label: "Memory"
+    value: "32gb"      # OPEN: one 40-slice block is ~0.5 GB; 32 GB is a guess
+    options:
+      - [ "16 GB",  "16gb"  ]
+      - [ "32 GB",  "32gb"  ]
+      - [ "64 GB",  "64gb"  ]
+      - [ "124 GB", "124gb" ]
+    help: "32 GB covers a 2520 x 2520 scan. Larger slices may need more."
+
+  time:
+    widget: number
+    label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
+    size:    2
+    value:   [ 4, 0 ]  # OPEN: needs a timing run; keep <= 12 h so any node can take it
+    min:     [ 0, 0 ]
+    max:     [ 200, 59 ]
+    step:    [ 1, 1 ]
+    help: "Training plus segmenting the whole volume. Jobs up to 12 hours can run on any node."
+
+  # -- Advanced --------------------------------------------------
+  show_advanced_option:
+    widget: checkbox
+    options:
+      - [ "Show advanced options", "", show-batch_size, show-seed, show-job_name, show-mail_events ]
+
+  batch_size:
+    widget: select
+    label: "Batch size"
+    indent: 1
+    value: "16"
+    options:
+      - [ "4",  "4"  ]
+      - [ "8",  "8"  ]
+      - [ "16", "16" ]
+      - [ "32", "32" ]
+    help: "Patches per training step. Lower it if the job runs out of GPU memory."
+
+  seed:
+    widget: text
+    label: "Random seed"
+    indent: 1
+    value: ""
+    help: "Leave blank for a new random split each run; the seed used is recorded. Set it to repeat a split exactly."
+
+  job_name:
+    widget: text
+    label: "PBS Job name"
+    indent: 1
+    value: "iris_microct"
+    help: "No spaces or special characters. Not used for anything but your own reference."
+
+  mail_events:
+    label: "Mail events"
+    widget: checkbox
+    direction: horizontal
+    separator: ""
+    indent: 1
+    value: [ "a", "e" ]   # OPEN: on by default, since the run takes hours?
+    options:
+      - [ "Send email when a job ends abnormally", "a" ]
+      - [ "Send email when a job starts",          "b" ]
+      - [ "Send email when a job ends",            "e" ]
+
+  # Dropped from hello-world: module (the environment is fixed), log/logname
+  # (output always goes to runs/), working_dir (the dataset decides it).
+
+script: |
+  #!/bin/bash
+  #PBS -N #{job_name}
+  #PBS -A iris-microct-segmentation
+  #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}:ngpus=#{ngpus}
+  #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
+  #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au
+  #PBS -m #{mail_events}
+  #PBS -j oe
+  #PBS -o #{dataset}/runs/
+  # OPEN: does PBS Pro accept a directory for -o and name the file <jobid>.OU?
+  # If not, the iris-view line also has to be findable another way.
+
+  CODE="<%= File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) %>"
+  ENV_DIR=/srv/scratch/iris/envs/imaging/1
+  RUN_DIR="#{dataset}/runs/$PBS_JOBID"
+
+  if [ ! -x "$ENV_DIR/bin/python" ]; then
+    echo "IRIS environment missing at $ENV_DIR. Contact patrick.tung@unsw.edu.au."
+    exit 1
+  fi
+  source /etc/profile.d/modules.sh
+  module load python/3.13.2
+  source "$ENV_DIR/bin/activate"
+
+  mkdir -p "$RUN_DIR"
+  git -C "$CODE" rev-parse HEAD > "$RUN_DIR/commit.txt"
+
+  python "$CODE/src/run.py" \
+    --dataset "#{dataset}" --run-dir "$RUN_DIR" \
+    --experiment "#{experiment_name}" \
+    --epochs #{epochs} --patch-size #{patch_size} --lr #{learning_rate} \
+    --val-percent #{val_percent} --batch-size #{batch_size} --seed "#{seed}"
+
+  echo ""
+  echo "To view this run, start a Virtual Desktop and run:"
+  echo "  iris-view $RUN_DIR"
+
+check: |
+  scratch = "/srv/scratch/" + ENV['USER']
+  ds = File.expand_path(@dataset.to_s)
+  unless ds == scratch || ds.start_with?(scratch + "/")
+    halt 500, "Dataset folder must be inside " + scratch + "."
+  end
+  if Dir.glob(File.join(ds, "volume", "*.nc")).empty?
+    halt 500, "No .nc files in " + ds + "/volume. Copy the scan's blocks there."
+  end
+  imgs = File.join(ds, "train", "images")
+  labs = File.join(ds, "train", "labels")
+  unless File.directory?(imgs) && File.directory?(labs)
+    halt 500, "Missing train/images or train/labels in " + ds + "."
+  end
+  a = Dir.children(imgs).sort
+  b = Dir.children(labs).sort
+  if a != b
+    halt 500, "train/images and train/labels hold different file names: " + ((a - b) + (b - a)).first(5).join(", ")
+  end
+  if @time_1.to_i == 0 && @time_2.to_i == 0
+    halt 500, "Walltime cannot be zero."
+  end
