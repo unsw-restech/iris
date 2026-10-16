@@ -12,8 +12,9 @@
 # Installs offline, then writes into the environment:
 #   requirements.lock  pip freeze of what was installed (copy into the repo)
 #   build-info.txt     Python, PyTorch, CUDA, compiled GPU archs, commit
-# and imports every package in the lock. A version that already exists is
-# never touched: a change means a new version number.
+# and imports every package in the lock. Fails if PyTorch lacks sm_70, or if
+# a rebuild from the lock installs anything different. A version that
+# already exists is never touched: a change means a new version number.
 
 set -eo pipefail
 
@@ -50,6 +51,15 @@ python3 -m venv "$ENV_DIR"
     echo "python   : $("$ENV_DIR/bin/python" --version)"
     "$ENV_DIR/bin/python" -c 'import torch; print("torch    :", torch.__version__); print("cuda     :", torch.version.cuda); print("archs    :", torch._C._cuda_getArchFlags())'
 } | tee "$ENV_DIR/build-info.txt"
+
+# The V100s need sm_70 compiled in; without it this version is unusable.
+grep -q '^archs .*\bsm_70\b' "$ENV_DIR/build-info.txt" || { echo "FAILED: this PyTorch build has no sm_70, so it cannot run on the V100s."; exit 1; }
+
+# A rebuild from the lock must install exactly the lock.
+if [ "$REQS" = "$RECIPE/requirements.lock" ] && ! diff "$REQS" "$ENV_DIR/requirements.lock"; then
+    echo "FAILED: the installed packages differ from requirements.lock (diff above)."
+    exit 1
+fi
 
 MLFLOW_DISABLE_AGENT_HINT=1 "$ENV_DIR/bin/python" "$RECIPE/check_imports.py" "$ENV_DIR/requirements.lock"
 
