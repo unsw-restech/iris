@@ -18,3 +18,6 @@ training_log.txt
 Thumbs.db
 *.swp
 *~
+
+# PBS output of the environment build jobs, written to the submit folder
+envs/imaging/iris-env-imaging-*.o*

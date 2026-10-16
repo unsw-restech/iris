@@ -14,6 +14,7 @@ iris/
 ├── assets/
 │   └── iris.css                      # Shared styles for workflow detail pages
 ├── _archive/<slug>/                  # Retired OpenComposer forms, never served by OpenComposer
+├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html

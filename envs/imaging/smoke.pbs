@@ -1,0 +1,48 @@
+#!/bin/bash
+#PBS -N iris-env-imaging-smoke
+#PBS -l select=1:ncpus=2:ngpus=1:mem=8gb
+#PBS -l walltime=00:05:00
+#PBS -j oe
+
+# Step 3 of a build: check the environment on a real GPU.
+#
+# Submit once on a V100 and once on another GPU type, choosing the model
+# with gpu_model (V100, A100, H100, H200, L40S):
+#   qsub -v VERSION=<n> -l select=1:ncpus=2:ngpus=1:mem=8gb:gpu_model=V100 smoke.pbs
+#
+# Passes if sm_70 is in torch.cuda.get_arch_list() and a small conv forward
+# pass on the GPU matches the same pass on the CPU.
+
+set -eo pipefail
+
+: "${VERSION:?submit with qsub -v VERSION=<n> smoke.pbs}"
+ENV_DIR="/srv/scratch/iris/envs/imaging/$VERSION"
+
+. /etc/profile.d/modules.sh
+module load python/3.13.2
+
+nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
+
+"$ENV_DIR/bin/python" - <<'PY'
+import sys
+import torch
+
+archs = torch.cuda.get_arch_list()
+print("torch     :", torch.__version__)
+print("device    :", torch.cuda.get_device_name(0), "sm_%d%d" % torch.cuda.get_device_capability(0))
+print("arch list :", " ".join(archs))
+
+# TF32 convolutions on A100 and newer would differ from the CPU result.
+torch.backends.cudnn.allow_tf32 = False
+torch.manual_seed(0)
+model = torch.nn.Sequential(torch.nn.Conv2d(1, 8, 3, padding=1), torch.nn.ReLU(), torch.nn.Conv2d(8, 2, 1))
+x = torch.randn(2, 1, 64, 64)
+expected = model(x)
+got = model.cuda()(x.cuda()).cpu()
+close = torch.allclose(got, expected, atol=1e-3)
+print("forward   :", tuple(got.shape), "matches CPU" if close else "DIFFERS from CPU")
+
+ok = "sm_70" in archs and close
+print("SMOKE TEST", "PASSED" if ok else "FAILED")
+sys.exit(0 if ok else 1)
+PY

@@ -1,0 +1,24 @@
+# IRIS imaging environment: top-level packages.
+# Built on Katana's python/3.13.2 module. requirements.lock is the pip freeze
+# of the version actually built; this file is only what we asked for.
+# README.md in this folder covers versions, the build and the desktop venv.
+
+# One exact cu128 build that still lists sm_70 (V100). 2.10.0 is the newest
+# cu128 release; 2.9.1's cu128 wheel has no sm_70. Needs driver >= 570.
+torch==2.10.0+cu128
+
+# Reading netCDF-classic volume blocks as one lazy array
+numpy
+xarray
+dask[array]
+netCDF4
+
+# Label volume: slice-compressed uint8 BigTIFF (imagecodecs supplies deflate)
+tifffile
+imagecodecs
+
+# iris-view
+napari[pyqt5]
+
+# Experiment tracking
+mlflow>=3,<4

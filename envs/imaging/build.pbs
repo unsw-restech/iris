@@ -1,0 +1,56 @@
+#!/bin/bash
+#PBS -N iris-env-imaging-build
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=01:00:00
+#PBS -j oe
+
+# Step 2 of a build: create the venv at its final path from the wheelhouse.
+#
+# Submit from this folder in a clone on Katana, after download.sh:
+#   qsub -v VERSION=<n> build.pbs
+#
+# Installs offline, then writes into the environment:
+#   requirements.lock  pip freeze of what was installed (copy into the repo)
+#   build-info.txt     Python, PyTorch, CUDA, compiled GPU archs, commit
+# and imports every package in the lock. A version that already exists is
+# never touched: a change means a new version number.
+
+set -eo pipefail
+
+: "${VERSION:?submit with qsub -v VERSION=<n> build.pbs}"
+RECIPE="${PBS_O_WORKDIR:?submit with qsub from envs/imaging}"
+ENV_DIR="/srv/scratch/iris/envs/imaging/$VERSION"
+WHEELHOUSE="/srv/scratch/iris/wheelhouse/imaging/$VERSION"
+
+REQS="$RECIPE/requirements.lock"
+[ -f "$REQS" ] || REQS="$RECIPE/requirements.in"
+
+if [ -e "$ENV_DIR" ]; then
+    echo "$ENV_DIR already exists. Built versions are never modified; build version $((VERSION + 1)) instead."
+    exit 1
+fi
+[ -d "$WHEELHOUSE" ] || { echo "No wheelhouse at $WHEELHOUSE. Run download.sh $VERSION on katana-dm first."; exit 1; }
+
+. /etc/profile.d/modules.sh
+module load python/3.13.2
+
+echo "From       : $REQS"
+echo "Wheelhouse : $WHEELHOUSE"
+echo "Into       : $ENV_DIR"
+
+mkdir -p "$(dirname "$ENV_DIR")"
+python3 -m venv "$ENV_DIR"
+"$ENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEELHOUSE" -r "$REQS"
+
+"$ENV_DIR/bin/python" -m pip freeze > "$ENV_DIR/requirements.lock"
+{
+    echo "version  : imaging/$VERSION"
+    echo "built    : $(date -Iseconds) by $USER, job ${PBS_JOBID}"
+    echo "from     : $(basename "$REQS") at $(git -C "$RECIPE" rev-parse HEAD)"
+    echo "python   : $("$ENV_DIR/bin/python" --version)"
+    "$ENV_DIR/bin/python" -c 'import torch; print("torch    :", torch.__version__); print("cuda     :", torch.version.cuda); print("archs    :", torch._C._cuda_getArchFlags())'
+} | tee "$ENV_DIR/build-info.txt"
+
+MLFLOW_DISABLE_AGENT_HINT=1 "$ENV_DIR/bin/python" "$RECIPE/check_imports.py" "$ENV_DIR/requirements.lock"
+
+echo "Built. Next: smoke.pbs on a V100 and one other GPU type, then seal.sh."
