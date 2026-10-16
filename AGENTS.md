@@ -41,14 +41,14 @@ grep -n  'href="#"' index.html                                                  
 grep -rn 'unsw-restech' . --exclude-dir=.git --exclude=AGENTS.md                 # wrong repo URL
 grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md # stale account / old repo
 grep -rn 'workflowhub.eu/projects/24' . --include=*.html                         # wrong project; ours is 472
-LC_ALL=C grep -rl '[^ -~]' . --include=*.ps1                                     # non-ASCII breaks PowerShell 5.1
+perl -ne 'if (/[^\x00-\x7f]/) { print "$ARGV\n"; close ARGV }' $(find . -name '*.ps1' -not -path './.git/*')  # non-ASCII breaks PowerShell 5.1
 
 for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' index.html | sed 's/href="//;s/"//' | sort -u); do
   [ -f "$p/index.html" ] || echo "BROKEN CARD LINK: $p"
 done
 ```
 
-Use `LC_ALL=C` with `[^ -~]` for non-ASCII: `grep -P` exits 2 in this Git Bash, which a `||` chain reads as clean.
+Check non-ASCII with perl, not grep. `grep -P` exits 2 in Git Bash, which a `||` chain reads as clean. `[^ -~]` flags every line of a CRLF working copy (`core.autocrlf` is on). And WSL's grep missed a real non-ASCII byte with both `[^[:print:][:space:]]` and a `\x80-\xff` range.
 
 ## Deploying
 
