@@ -12,6 +12,14 @@ _Avoid_: Pipeline, app, job
 The set of workflows listed on the IRIS landing page. Onboarding pages such as `hello-world` are not part of it.
 _Avoid_: Gallery, grid, registry
 
+**Planned workflow**:
+A catalogue entry with a page but no form and no Run button, listed to show what is coming.
+_Avoid_: Coming soon, inactive
+
+**Modality**:
+The imaging technique a workflow serves, such as microCT, microscopy or pathology, shown as a tag on its catalogue card.
+_Avoid_: Domain, category
+
 **Reference workflow**:
 The single microCT workflow every IRIS v1 design decision is tested against.
 _Avoid_: Demo, example workflow
