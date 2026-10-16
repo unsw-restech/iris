@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PROTOTYPE, throwaway. Three page layouts for the microCT reference workflow, switchable via ?variant=A|B|C.
+<!-- PROTOTYPE, throwaway. Three page layouts for the microCT reference workflow, switchable via ?variant=D|A|B|C. D is the chosen combination.
      For "What do the reference workflow's form and page look like?" (PatrickTung/iris#19).
      Branch prototype/reference-form-page only; never merged. Slug "microct-2d-segmentation" is a placeholder. -->
 <html lang="en">
@@ -43,6 +43,52 @@
   </a>
   <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
 </nav>
+
+<!-- ============================================================ D (chosen) -->
+<div class="page" data-variant="D" data-name="CHOSEN: B columns + C checklist">
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT 2D Segmentation</div>
+  <span class="wf-domain imaging">Imaging</span>
+  <h1 class="wf-title">microCT 2D Segmentation (U-Net)</h1>
+  <p class="wf-desc">Label a few slices, get the whole scan segmented.</p>
+  <h2 style="margin-top:28px">You're ready when</h2>
+  <ul class="ck"><li>Your dataset folder is under <code>/srv/scratch/zID</code></li><li><code>volume/</code> has the scan's <code>.nc</code> blocks</li><li><code>train/images</code> and <code>train/labels</code> hold the same file names</li></ul>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-2d-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <span class="run-note">Opens Katana OnDemand. The form checks all three and tells you which failed.</span>
+
+  <div class="cols">
+    <div class="col"><div class="when">Once per dataset</div><h3>1 · Stage</h3>
+      <p>Folder with <code>volume/</code> and <code>train/images</code> + <code>train/labels</code>.</p>
+      <p>Copy it with rsync to <code>kdm.restech.unsw.edu.au</code>, or WinSCP.</p></div>
+    <div class="col"><div class="when">Every run · 2 clicks</div><h3>2 · Run</h3>
+      <p>Pick the dataset folder. Submit.</p>
+      <p>Defaults work; tweak epochs, patch size, learning rate to compare.</p></div>
+    <div class="col"><div class="when">After it finishes</div><h3>3 · View</h3>
+      <p>Virtual Desktop (CPU, 4 cores, 16 GB) → terminal → paste the <code>iris-view</code> line from the job output.</p>
+      <p><code>iris-compare</code> to compare runs.</p></div>
+  </div>
+
+  <details><summary>1 · How to lay out and copy your dataset</summary>
+    <div class="tree">my-scan/
+  volume/          <span class="c">all block*.nc files of one scan</span>
+  train/images/    <span class="c">2D TIFFs, same dtype as volume</span>
+  train/labels/    <span class="c">same names as images/, 0 = unlabelled</span>
+  runs/            <span class="c">created by IRIS, one folder per run</span></div>
+    <pre class="code-block">rsync -av --progress my-scan/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-scan/</pre>
+    <p>On Windows: WinSCP to the same host and folder. Never copy through a login node.</p>
+  </details>
+  <details><summary>2 · What each form field does</summary>
+    <table class="param-table"><thead><tr><th>Field</th><th>Default</th><th>Change it when</th></tr></thead>
+    <tbody><tr><td>Dataset folder</td><td>—</td><td>Always: pick yours</td></tr><tr><td>Experiment name</td><td>microct-2d-segmentation</td><td>Starting a new comparison</td></tr><tr><td>Epochs</td><td>50</td><td>Dice still rising at the end</td></tr><tr><td>Patch size</td><td>256</td><td>Features are large relative to 256 px</td></tr><tr><td>Learning rate</td><td>0.001</td><td>Loss jumps around or stalls</td></tr><tr><td>Validation %</td><td>20</td><td>Very few labelled slices</td></tr><tr><td>GPUs</td><td>1</td><td>0 for a tiny CPU test only</td></tr><tr><td>Walltime</td><td>4 h</td><td>Large scan or many epochs</td></tr></tbody></table>
+  </details>
+  <details><summary>3 · Where results are and how to view them</summary>
+    <p><code>my-scan/runs/&lt;job ID&gt;/</code> holds <code>labels.tif</code>, <code>model.pt</code>, <code>metrics.json</code>, <code>params.json</code>. The job output <code>runs/&lt;job ID&gt;.OU</code> ends with the <code>iris-view</code> line.</p>
+    <p>3D: ParaView on a cropped region. Fiji: opens <code>labels.tif</code>. Copy home: swap the rsync arguments.</p>
+  </details>
+  <details><summary>Something went wrong</summary>
+    <p>"Environment missing": contact patrick.tung@unsw.edu.au. Form refuses to submit: the message names the folder rule that failed.</p>
+  </details>
+</div>
+
 
 <!-- ============================================================ A -->
 <div class="page" data-variant="A" data-name="Long guide, three stages in order">
