@@ -142,7 +142,7 @@
   <h1>Hello World</h1>
   <p class="desc">A minimal test job to confirm your IRIS → Katana setup is working end-to-end. No input data required. Completes in under 5 minutes.</p>
 
-  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/IRIS" class="run-btn" target="_blank">
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/hello-world" class="run-btn" target="_blank">
     ▶&nbsp; Run on Katana
   </a>
   <br>
@@ -169,7 +169,7 @@
     <li>Log in with your zID and password if prompted.</li>
     <li>Review the pre-filled parameters — no changes needed for a basic test.</li>
     <li>Click <strong>Submit</strong> in the OpenComposer form.</li>
-    <li>The job runs on a Katana compute node and writes a result file to your scratch directory.</li>
+    <li>The job runs on a Katana compute node and writes <code>result.txt</code> and <code>commit.txt</code> (the IRIS commit that ran) to your output directory.</li>
   </ol>
 
   <h2>Expected output</h2>
@@ -179,7 +179,9 @@
     Date: Mon Jan 20 14:32:01 AEDT 2025<br>
     Host: katana01.restech.unsw.edu.au<br>
     CPUs: 1<br>
-    Mem:  4gb
+    Mem:  4gb<br>
+    GPUs: 0<br>
+    Code: /&hellip;/iris/workflows/hello-world
   </div>
 </div>
 

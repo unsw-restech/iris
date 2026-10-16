@@ -1,0 +1,6 @@
+name: IRIS Hello World
+category: Test
+icon: bi-check2-circle
+description: |
+  A minimal test workflow to confirm your IRIS + Katana setup is working.
+  No input data required. Completes in under 5 minutes.

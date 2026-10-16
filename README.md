@@ -17,10 +17,13 @@ iris/
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html
+    │   ├── form.yml.erb, manifest.yml  # OpenComposer form
+    │   ├── src/hello_world.sh
     │   ├── katana/iris_hello_world.pbs
     │   └── local/run_local.sh, run_local.ps1
     ├── mnist-classification/         # PyTorch module example
     │   ├── index.html
+    │   ├── form.yml.erb, manifest.yml  # OpenComposer form
     │   ├── katana/iris_mnist_classification.pbs, prepare.sh
     │   ├── src/train_mnist.py
     │   └── local/run_local.sh, run_local.ps1
@@ -62,6 +65,8 @@ If the workflow ships a `local/run_local.ps1`, **keep it ASCII-only**. These fil
 
 GitHub Pages is already configured and deploys from the `main` branch. There is no Actions workflow; pushing to `main` publishes.
 
+The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points at `workflows/` in a clone on Katana, and `git pull` in that clone deploys them. A form runs the code of the clone that served it and records that clone's commit in `commit.txt`.
+
 ## Status
 
 `v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch.
@@ -72,6 +77,8 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 |---|---|---|
 | **Run and verified** | `hello-world` (onboarding), `mnist-classification` (Teaching) | Page, form, job script, executed end to end |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
+
+Both forms moved into the repo on 2026-10-16 and have not yet run from a clone; the runs above were from the old out-of-repo copies.
 
 The microCT reference workflow, `microct-2d-segmentation`, gets its card when its page lands.
 

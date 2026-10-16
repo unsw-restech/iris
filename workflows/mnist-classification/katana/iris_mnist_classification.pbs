@@ -18,7 +18,6 @@
 #  nodes have no outbound internet; it pre-fetches the dataset.
 #
 #  Output goes to: /srv/scratch/$USER/iris-mnist-classification/
-#  Usage log:      /srv/scratch/iris/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
@@ -31,12 +30,6 @@ LR=0.001
 # ───────────────────────────────────────────────────────────────
 
 set -euo pipefail
-
-WORKFLOW="iris-mnist-classification"
-VERSION="1.1.0"
-STATUS="failed"          # flipped to success at the end; read by the exit trap
-COMPUTE="katana"         # upgraded to katana-gpu if a GPU turns out to be visible
-RAW_BASE="https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/mnist-classification"
 
 echo "========================================"
 echo "  IRIS MNIST classification — Katana"
@@ -51,23 +44,8 @@ echo ""
 
 mkdir -p "$OUTDIR" "$DATADIR"
 
-# ── Usage logging on exit, success or failure ───────────────────
-log_usage() {
-    local logdir="/srv/scratch/iris/usage-log"
-    local logfile="$logdir/usage.jsonl"
-    if [ -d "$logdir" ]; then
-        echo "{\"workflow\":\"$WORKFLOW\",\"version\":\"$VERSION\",\"user\":\"$USER\",\"job_id\":\"${PBS_JOBID:-none}\",\"status\":\"$STATUS\",\"compute\":\"$COMPUTE\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> "$logfile"
-        echo "Usage logged to: $logfile"
-    else
-        echo "Warning: usage log directory not found at $logdir — skipping log."
-        echo "(Ask ResTech to create /srv/scratch/iris/usage-log/)"
-    fi
-}
-trap log_usage EXIT
-
 # ── GPU detection ───────────────────────────────────────────────
 if command -v nvidia-smi > /dev/null 2>&1 && nvidia-smi > /dev/null 2>&1; then
-    COMPUTE="katana-gpu"
     echo "GPU detected:"
     nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 else
@@ -132,15 +110,10 @@ do
 done
 
 if [ -z "$TRAIN_SCRIPT" ]; then
-    echo "train_mnist.py not found nearby — fetching it from GitHub."
-    if curl -fsSL "$RAW_BASE/src/train_mnist.py" -o "$OUTDIR/train_mnist.py"; then
-        TRAIN_SCRIPT="$OUTDIR/train_mnist.py"
-    else
-        echo "ERROR: could not find or download train_mnist.py."
-        echo "Put it next to this script, or in ../src/, or download it manually:"
-        echo "  curl -O $RAW_BASE/src/train_mnist.py"
-        exit 1
-    fi
+    echo "ERROR: train_mnist.py not found."
+    echo "Submit this script from katana/ in a clone of the IRIS repo, or put"
+    echo "train_mnist.py next to it."
+    exit 1
 fi
 echo "Training script: $TRAIN_SCRIPT"
 echo ""
@@ -156,7 +129,6 @@ python3 "$TRAIN_SCRIPT" \
 echo "----------------------------------------"
 echo ""
 
-STATUS="success"
 echo "Results in: $OUTDIR"
 echo ""
 echo "========================================"

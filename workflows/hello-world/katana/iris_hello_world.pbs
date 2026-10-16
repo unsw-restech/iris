@@ -10,7 +10,6 @@
 #  A minimal test to confirm your IRIS + Katana setup is working.
 #
 #  Output goes to: /srv/scratch/$USER/iris-hello-world/
-#  Usage log:      /srv/scratch/iris/usage-log/usage.jsonl
 # ═══════════════════════════════════════════════════════════════
 
 # ── Parameters (edit if needed) ────────────────────────────────
@@ -54,23 +53,6 @@ pipeline is working correctly.
 EOF
 
 echo "Result written to: $RESULT"
-echo ""
-
-# ── Usage logging ───────────────────────────────────────────────
-LOGDIR="/srv/scratch/iris/usage-log"
-LOGFILE="$LOGDIR/usage.jsonl"
-
-if [ -d "$LOGDIR" ]; then
-    ENTRY=$(cat << EOF
-{"workflow":"iris-hello-world","version":"1.0.0","user":"$USER","job_id":"$PBS_JOBID","status":"success","compute":"katana","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
-EOF
-)
-    echo "$ENTRY" >> "$LOGFILE"
-    echo "Usage logged to: $LOGFILE"
-else
-    echo "Warning: usage log directory not found at $LOGDIR — skipping log."
-    echo "(Ask ResTech to create /srv/scratch/iris/usage-log/)"
-fi
 
 echo ""
 echo "========================================"

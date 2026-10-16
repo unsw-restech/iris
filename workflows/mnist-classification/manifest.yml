@@ -1,0 +1,19 @@
+name: MNIST Image Classification
+category: Imaging
+icon: bi-grid-3x3
+description: |
+  Train a small convolutional network to classify handwritten digits.
+
+  The environment comes from Katana's PyTorch module, so there is nothing to
+  install and no image to pull. **No input data is required** — the only
+  download is the 11 MB MNIST dataset, which fetches itself on first use.
+
+  A worked example for your first GPU job on Katana. A run at the defaults
+  (3 epochs, 1 GPU) finishes in well under a minute and reaches roughly 99%
+  test accuracy.
+
+  Outputs land in your chosen directory as `metrics.json`,
+  `confusion_matrix.txt`, `training_log.txt`, `model.pt` and
+  `commit.txt` (the IRIS commit that ran).
+
+  Documentation: https://patricktung.github.io/iris/workflows/mnist-classification/

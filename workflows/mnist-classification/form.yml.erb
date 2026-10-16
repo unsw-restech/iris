@@ -1,0 +1,256 @@
+---
+form:
+
+  job_name:
+    widget: text
+    label: "PBS Job name"
+    value: "iris_mnist_classification"
+    help: "No spaces or special characters."
+
+  # ── Training ──────────────────────────────────────────────────
+  epochs:
+    widget: number
+    label: "Epochs"
+    value: 3
+    min: 1
+    max: 50
+    step: 1
+    help: "Passes over the 60,000 training images. Three reaches about 99% test accuracy."
+
+  batch_size:
+    widget: select
+    label: "Batch size"
+    value: "128"
+    options:
+      - [ "32",  "32"  ]
+      - [ "64",  "64"  ]
+      - [ "128", "128" ]
+      - [ "256", "256" ]
+      - [ "512", "512" ]
+    help: "Images per training batch. Larger batches use more GPU memory."
+
+  learning_rate:
+    widget: number
+    label: "Learning rate"
+    value: 0.001
+    min: 0.00001
+    max: 1
+    step: 0.0001
+    help: "Adam learning rate."
+
+  # ── Resources ─────────────────────────────────────────────────
+  ngpus:
+    widget: number
+    label: "GPUs (0 = CPU only)"
+    value: 1
+    min: 0
+    max: 1
+    step: 1
+    help: "With no GPU the job still completes - it just takes a few minutes rather than about one."
+
+  ncpus:
+    widget: number
+    label: "CPU cores (1 - 16)"
+    value: 4
+    min: 1
+    max: 16
+    step: 1
+    help: "Used for data loading. Four is plenty for MNIST."
+
+  mem:
+    widget: select
+    label: "Memory"
+    value: "16gb"
+    options:
+      - [ "8 GB",   "8gb"   ]
+      - [ "16 GB",  "16gb"  ]
+      - [ "32 GB",  "32gb"  ]
+      - [ "64 GB",  "64gb"  ]
+    help: "16gb is generous for MNIST."
+
+  time:
+    widget: number
+    label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
+    size:    2
+    value:   [ 0, 30 ]
+    min:     [ 0, 0 ]
+    max:     [ 200, 59 ]
+    step:    [ 1, 1 ]
+    help: "Thirty minutes is generous at the defaults. Nothing large is downloaded - the environment is a module and the dataset is 11 MB."
+
+  # ── Advanced options ──────────────────────────────────────────
+  show_advanced_option:
+    widget: checkbox
+    options:
+      - [ "Show advanced options", "", show-seed, show-workers, show-mail_events, show-log, show-logname, show-module ]
+
+  seed:
+    widget: number
+    label: "Random seed"
+    indent: 1
+    value: 42
+    min: 0
+    max: 999999
+    step: 1
+    help: "Fixed so two runs with the same settings give the same accuracy."
+
+  workers:
+    widget: number
+    label: "Data loader workers"
+    indent: 1
+    value: 2
+    min: 0
+    max: 8
+    step: 1
+    help: "Subprocesses feeding the GPU. Keep this below the CPU core count."
+
+  mail_events:
+    label: "Mail events"
+    widget: checkbox
+    direction: horizontal
+    separator: ""
+    indent: 1
+    options:
+      - [ "Send email when a job ends abnormally", "a" ]
+      - [ "Send email when a job starts",          "b" ]
+      - [ "Send email when a job ends",            "e" ]
+
+  log:
+    widget: checkbox
+    indent: 1
+    options:
+      - [ "Merge stderr into stdout (-j oe)", "oe", disable-logname ]
+
+  logname:
+    widget: text
+    indent: 1
+    label:  [ "File name of stdout", "File name of stderr" ]
+    size:   2
+
+  module:
+    widget: multi_select
+    label: "Additional modules"
+    indent: 1
+    separator: " "
+    help: "The pytorch module is loaded for you. Add others here only if your own post-processing needs them."
+    options:
+    <% require 'open3'
+       stdout, _ = Open3.capture2e(
+         {"MODULEPATH" => "/etc/scl/modulefiles:/apps/Modules/linux-rocky8-ivybridge:/apps/neurodesk/modules:/usr/share/Modules/modulefiles:/etc/modulefiles:/usr/share/modulefiles"},
+         "/usr/share/Modules/libexec/modulecmd.tcl", "sh", "avail", "-t"
+       )
+       mods = stdout.split(/\s+/).reject { |m|
+         m.empty? || m.end_with?(":") || m.start_with?("/")
+       }.select { |m|
+         m.match?(/python|pytorch|tensorflow|cuda|cudnn|^R\//i)
+       }.sort
+       mods.each do |mod| %>
+      - [ "<%= mod %>", "<%= mod %>" ]
+    <% end %>
+
+  # ── Output directory ──────────────────────────────────────────
+  working_dir:
+    widget: path
+    label: "Output directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Recommended: your scratch directory /srv/scratch/zID"
+
+# The form finds its own clone, so jobs run that clone's code. OpenComposer
+# re-reads this file on submit with @apps_dir unset, but it submits the
+# script rendered here, so the fallback never reaches a job.
+<% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>
+script: |
+  #!/bin/bash
+  #PBS -N #{job_name}
+  #PBS -A iris-mnist-classification
+  #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}:ngpus=#{ngpus}
+  #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
+  #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au
+  #PBS -m #{mail_events}
+  #PBS -j #{log}
+  #PBS -o #{logname_1}
+  #PBS -e #{logname_2}
+
+  set -eo pipefail
+
+  CODE="<%= code %>"
+  [ -n "$CODE" ] || { echo "ERROR: the form could not locate its IRIS clone."; exit 1; }
+  OUTDIR="#{working_dir}"
+  DATADIR="$OUTDIR/data"
+
+  mkdir -p "$OUTDIR" "$DATADIR"
+  git -C "$CODE" rev-parse HEAD > "$OUTDIR/commit.txt"
+
+  echo "========================================"
+  echo "  IRIS MNIST classification"
+  echo "========================================"
+  echo "Timestamp : $(date)"
+  echo "Job ID    : $PBS_JOBID"
+  echo "Hostname  : $(hostname)"
+  echo "Code      : $CODE"
+  echo "Commit    : $(cat "$OUTDIR/commit.txt")"
+  echo "Output    : $OUTDIR"
+  echo ""
+
+  if [ "#{ngpus}" -gt 0 ] && command -v nvidia-smi > /dev/null 2>&1; then
+    nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+  else
+    echo "No GPU requested - training on CPU. Expect a few minutes."
+  fi
+  echo ""
+
+  # Module scripts reference unset variables, so keep nounset off here.
+  module purge
+  module load pytorch/1.13.1 #{module}
+
+  if ! python3 -c "import torch" > /dev/null 2>&1; then
+    echo "ERROR: the pytorch module loaded but 'import torch' failed."
+    echo "Run 'module avail pytorch' on a login node and tell restech@unsw.edu.au."
+    exit 1
+  fi
+  python3 -c "import torch; print('PyTorch  : ' + torch.__version__); print('CUDA     : ' + str(torch.cuda.is_available()))"
+  echo ""
+
+  # torch is the only dependency - MNIST is read straight from the IDX files
+  # with the standard library, so there is nothing to pip install.
+  echo "----------------------------------------"
+  python3 "$CODE/src/train_mnist.py" \
+    --data-dir "$DATADIR" \
+    --outdir "$OUTDIR" \
+    --epochs #{epochs} \
+    --batch-size #{batch_size} \
+    --lr #{learning_rate} \
+    --workers #{workers} \
+    --seed #{seed}
+  echo "----------------------------------------"
+  echo ""
+
+  echo "Results in: $OUTDIR"
+  echo "  metrics.json          final accuracy and per-epoch history"
+  echo "  confusion_matrix.txt  10x10, rows are true labels"
+  echo "  training_log.txt      full run log"
+  echo "  model.pt              trained weights"
+  echo "  commit.txt            the IRIS commit that ran"
+  echo ""
+  echo "========================================"
+  echo "  Complete"
+  echo "========================================"
+
+check: |
+  if @time_1.to_i == 0 && @time_2.to_i < 5
+    halt 500, "Walltime is too short - allow at least 5 minutes."
+  end
+
+  if @time_1.to_i > 200
+    halt 500, "Maximum walltime on Katana is 200 hours."
+  end
+
+  if @working_dir.to_s.strip.empty?
+    halt 500, "Choose an output directory - your scratch space is recommended."
+  end
+
+  if @workers.to_i >= @ncpus.to_i
+    halt 500, "Data loader workers must be fewer than the requested CPU cores."
+  end

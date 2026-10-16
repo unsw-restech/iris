@@ -9,7 +9,7 @@ IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and i
 ```
 IRIS_github_pages\               <- parent directory, not a git repo
 ├── available-modules.md         <- what is installed on Katana
-├── katana-forms-and-manifests\  <- OpenComposer forms, not in the repo
+├── katana-forms-and-manifests\  <- retired out-of-repo forms, awaiting deletion
 └── iris\                        <- the git repo (github.com/PatrickTung/iris)
     └── _archive\                <- retired forms, kept but never served
 ```
@@ -44,6 +44,11 @@ grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md
 grep -rn 'workflowhub.eu/projects/24' . --include=*.html                         # wrong project; ours is 472
 perl -ne 'if (/[^\x00-\x7f]/) { print "$ARGV\n"; close ARGV }' $(find . -name '*.ps1' -not -path './.git/*')  # non-ASCII breaks PowerShell 5.1
 
+for f in $(find workflows -name form.yml.erb); do                                # usage tag matches the folder
+  d=$(basename "$(dirname "$f")")
+  tr -d '\r' < "$f" | grep -qx "  #PBS -A iris-$d" || echo "MISSING USAGE TAG: $f"
+done
+
 for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' index.html | sed 's/href="//;s/"//' | sort -u); do
   [ -f "$p/index.html" ] || echo "BROKEN CARD LINK: $p"
 done
@@ -74,16 +79,18 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 - **GPU models for queued jobs**: A100, H100, H200, L40S, V100. `RP6000` in `pbsnodes` is ResTech's in-house development node and never runs queued jobs (Patrick, 2026-10-14).
 - **Limits** (confirmed by Patrick, 2026-08-05): walltime 200 hours, memory 1 TB, no fixed CPU cap. The 24 cpus / 248 GB / 100 h in nf-core's `unsw_katana.config` are that config's own ceilings, not Katana's. Size requests to the job anyway; oversized ones queue longer.
 - **Downloads run on the data mover (`katana-dm`) before the job** (Patrick, 2026-10-14). A download needed only mid-run goes in the job script itself. `mnist-classification`'s `prepare.sh` still assumes a login node.
-- **Usage logging** targets `/srv/scratch/iris/usage-log`, which has never existed, so no usage has been logged.
+- **Usage tag**: every form's generated header sets `#PBS -A iris-<slug>`, `hello-world` included. It is never a form field. Jobs write nothing for counting; ResTech counts runs per tag from PBS accounting.
 
 ## OpenComposer forms
 
-`..\katana-forms-and-manifests\<slug>\` is where the live forms come from, `hello-world` and `mnist-classification` (it still holds copies of the archived ones too): the directory name is the OnDemand URL segment each "Run on Katana" button points at. They are copied to the OnDemand host. Planned workflows have no form.
+Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, page and code: `hello-world` and `mnist-classification`. The folder name is the OnDemand URL segment each "Run on Katana" button points at. Patrick's dev OpenComposer's `apps_dir` points at his dev clone's `workflows/`, and a `git pull` there is the deploy. Planned workflows have no form, so OpenComposer never lists them.
+
+- **A form runs its own clone's code.** It sets `CODE` to `File.expand_path(File.join(@apps_dir, @OC_DIR_NAME))` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. Guard the expression: OpenComposer re-reads the form on submit with `@apps_dir` unset (it submits the script rendered on GET). No job downloads its own code.
+- **Manifests use built-in icon names** (`bi-...`). Local icon files don't resolve with an absolute `apps_dir`.
 
 `_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it. Their originals are still in `..\katana-forms-and-manifests\`; deleting them is Patrick's call.
 
-- **Exception:** `hello-world` is deployed as `IRIS`, so its page links `OpenComposer/IRIS`.
-- **Written is not installed.** Only `hello-world` and `mnist-classification` are confirmed opening (Patrick, 2026-08-06).
+- **Written is not installed.** Only `hello-world` and `mnist-classification` are confirmed opening (Patrick, 2026-08-06), and that was from `sample_apps/`, before the forms moved into the repo.
 - **`hello-world` is the reference schema.** Match its structure exactly.
 - **Every line inside `script: |` stays indented**, which rules out heredocs. Build embedded files with `printf '%s\n'`, as `_archive\vllm-inference` does.
 - **Use string concatenation inside `check:`.** Ruby `#{}` collides with OpenComposer's own substitution.

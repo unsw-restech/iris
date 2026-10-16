@@ -1,0 +1,151 @@
+---
+form:
+
+  job_name:
+    widget: text
+    label: "PBS Job name"
+    value: "iris_hello_world"
+    help: "No spaces or special characters."
+  # ── Resources ─────────────────────────────────────────────────
+  ncpus:
+    widget: number
+    label: "CPU cores (1 - 16)"
+    value: 1
+    min: 1
+    max: 16
+    step: 1
+    help: "Jobs requesting up to 16 CPUs can run on any Katana node."
+
+  mem:
+    widget: select
+    label: "Memory"
+    value: "4gb"
+    options:
+      - [ "4 GB",   "4gb"   ]
+      - [ "8 GB",   "8gb"   ]
+      - [ "16 GB",  "16gb"  ]
+      - [ "32 GB",  "32gb"  ]
+      - [ "64 GB",  "64gb"  ]
+      - [ "124 GB", "124gb" ]
+    help: "Up to 124gb available on any node. Larger amounts restrict to school-owned nodes only."
+
+  time:
+    widget: number
+    label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
+    size:    2
+    value:   [ 1, 0 ]
+    min:     [ 0, 0 ]
+    max:     [ 200, 59 ]
+    step:    [ 1, 1 ]
+    help: "Maximum 200 hours on Katana. Jobs <= 12hrs can run on any node."
+
+  # ── Advanced options ──────────────────────────────────────────
+  show_advanced_option:
+    widget: checkbox
+    options:
+      - [ "Show advanced options", "", show-ngpus, show-mail_events, show-log, show-logname, show-module ]
+
+  ngpus:
+    widget: number
+    label: "GPUs (0 = CPU only)"
+    indent: 1
+    value: 0
+    min: 0
+    max: 1
+    step: 1
+    help: "Set to 1 to request a GPU node."
+
+  mail_events:
+    label: "Mail events"
+    widget: checkbox
+    direction: horizontal
+    separator: ""
+    indent: 1
+    options:
+      - [ "Send email when a job ends abnormally", "a" ]
+      - [ "Send email when a job starts",          "b" ]
+      - [ "Send email when a job ends",            "e" ]
+
+  log:
+    widget: checkbox
+    indent: 1
+    options:
+      - [ "Merge stderr into stdout (-j oe)", "oe", disable-logname ]
+
+  logname:
+    widget: text
+    indent: 1
+    label:  [ "File name of stdout", "File name of stderr" ]
+    size:   2
+
+  module:
+    widget: multi_select
+    label: "Load modules"
+    indent: 1
+    separator: " "
+    help: "Common research modules shown. Run 'module avail' via SSH for the full list of 900+ modules."
+    options:
+    <% require 'open3'
+       stdout, _ = Open3.capture2e(
+         {"MODULEPATH" => "/etc/scl/modulefiles:/apps/Modules/linux-rocky8-ivybridge:/apps/neurodesk/modules:/usr/share/Modules/modulefiles:/etc/modulefiles:/usr/share/modulefiles"},
+         "/usr/share/Modules/libexec/modulecmd.tcl", "sh", "avail", "-t"
+       )
+       mods = stdout.split(/\s+/).reject { |m|
+         m.empty? || m.end_with?(":") || m.start_with?("/")
+       }.select { |m|
+         m.match?(/python|^R\/|gcc|cuda|matlab|nextflow|apptainer|singularity|gatk|samtools|miniforge|julia|bwa|star|salmon|blast/i)
+       }.sort
+       mods.each do |mod| %>
+      - [ "<%= mod %>", "<%= mod %>" ]
+    <% end %>
+
+  # ── Output directory ──────────────────────────────────────────
+  working_dir:
+    widget: path
+    label: "Output directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Recommended: your scratch directory /srv/scratch/zID"
+
+# The form finds its own clone, so jobs run that clone's code. OpenComposer
+# re-reads this file on submit with @apps_dir unset, but it submits the
+# script rendered here, so the fallback never reaches a job.
+<% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>
+script: |
+  #!/bin/bash
+  #PBS -N #{job_name}
+  #PBS -A iris-hello-world
+  #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}:ngpus=#{ngpus}
+  #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
+  #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au
+  #PBS -m #{mail_events}
+  #PBS -j #{log}
+  #PBS -o #{logname_1}
+  #PBS -e #{logname_2}
+
+  module load #{module}
+
+  cd $PBS_O_WORKDIR
+
+  CODE="<%= code %>"
+  [ -n "$CODE" ] || { echo "ERROR: the form could not locate its IRIS clone."; exit 1; }
+  OUTDIR="#{working_dir}"
+  mkdir -p "$OUTDIR"
+  git -C "$CODE" rev-parse HEAD > "$OUTDIR/commit.txt"
+
+  bash "$CODE/src/hello_world.sh" "$OUTDIR" "#{ncpus}" "#{mem}" "#{ngpus}"
+
+check: |
+  if @time_1.to_i == 0 && @time_2.to_i == 0
+    halt 500, "Walltime cannot be zero."
+  end
+
+  if @time_1.to_i > 200
+    halt 500, "Maximum walltime on Katana is 200 hours."
+  end
+
+  mem_gb = @mem.gsub("gb", "").to_i
+  if mem_gb > 124 && @time_1.to_i > 12
+    halt 500, "Jobs requesting more than 124gb are restricted to school-owned nodes."
+  end

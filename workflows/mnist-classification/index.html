@@ -34,13 +34,13 @@
   <h2>Outputs</h2>
   <table class="param-table">
     <thead><tr><th>File</th><th>Description</th></tr></thead>
-    <tbody><tr><td><code>metrics.json</code></td><td>Final test accuracy, per-epoch loss and accuracy, device used, and wall-clock time</td></tr><tr><td><code>confusion_matrix.txt</code></td><td>Plain-text 10×10 matrix — rows are true labels, columns are predictions</td></tr><tr><td><code>training_log.txt</code></td><td>Full run log, including which GPU the job landed on</td></tr><tr><td><code>model.pt</code></td><td>Trained weights, loadable with <code>torch.load</code></td></tr></tbody>
+    <tbody><tr><td><code>metrics.json</code></td><td>Final test accuracy, per-epoch loss and accuracy, device used, and wall-clock time</td></tr><tr><td><code>confusion_matrix.txt</code></td><td>Plain-text 10×10 matrix — rows are true labels, columns are predictions</td></tr><tr><td><code>training_log.txt</code></td><td>Full run log, including which GPU the job landed on</td></tr><tr><td><code>model.pt</code></td><td>Trained weights, loadable with <code>torch.load</code></td></tr><tr><td><code>commit.txt</code></td><td>The IRIS commit whose code ran</td></tr></tbody>
   </table>
   <h2>Run it without OnDemand</h2>
   <p class="wf-desc">The job scripts are in the repository and can be submitted directly from a Katana login node. Run <code>prepare.sh</code> once — it fetches the dataset while you still have reliable internet, so the job itself needs none. The environment is <code>module load pytorch</code>; nothing is installed into your account.</p>
   <pre class="code-block">cd /srv/scratch/$USER
-curl -O https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/mnist-classification/katana/prepare.sh
-curl -O https://raw.githubusercontent.com/PatrickTung/iris/main/workflows/mnist-classification/katana/iris_mnist_classification.pbs
+git clone https://github.com/PatrickTung/iris.git
+cd iris/workflows/mnist-classification/katana
 
 bash prepare.sh                        <span class="comment"># once — fetches MNIST (~11 MB)</span>
 qsub iris_mnist_classification.pbs     <span class="comment"># submit the training job</span></pre>
