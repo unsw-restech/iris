@@ -18,7 +18,7 @@ form:
   experiment_name:
     widget: text
     label: "Experiment name"
-    value: "microct-segmentation"   # OPEN: the slug, which isn't chosen yet
+    value: "microct-2d-segmentation"   # OPEN: the slug, which isn't chosen yet
     help: "Runs with the same name are grouped together for comparison in your MLflow tracking store (/srv/scratch/$USER/iris/tracking.db). Open it later with iris-compare in a Virtual Desktop."
 
   # -- Training --------------------------------------------------
@@ -150,7 +150,7 @@ form:
 script: |
   #!/bin/bash
   #PBS -N #{job_name}
-  #PBS -A iris-microct-segmentation
+  #PBS -A iris-microct-2d-segmentation
   #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}:ngpus=#{ngpus}
   #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
   #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au

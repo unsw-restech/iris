@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- PROTOTYPE, throwaway. Three page layouts for the microCT reference workflow, switchable via ?variant=A|B|C.
      For "What do the reference workflow's form and page look like?" (PatrickTung/iris#19).
-     Branch prototype/reference-form-page only; never merged. Slug "microct-segmentation" is a placeholder. -->
+     Branch prototype/reference-form-page only; never merged. Slug "microct-2d-segmentation" is a placeholder. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -46,9 +46,9 @@
 
 <!-- ============================================================ A -->
 <div class="page" data-variant="A" data-name="Long guide, three stages in order">
-  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT Segmentation</div>
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT 2D Segmentation</div>
   <span class="wf-domain imaging">Imaging</span>
-  <h1 class="wf-title">microCT Segmentation (2D U-Net)</h1>
+  <h1 class="wf-title">microCT 2D Segmentation (U-Net)</h1>
   <p class="wf-desc">Train a U-Net on a handful of labelled slices, then segment your whole reconstructed scan with it, all in one job. You get a 3D label volume, the trained weights, and per-class Dice and IoU scores logged so you can compare runs.</p>
   <div class="meta-grid"><div class="meta-cell"><div class="meta-label">Input</div><div class="meta-val">netCDF blocks + 5–30 labelled TIFF slices</div></div><div class="meta-cell"><div class="meta-label">Output</div><div class="meta-val">3D label TIFF</div></div><div class="meta-cell"><div class="meta-label">Compute</div><div class="meta-val">1 GPU, any type</div></div><div class="meta-cell"><div class="meta-label">Typical run</div><div class="meta-val">? h (TBC)</div></div></div>
 
@@ -64,13 +64,13 @@
   <p class="wf-desc">On Windows: WinSCP to the same host and folder. Your scratch holds 128 GB, about seven 16 GB scans.</p>
 
   <h2>2. Run it</h2>
-  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-2d-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
   <span class="run-note">Opens Katana OnDemand — log in with your zID when prompted.</span>
   <ol class="steps"><li>Pick your <strong>Dataset folder</strong> (e.g. <code>/srv/scratch/zID/my-scan</code>). The form checks its layout before submitting.</li><li>Optionally give an <strong>Experiment name</strong> to group runs you want to compare.</li><li>Click <strong>Submit</strong>. Everything else has a working default.</li><li>On later runs, use <strong>Load parameters</strong> in the form's history to start from a previous run.</li></ol>
   <h2>Parameters</h2>
   <table class="param-table">
     <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
-    <tbody><tr><td><code>dataset</code></td><td>—</td><td>Your dataset folder in scratch</td></tr><tr><td><code>experiment_name</code></td><td><code>microct-segmentation</code></td><td>Groups runs in your tracking store</td></tr><tr><td><code>epochs</code></td><td><code>50</code></td><td>Passes over the training patches</td></tr><tr><td><code>patch_size</code></td><td><code>256</code></td><td>Square patch side, pixels</td></tr><tr><td><code>learning_rate</code></td><td><code>0.001</code></td><td>Adam learning rate</td></tr><tr><td><code>val_percent</code></td><td><code>20</code></td><td>Patches held out for Dice/IoU</td></tr><tr><td><code>ngpus</code> / <code>ncpus</code> / <code>mem</code></td><td><code>1</code> / <code>8</code> / <code>32gb</code></td><td>Resources</td></tr><tr><td><code>walltime</code></td><td><code>04:00</code></td><td>Maximum run time</td></tr></tbody>
+    <tbody><tr><td><code>dataset</code></td><td>—</td><td>Your dataset folder in scratch</td></tr><tr><td><code>experiment_name</code></td><td><code>microct-2d-segmentation</code></td><td>Groups runs in your tracking store</td></tr><tr><td><code>epochs</code></td><td><code>50</code></td><td>Passes over the training patches</td></tr><tr><td><code>patch_size</code></td><td><code>256</code></td><td>Square patch side, pixels</td></tr><tr><td><code>learning_rate</code></td><td><code>0.001</code></td><td>Adam learning rate</td></tr><tr><td><code>val_percent</code></td><td><code>20</code></td><td>Patches held out for Dice/IoU</td></tr><tr><td><code>ngpus</code> / <code>ncpus</code> / <code>mem</code></td><td><code>1</code> / <code>8</code> / <code>32gb</code></td><td>Resources</td></tr><tr><td><code>walltime</code></td><td><code>04:00</code></td><td>Maximum run time</td></tr></tbody>
   </table>
 
   <h2>3. See your results</h2>
@@ -86,11 +86,11 @@
 
 <!-- ============================================================ B -->
 <div class="page" data-variant="B" data-name="At a glance, three columns, details folded">
-  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT Segmentation</div>
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT 2D Segmentation</div>
   <span class="wf-domain imaging">Imaging</span>
-  <h1 class="wf-title">microCT Segmentation (2D U-Net)</h1>
+  <h1 class="wf-title">microCT 2D Segmentation (U-Net)</h1>
   <p class="wf-desc">Label a few slices, get the whole scan segmented.</p>
-  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-2d-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
   <span class="run-note">Your data must already be in scratch (step 1).</span>
 
   <div class="cols">
@@ -116,7 +116,7 @@
   </details>
   <details><summary>2 · What each form field does</summary>
     <table class="param-table"><thead><tr><th>Field</th><th>Default</th><th>Change it when</th></tr></thead>
-    <tbody><tr><td>Dataset folder</td><td>—</td><td>Always: pick yours</td></tr><tr><td>Experiment name</td><td>microct-segmentation</td><td>Starting a new comparison</td></tr><tr><td>Epochs</td><td>50</td><td>Dice still rising at the end</td></tr><tr><td>Patch size</td><td>256</td><td>Features are large relative to 256 px</td></tr><tr><td>Learning rate</td><td>0.001</td><td>Loss jumps around or stalls</td></tr><tr><td>Validation %</td><td>20</td><td>Very few labelled slices</td></tr><tr><td>GPUs</td><td>1</td><td>0 for a tiny CPU test only</td></tr><tr><td>Walltime</td><td>4 h</td><td>Large scan or many epochs</td></tr></tbody></table>
+    <tbody><tr><td>Dataset folder</td><td>—</td><td>Always: pick yours</td></tr><tr><td>Experiment name</td><td>microct-2d-segmentation</td><td>Starting a new comparison</td></tr><tr><td>Epochs</td><td>50</td><td>Dice still rising at the end</td></tr><tr><td>Patch size</td><td>256</td><td>Features are large relative to 256 px</td></tr><tr><td>Learning rate</td><td>0.001</td><td>Loss jumps around or stalls</td></tr><tr><td>Validation %</td><td>20</td><td>Very few labelled slices</td></tr><tr><td>GPUs</td><td>1</td><td>0 for a tiny CPU test only</td></tr><tr><td>Walltime</td><td>4 h</td><td>Large scan or many epochs</td></tr></tbody></table>
   </details>
   <details><summary>3 · Where results are and how to view them</summary>
     <p><code>my-scan/runs/&lt;job ID&gt;/</code> holds <code>labels.tif</code>, <code>model.pt</code>, <code>metrics.json</code>, <code>params.json</code>. The job output <code>runs/&lt;job ID&gt;.OU</code> ends with the <code>iris-view</code> line.</p>
@@ -129,9 +129,9 @@
 
 <!-- ============================================================ C -->
 <div class="page" data-variant="C" data-name="Readiness first, run gated on a checklist">
-  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT Segmentation</div>
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT 2D Segmentation</div>
   <span class="wf-domain imaging">Imaging</span>
-  <h1 class="wf-title">microCT Segmentation (2D U-Net)</h1>
+  <h1 class="wf-title">microCT 2D Segmentation (U-Net)</h1>
   <p class="wf-desc">Segment a full microCT scan from 5–30 slices you've labelled in Dragonfly or any tool.</p>
 
   <h2>Your dataset folder</h2>
@@ -149,7 +149,7 @@
   <h2>You're ready when</h2>
   <ul class="ck"><li>The folder is under <code>/srv/scratch/zID</code></li><li><code>volume/</code> has the scan's <code>.nc</code> blocks</li><li><code>train/images</code> and <code>train/labels</code> hold the same file names</li></ul>
   <p class="wf-desc">The form checks all three and tells you which failed.</p>
-  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-2d-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
   <p class="twoclick">Pick the folder → Submit. That's it.</p>
 
   <h2>After you submit</h2>

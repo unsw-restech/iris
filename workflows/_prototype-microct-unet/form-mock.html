@@ -24,7 +24,7 @@
 <p class="note">PROTOTYPE. Field content is identical in both variants; only what's visible before "advanced" differs.</p>
 
 <template id="dataset"><div class="f"><label>Dataset folder</label><input value="/srv/scratch/z1234567/my-scan"><div class="help">The folder you copied to scratch, holding volume/ and train/. Results go into its runs/ folder.</div></div></template>
-<template id="experiment"><div class="f"><label>Experiment name</label><input value="microct-segmentation"><div class="help">Runs with the same name are grouped together for comparison in your MLflow tracking store (/srv/scratch/$USER/iris/tracking.db). Open it later with iris-compare in a Virtual Desktop.</div></div></template>
+<template id="experiment"><div class="f"><label>Experiment name</label><input value="microct-2d-segmentation"><div class="help">Runs with the same name are grouped together for comparison in your MLflow tracking store (/srv/scratch/$USER/iris/tracking.db). Open it later with iris-compare in a Virtual Desktop.</div></div></template>
 <template id="training">
   <div class="f"><label>Epochs</label><input value="50"><div class="help">Passes over the training patches. With 5-30 labelled slices, more epochs are cheap.</div></div>
   <div class="f"><label>Patch size (pixels)</label><select><option>128</option><option selected>256</option><option>512</option></select><div class="help">Slices are cut into square patches on a non-overlapping grid. Larger patches give more context per patch but fewer patches.</div></div>
@@ -45,7 +45,7 @@
 </template>
 
 <div class="form" data-variant="A" data-name="Training and resources visible (mnist style)">
-  <h1>microct-segmentation</h1><div class="sub">OpenComposer · Katana</div>
+  <h1>microct-2d-segmentation</h1><div class="sub">OpenComposer · Katana</div>
   <div class="sec">Data</div><div data-t="dataset"></div><div data-t="experiment"></div>
   <div class="sec">Training</div><div data-t="training"></div>
   <div class="sec">Resources</div><div data-t="resources"></div>
@@ -54,7 +54,7 @@
 </div>
 
 <div class="form" data-variant="B" data-name="Only data visible, all else advanced">
-  <h1>microct-segmentation</h1><div class="sub">OpenComposer · Katana</div>
+  <h1>microct-2d-segmentation</h1><div class="sub">OpenComposer · Katana</div>
   <div data-t="dataset"></div><div data-t="experiment"></div>
   <details class="adv"><summary>☐ Show advanced options (training, resources, seed)</summary>
     <div class="sec">Training</div><div data-t="training"></div>
