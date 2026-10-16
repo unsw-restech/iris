@@ -9,7 +9,6 @@ IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and i
 ```
 IRIS_github_pages\               <- parent directory, not a git repo
 ├── available-modules.md         <- what is installed on Katana
-├── katana-forms-and-manifests\  <- retired out-of-repo forms, awaiting deletion
 └── iris\                        <- the git repo (github.com/PatrickTung/iris)
     └── _archive\                <- retired forms, kept but never served
 ```
@@ -88,9 +87,9 @@ Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, pa
 - **A form runs its own clone's code.** It sets `CODE` to `File.expand_path(File.join(@apps_dir, @OC_DIR_NAME))` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. Guard the expression: OpenComposer re-reads the form on submit with `@apps_dir` unset (it submits the script rendered on GET). No job downloads its own code.
 - **Manifests use built-in icon names** (`bi-...`). Local icon files don't resolve with an absolute `apps_dir`.
 
-`_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it. Their originals are still in `..\katana-forms-and-manifests\`; deleting them is Patrick's call.
+`_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it.
 
-- **Written is not installed.** Only `hello-world` and `mnist-classification` are confirmed opening (Patrick, 2026-08-06), and that was from `sample_apps/`, before the forms moved into the repo.
+- **Written is not installed.** `hello-world` is confirmed opening and running from the dev clone (job 9543031, 2026-10-17). `mnist-classification` was confirmed only from the old out-of-repo copy (Patrick, 2026-08-06).
 - **`hello-world` is the reference schema.** Match its structure exactly.
 - **Every line inside `script: |` stays indented**, which rules out heredocs. Build embedded files with `printf '%s\n'`, as `_archive\vllm-inference` does.
 - **Use string concatenation inside `check:`.** Ruby `#{}` collides with OpenComposer's own substitution.
