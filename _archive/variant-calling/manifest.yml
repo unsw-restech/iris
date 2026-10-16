@@ -1,0 +1,11 @@
+name: Variant Calling (GATK4)
+category: Genomics
+icon: bi-diagram-2
+description: |
+  Germline short variant discovery following GATK Best Practices. Whole-genome
+  and whole-exome data are both supported.
+
+  Runs through Nextflow with nf-core/sarek and the UNSW Katana profile.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/variant-calling/

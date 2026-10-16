@@ -1,0 +1,9 @@
+name: Molecular Docking (AutoDock Vina)
+category: Structural biology
+icon: bi-magnet
+description: |
+  Virtual screening of ligand libraries against a protein target. Vina scores
+  and ranks binding poses within a defined search box.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/molecular-docking/

@@ -27,13 +27,9 @@
       --red:       #e05a5a;
       --green:     #4ecb8d;
       --amber:     #e8a84a;
-      /* Domain accents — one per research discipline in the catalogue. */
-      --purple:    #a78bda;
-      --teal:      #3fc9c0;
+      /* Modality accents — one per modality tag in the catalogue. */
       --pink:      #e07ab0;
-      --lime:      #a8c84a;
       --violet:    #8f86e8;
-      --coral:     #e8834a;
     }
 
     html { scroll-behavior: smooth; }
@@ -190,34 +186,6 @@
     }
     .btn-outline:hover { border-color: var(--blue); color: var(--blue2); transform: translateY(-1px); }
 
-    /* ── STATS BAR ── */
-    .stats-bar {
-      position: relative; z-index: 1;
-      max-width: 1100px; margin: 0 auto;
-      padding: 0 48px 80px;
-      display: flex; gap: 0;
-    }
-    .stat {
-      flex: 1;
-      padding: 24px 32px;
-      border: 1px solid var(--border);
-      border-right: none;
-      background: var(--bg2);
-    }
-    .stat:first-child { border-radius: 8px 0 0 8px; }
-    .stat:last-child  { border-radius: 0 8px 8px 0; border-right: 1px solid var(--border); }
-    .stat-num {
-      font-family: 'Syne', sans-serif;
-      font-size: 32px; font-weight: 800;
-      color: #fff; display: block;
-    }
-    .stat-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 1px;
-      margin-top: 4px;
-    }
-
     /* ── SECTION ── */
     section {
       position: relative; z-index: 1;
@@ -241,12 +209,6 @@
       font-family: 'DM Mono', monospace;
       font-size: 12px; color: var(--muted);
     }
-    .section-link {
-      font-family: 'DM Mono', monospace;
-      font-size: 12px; color: var(--blue2);
-      text-decoration: none;
-    }
-    .section-link:hover { text-decoration: underline; }
 
     /* ── START HERE ── */
     #start-here { padding-bottom: 56px; }
@@ -332,17 +294,9 @@
       color: var(--tag-text);
       text-transform: uppercase; letter-spacing: 1px;
     }
-    .card-domain.genomics  { background: rgba(78,203,141,0.1); color: var(--green); }
-    .card-domain.structural{ background: rgba(200,169,110,0.1); color: var(--gold); }
-    .card-domain.climate   { background: rgba(74,143,212,0.12); color: var(--blue2); }
-    .card-domain.imaging   { background: rgba(224,90,90,0.1); color: var(--red); }
-    .card-domain.engineering { background: rgba(232,168,74,0.1); color: var(--amber); }
-    .card-domain.chemistry { background: rgba(167,139,218,0.12); color: var(--purple); }
-    .card-domain.physics   { background: rgba(63,201,192,0.1); color: var(--teal); }
-    .card-domain.neuro     { background: rgba(224,122,176,0.1); color: var(--pink); }
-    .card-domain.geospatial{ background: rgba(168,200,74,0.1); color: var(--lime); }
-    .card-domain.ai        { background: rgba(143,134,232,0.12); color: var(--violet); }
-    .card-domain.social    { background: rgba(232,131,74,0.1); color: var(--coral); }
+    .card-domain.teaching  { background: rgba(143,134,232,0.12); color: var(--violet); }
+    .card-domain.microscopy{ background: rgba(78,203,141,0.1); color: var(--green); }
+    .card-domain.pathology { background: rgba(224,122,176,0.1); color: var(--pink); }
 
     .card-version {
       font-family: 'DM Mono', monospace;
@@ -391,28 +345,6 @@
     }
     .status-dot.planned { background: var(--muted); box-shadow: none; }
 
-    /* ── FILTER BAR ── */
-    .filter-bar {
-      display: flex; gap: 8px; margin-bottom: 28px;
-      flex-wrap: wrap;
-    }
-    .filter-btn {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px; padding: 6px 14px;
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .filter-btn:hover, .filter-btn.active {
-      border-color: var(--blue);
-      color: var(--blue2);
-      background: var(--tag-bg);
-    }
-
     /* ── HOW IT WORKS ── */
     .steps {
       display: grid;
@@ -441,39 +373,6 @@
       font-size: 13px; color: var(--muted);
       line-height: 1.6;
     }
-
-    /* ── COMPUTE TARGETS ── */
-    .compute-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-    .compute-card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 28px;
-    }
-    .compute-name {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700; font-size: 18px;
-      color: #fff; margin-bottom: 4px;
-    }
-    .compute-type {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px; color: var(--muted);
-      margin-bottom: 16px;
-    }
-    .compute-specs {
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .spec-row {
-      display: flex; justify-content: space-between;
-      font-family: 'DM Mono', monospace;
-      font-size: 12px;
-    }
-    .spec-key { color: var(--muted); }
-    .spec-val { color: var(--text); }
 
     /* ── FOOTER ── */
     footer {
@@ -504,10 +403,7 @@
       .nav-links { display: none; }
       .hero { padding: 120px 20px 60px; }
       section { padding: 0 20px 60px; }
-      .stats-bar { padding: 0 20px 60px; flex-direction: column; gap: 8px; }
-      .stat { border-right: 1px solid var(--border); border-radius: 8px; }
       .steps { grid-template-columns: 1fr 1fr; }
-      .compute-grid { grid-template-columns: 1fr; }
       footer { flex-direction: column; gap: 16px; text-align: center; }
     }
   </style>
@@ -525,9 +421,7 @@
   </a>
   <div class="nav-links">
     <a href="#workflows">Workflows</a>
-    <a href="#compute">Compute</a>
     <a href="https://github.com/PatrickTung/iris" target="_blank">GitHub</a>
-    <a href="https://workflowhub.eu/projects/472" target="_blank">WorkflowHub</a>
     <span class="nav-badge">v0.1-alpha</span>
   </div>
 </nav>
@@ -535,30 +429,14 @@
 <!-- HERO -->
 <div class="hero">
   <div class="hero-eyebrow">UNSW ResTech · AI Imaging Gateway</div>
-  <h1>Research workflows.<br><span class="accent">Run anywhere.</span></h1>
+  <h1>Imaging workflows<br><span class="accent">on Katana.</span></h1>
   <p class="hero-sub">
-    IRIS is a curated catalogue of reproducible scientific workflows for UNSW researchers.
-    Find, cite, and run validated pipelines on Katana, Gadi, or your own hardware — with no setup required.
+    Stage your dataset once, then launch a run in two clicks: no terminal, no environment to build.
+    Every run is tracked so you can compare experiments.
   </p>
   <div class="hero-actions">
     <a href="#workflows" class="btn btn-primary">Browse workflows</a>
     <a href="https://github.com/PatrickTung/iris" class="btn btn-outline" target="_blank">View on GitHub</a>
-  </div>
-</div>
-
-<!-- STATS -->
-<div class="stats-bar">
-  <div class="stat">
-    <span class="stat-num">28</span>
-    <div class="stat-label">Workflows</div>
-  </div>
-  <div class="stat">
-    <span class="stat-num">11</span>
-    <div class="stat-label">Research domains</div>
-  </div>
-  <div class="stat">
-    <span class="stat-num">3</span>
-    <div class="stat-label">Compute targets</div>
   </div>
 </div>
 
@@ -576,8 +454,8 @@
     <span class="start-go">Run the test →</span>
   </a>
   <p class="prelaunch-note">
-    <strong>Pre-launch:</strong> “Run on Katana” buttons currently open the development OnDemand
-    instance (<code>/pun/dev/</code>) while workflows are being validated.
+    <strong>Pre-launch:</strong> Run on Katana buttons open the IRIS development instance
+    and work only for the IRIS team until launch.
   </p>
 </section>
 
@@ -585,104 +463,19 @@
 <section id="workflows">
   <div class="section-header">
     <span class="section-title">Workflow catalogue</span>
-    <a href="https://workflowhub.eu/projects/472" class="section-link" target="_blank">View all on WorkflowHub →</a>
   </div>
 
-  <div class="filter-bar">
-    <button class="filter-btn active" onclick="filterCards('all', this)">All</button>
-    <button class="filter-btn" onclick="filterCards('genomics', this)">Genomics</button>
-    <button class="filter-btn" onclick="filterCards('structural', this)">Structural biology</button>
-    <button class="filter-btn" onclick="filterCards('climate', this)">Climate</button>
-    <button class="filter-btn" onclick="filterCards('imaging', this)">Imaging</button>
-    <button class="filter-btn" onclick="filterCards('neuro', this)">Neuroimaging</button>
-    <button class="filter-btn" onclick="filterCards('engineering', this)">Engineering</button>
-    <button class="filter-btn" onclick="filterCards('chemistry', this)">Chemistry</button>
-    <button class="filter-btn" onclick="filterCards('physics', this)">Physics</button>
-    <button class="filter-btn" onclick="filterCards('geospatial', this)">Geospatial</button>
-    <button class="filter-btn" onclick="filterCards('ai', this)">Data &amp; AI</button>
-    <button class="filter-btn" onclick="filterCards('social', this)">Social &amp; economic</button>
-  </div>
+  <div class="workflow-grid">
 
-  <div class="workflow-grid" id="workflow-grid">
-
-    <a href="workflows/rna-seq-pipeline/" class="workflow-card" data-domain="genomics">
+    <a href="workflows/mnist-classification/" class="workflow-card">
       <div class="card-top">
-        <span class="card-domain genomics">Genomics</span>
-        <span class="card-version">v2.1.0</span>
-      </div>
-      <div class="card-name">RNA-seq pipeline</div>
-      <div class="card-desc">Bulk RNA-seq from FASTQ to differential expression using STAR, featureCounts, and DESeq2.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">OpenComposer</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/variant-calling/" class="workflow-card" data-domain="genomics">
-      <div class="card-top">
-        <span class="card-domain genomics">Genomics</span>
-        <span class="card-version">v1.4.2</span>
-      </div>
-      <div class="card-name">Variant calling (GATK4)</div>
-      <div class="card-desc">Germline short variant discovery following GATK Best Practices. WGS and WES supported.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">OpenComposer</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/alphafold-batch/" class="workflow-card" data-domain="structural">
-      <div class="card-top">
-        <span class="card-domain structural">Structural biology</span>
-        <span class="card-version">v2.3.1</span>
-      </div>
-      <div class="card-name">AlphaFold2 batch</div>
-      <div class="card-desc">Batch protein structure prediction with AlphaFold2 on GPU nodes. Multi-sequence and monomer modes.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana GPU</span>
-        <span class="compute-tag">OpenComposer</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/climate-downscaling/" class="workflow-card" data-domain="climate">
-      <div class="card-top">
-        <span class="card-domain climate">Climate</span>
-        <span class="card-version">v0.9.0</span>
-      </div>
-      <div class="card-name">Regional climate downscaling</div>
-      <div class="card-desc">Statistical downscaling of CMIP6 global models to 5km Australian regional grids using BCSD.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">OpenComposer</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/mnist-classification/" class="workflow-card" data-domain="imaging">
-      <div class="card-top">
-        <span class="card-domain imaging">Imaging</span>
+        <span class="card-domain teaching">Teaching</span>
         <span class="card-version">v1.1.0</span>
       </div>
       <div class="card-name">Image classification (CNN)</div>
       <div class="card-desc">Train a convolutional classifier on MNIST using Katana's PyTorch module. A worked GPU example — nothing to install, no input data required.</div>
       <div class="card-compute">
-        <span class="compute-tag">Katana GPU</span>
-        <span class="compute-tag">PyTorch module</span>
+        <span class="compute-tag">Katana GPU · PyTorch module</span>
       </div>
       <div class="card-meta">
         <span><span class="status-dot"></span> Active</span>
@@ -690,393 +483,32 @@
       </div>
     </a>
 
-    <a href="workflows/whisper-transcription/" class="workflow-card" data-domain="ai">
+    <a href="workflows/cellpose-segmentation/" class="workflow-card planned">
       <div class="card-top">
-        <span class="card-domain ai">Data &amp; AI</span>
-        <span class="card-version">v1.0.0</span>
-      </div>
-      <div class="card-name">Audio transcription (Whisper)</div>
-      <div class="card-desc">Transcribe interviews, lectures or fieldwork recordings to text on a GPU. Generates its own sample audio, so no input files are needed to try it.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana GPU</span>
-        <span class="compute-tag">Whisper module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/openfoam-cavity/" class="workflow-card" data-domain="engineering">
-      <div class="card-top">
-        <span class="card-domain engineering">Engineering</span>
-        <span class="card-version">v1.0.0</span>
-      </div>
-      <div class="card-name">CFD simulation (OpenFOAM)</div>
-      <div class="card-desc">Lid-driven cavity flow solved with icoFoam, using OpenFOAM's own bundled tutorial case. A complete CFD run in under a minute.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">OpenFOAM module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/dft-materials/" class="workflow-card" data-domain="engineering">
-      <div class="card-top">
-        <span class="card-domain engineering">Engineering</span>
-        <span class="card-version">v1.0.0</span>
-      </div>
-      <div class="card-name">Materials DFT (Quantum ESPRESSO)</div>
-      <div class="card-desc">Plane-wave density functional theory for periodic solids — electronic structure, total energies, forces and stress. Ships a bulk silicon example that runs in seconds.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">Quantum ESPRESSO</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/r-statistics/" class="workflow-card" data-domain="social">
-      <div class="card-top">
-        <span class="card-domain social">Social &amp; economic</span>
-        <span class="card-version">v1.0.0</span>
-      </div>
-      <div class="card-name">Statistical modelling (R)</div>
-      <div class="card-desc">Regression, diagnostics and model comparison in R, reported as plain-text tables. Uses R's built-in datasets, so it runs with no input data.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">R module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/cellpose-segmentation/" class="workflow-card" data-domain="imaging">
-      <div class="card-top">
-        <span class="card-domain imaging">Imaging</span>
-        <span class="card-version">v1.1.0</span>
+        <span class="card-domain microscopy">Microscopy</span>
       </div>
       <div class="card-name">Cell segmentation (Cellpose)</div>
-      <div class="card-desc">Automated cell and nucleus segmentation from fluorescence microscopy using Cellpose 2.0.</div>
+      <div class="card-desc">Automated cell and nucleus segmentation from fluorescence microscopy using Cellpose.</div>
       <div class="card-compute">
         <span class="compute-tag">Katana GPU</span>
-        <span class="compute-tag">Nextflow</span>
       </div>
       <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
+        <span><span class="status-dot planned"></span> Planned</span>
         <span>imaging@unsw.edu.au</span>
       </div>
     </a>
 
-    <a href="workflows/scrnaseq-10x/" class="workflow-card" data-domain="genomics">
+    <a href="workflows/qupath-pathology/" class="workflow-card planned">
       <div class="card-top">
-        <span class="card-domain genomics">Genomics</span>
-        <span class="card-version">v1.0.0</span>
-      </div>
-      <div class="card-name">Single-cell RNA-seq (10x)</div>
-      <div class="card-desc">scRNA-seq processing with Cell Ranger and downstream analysis via Seurat. Handles multi-sample projects.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">Nextflow</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/metagenomics-profiling/" class="workflow-card" data-domain="genomics">
-      <div class="card-top">
-        <span class="card-domain genomics">Genomics</span>
-        <span class="card-version">v2.1.2</span>
-      </div>
-      <div class="card-name">Metagenomics profiling</div>
-      <div class="card-desc">Taxonomic and functional profiling of microbiome samples with Kraken2, MetaPhlAn and HUMAnN.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">Kraken2 module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/qupath-pathology/" class="workflow-card" data-domain="imaging">
-      <div class="card-top">
-        <span class="card-domain imaging">Imaging</span>
-        <span class="card-version">v0.5.1</span>
+        <span class="card-domain pathology">Pathology</span>
       </div>
       <div class="card-name">Digital pathology (QuPath)</div>
       <div class="card-desc">Whole-slide image analysis — tissue detection, cell counting and stain deconvolution across slide batches.</div>
       <div class="card-compute">
         <span class="compute-tag">Katana</span>
-        <span class="compute-tag">QuPath module</span>
       </div>
       <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/molecular-docking/" class="workflow-card" data-domain="structural">
-      <div class="card-top">
-        <span class="card-domain structural">Structural biology</span>
-        <span class="card-version">v1.2.5</span>
-      </div>
-      <div class="card-name">Molecular docking (AutoDock Vina)</div>
-      <div class="card-desc">Virtual screening of ligand libraries against a protein target, with binding affinity ranking.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">Vina module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/climate-postprocessing/" class="workflow-card" data-domain="climate">
-      <div class="card-top">
-        <span class="card-domain climate">Climate</span>
-        <span class="card-version">v2.1.0</span>
-      </div>
-      <div class="card-name">Climate data post-processing</div>
-      <div class="card-desc">Regridding, temporal aggregation and index calculation over NetCDF climate archives using CDO and NCO.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">CDO module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/ansys-fea/" class="workflow-card" data-domain="engineering">
-      <div class="card-top">
-        <span class="card-domain engineering">Engineering</span>
-        <span class="card-version">v2025R2</span>
-      </div>
-      <div class="card-name">Finite element analysis (ANSYS)</div>
-      <div class="card-desc">Structural and thermal FEA in batch mode, for parameter sweeps too large to run interactively.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">ANSYS module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/gromacs-md/" class="workflow-card" data-domain="chemistry">
-      <div class="card-top">
-        <span class="card-domain chemistry">Chemistry</span>
-        <span class="card-version">v2023.5</span>
-      </div>
-      <div class="card-name">Molecular dynamics (GROMACS)</div>
-      <div class="card-desc">Biomolecular MD with GPU acceleration — solvation, equilibration and production runs from a prepared structure.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana GPU</span>
-        <span class="compute-tag">GROMACS module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/orca-dft/" class="workflow-card" data-domain="chemistry">
-      <div class="card-top">
-        <span class="card-domain chemistry">Chemistry</span>
-        <span class="card-version">v6.1.0</span>
-      </div>
-      <div class="card-name">DFT geometry optimisation (ORCA)</div>
-      <div class="card-desc">Density functional theory geometry optimisation and frequency analysis for small to medium molecules.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">ORCA module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/lammps-materials/" class="workflow-card" data-domain="chemistry">
-      <div class="card-top">
-        <span class="card-domain chemistry">Chemistry</span>
-        <span class="card-version">v2024.02</span>
-      </div>
-      <div class="card-name">Materials modelling (LAMMPS)</div>
-      <div class="card-desc">Classical molecular dynamics for materials — mechanical properties, diffusion and phase behaviour at scale.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">LAMMPS module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/geant4-transport/" class="workflow-card" data-domain="physics">
-      <div class="card-top">
-        <span class="card-domain physics">Physics</span>
-        <span class="card-version">v11.0.3</span>
-      </div>
-      <div class="card-name">Particle transport (Geant4)</div>
-      <div class="card-desc">Monte Carlo simulation of particles through matter — detector response, shielding and medical physics dosimetry.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">Geant4 module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/openmc-neutronics/" class="workflow-card" data-domain="physics">
-      <div class="card-top">
-        <span class="card-domain physics">Physics</span>
-        <span class="card-version">v0.15.0</span>
-      </div>
-      <div class="card-name">Neutronics (OpenMC)</div>
-      <div class="card-desc">Monte Carlo neutron and photon transport for reactor physics, criticality and shielding studies. MPI-parallel.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">OpenMC module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/astronomy-reduction/" class="workflow-card" data-domain="physics">
-      <div class="card-top">
-        <span class="card-domain physics">Physics</span>
-        <span class="card-version">v2023.03</span>
-      </div>
-      <div class="card-name">Astronomy data reduction</div>
-      <div class="card-desc">Reduction of ESO instrument data with EsoReflex — calibration, extraction and quality control of observations.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">EsoReflex module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/fmriprep/" class="workflow-card" data-domain="neuro">
-      <div class="card-top">
-        <span class="card-domain neuro">Neuroimaging</span>
-        <span class="card-version">v23.0.0</span>
-      </div>
-      <div class="card-name">fMRI preprocessing (fMRIPrep)</div>
-      <div class="card-desc">Standardised functional MRI preprocessing — motion correction, registration and confound extraction, BIDS in and out.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">Neurodesk</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/qsiprep-dmri/" class="workflow-card" data-domain="neuro">
-      <div class="card-top">
-        <span class="card-domain neuro">Neuroimaging</span>
-        <span class="card-version">v1.0.1</span>
-      </div>
-      <div class="card-name">Diffusion MRI (QSIPrep)</div>
-      <div class="card-desc">Diffusion-weighted MRI preprocessing and reconstruction, with tractography via MRtrix3.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana GPU</span>
-        <span class="compute-tag">Neurodesk</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/gdal-raster/" class="workflow-card" data-domain="geospatial">
-      <div class="card-top">
-        <span class="card-domain geospatial">Geospatial</span>
-        <span class="card-version">v3.13.1</span>
-      </div>
-      <div class="card-name">Raster processing (GDAL)</div>
-      <div class="card-desc">Batch reprojection, mosaicking and zonal statistics over satellite and aerial imagery archives.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">GDAL module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/grass-terrain/" class="workflow-card" data-domain="geospatial">
-      <div class="card-top">
-        <span class="card-domain geospatial">Geospatial</span>
-        <span class="card-version">v7.6.1</span>
-      </div>
-      <div class="card-name">Terrain &amp; hydrology (GRASS)</div>
-      <div class="card-desc">Catchment delineation, flow accumulation and terrain derivatives from digital elevation models.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">GRASS module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/vllm-inference/" class="workflow-card" data-domain="ai">
-      <div class="card-top">
-        <span class="card-domain ai">Data &amp; AI</span>
-        <span class="card-version">v0.18.0</span>
-      </div>
-      <div class="card-name">LLM batch inference (vLLM)</div>
-      <div class="card-desc">Run an open-weight language model over a corpus on local GPUs — classification, extraction or summarisation at scale, with no data leaving UNSW.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana GPU</span>
-        <span class="compute-tag">vLLM module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/gurobi-optimisation/" class="workflow-card" data-domain="social">
-      <div class="card-top">
-        <span class="card-domain social">Social &amp; economic</span>
-        <span class="card-version">v12.0.1</span>
-      </div>
-      <div class="card-name">Large-scale optimisation (Gurobi)</div>
-      <div class="card-desc">Linear and mixed-integer programming for scheduling, logistics and resource allocation problems.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana</span>
-        <span class="compute-tag">Gurobi module</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
+        <span><span class="status-dot planned"></span> Planned</span>
         <span>restech@unsw.edu.au</span>
       </div>
     </a>
@@ -1092,64 +524,24 @@
   </div>
   <div class="steps">
     <div class="step">
-      <div class="step-num">01 / FIND</div>
-      <div class="step-title">Browse the catalogue</div>
-      <div class="step-desc">Filter the catalogue by research domain. Each workflow page documents its parameters, resource defaults, and how to launch it.</div>
+      <div class="step-num">01 / STAGE</div>
+      <div class="step-title">Stage your dataset</div>
+      <div class="step-desc">Copy your dataset to your Katana scratch once, with rsync or WinSCP.</div>
     </div>
     <div class="step">
-      <div class="step-num">02 / CONFIGURE</div>
-      <div class="step-title">Set your parameters</div>
-      <div class="step-desc">Clone the workflow repo and edit the params file. Every parameter is documented with defaults and valid ranges.</div>
+      <div class="step-num">02 / RUN</div>
+      <div class="step-title">Launch in two clicks</div>
+      <div class="step-desc">Click Run on Katana on the workflow page, then submit the form.</div>
     </div>
     <div class="step">
-      <div class="step-num">03 / RUN</div>
-      <div class="step-title">Submit to compute</div>
-      <div class="step-desc">One command to run on Katana or Gadi. Nextflow handles job scheduling, retries, and resource allocation automatically.</div>
+      <div class="step-num">03 / VIEW &amp; COMPARE</div>
+      <div class="step-title">Check and compare runs</div>
+      <div class="step-desc">Open napari and <code>mlflow ui</code> in a Katana Virtual Desktop.</div>
     </div>
     <div class="step">
       <div class="step-num">04 / CITE</div>
       <div class="step-title">Cite in your paper</div>
-      <div class="step-desc">Citable DOIs via WorkflowHub are planned. The UNSW ResTech project is being set up and has no published workflows yet.</div>
-    </div>
-  </div>
-</section>
-
-<!-- COMPUTE TARGETS -->
-<section id="compute">
-  <div class="section-header">
-    <span class="section-title">Compute targets</span>
-    <span class="section-mono">Optimised profiles for each system</span>
-  </div>
-  <div class="compute-grid">
-    <div class="compute-card">
-      <div class="compute-name">Katana</div>
-      <div class="compute-type">UNSW HPC · PBS Pro</div>
-      <div class="compute-specs">
-        <div class="spec-row"><span class="spec-key">Scheduler</span><span class="spec-val">PBS Pro</span></div>
-        <div class="spec-row"><span class="spec-key">GPU nodes</span><span class="spec-val">A100 · V100</span></div>
-        <div class="spec-row"><span class="spec-key">Scratch</span><span class="spec-val">/srv/scratch</span></div>
-        <div class="spec-row"><span class="spec-key">Access</span><span class="spec-val">zID login</span></div>
-      </div>
-    </div>
-    <div class="compute-card">
-      <div class="compute-name">Gadi</div>
-      <div class="compute-type">NCI · PBS Pro</div>
-      <div class="compute-specs">
-        <div class="spec-row"><span class="spec-key">Scheduler</span><span class="spec-val">PBS Pro</span></div>
-        <div class="spec-row"><span class="spec-key">GPU nodes</span><span class="spec-val">V100 · A100</span></div>
-        <div class="spec-row"><span class="spec-key">Scratch</span><span class="spec-val">/scratch/&lt;proj&gt;</span></div>
-        <div class="spec-row"><span class="spec-key">Access</span><span class="spec-val">NCI account required</span></div>
-      </div>
-    </div>
-    <div class="compute-card">
-      <div class="compute-name">Local / Cloud</div>
-      <div class="compute-type">Docker · Apptainer</div>
-      <div class="compute-specs">
-        <div class="spec-row"><span class="spec-key">Runtime</span><span class="spec-val">Docker · Apptainer</span></div>
-        <div class="spec-row"><span class="spec-key">Cloud</span><span class="spec-val">AWS · Azure</span></div>
-        <div class="spec-row"><span class="spec-key">Min. requirements</span><span class="spec-val">Nextflow + Java</span></div>
-        <div class="spec-row"><span class="spec-key">Access</span><span class="spec-val">Open</span></div>
-      </div>
+      <div class="step-desc">Cite the workflow by name and the commit recorded in your run's output. Citable DOIs through WorkflowHub are planned.</div>
     </div>
   </div>
 </section>
@@ -1163,17 +555,6 @@
     <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
   </span>
 </footer>
-
-<script>
-  function filterCards(domain, btn) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.workflow-card').forEach(card => {
-      const show = domain === 'all' || card.dataset.domain === domain;
-      card.style.display = show ? 'block' : 'none';
-    });
-  }
-</script>
 
 </body>
 </html>

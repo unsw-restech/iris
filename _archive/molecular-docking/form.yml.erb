@@ -1,0 +1,227 @@
+---
+form:
+
+  job_name:
+    widget: text
+    label: "PBS Job name"
+    value: "iris_molecular_docking"
+    help: "No spaces or special characters."
+
+  receptor:
+    widget: path
+    label: "Receptor (PDBQT)"
+    show_files: true
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Prepared protein structure in PDBQT format."
+
+  ligands:
+    widget: path
+    label: "Ligand directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Directory of ligands in PDBQT format."
+
+  center_x:
+    widget: number
+    label: "Search box centre X"
+    value: 0
+    min: -999
+    max: 999
+    step: 0.1
+    help: "Angstrom."
+
+  center_y:
+    widget: number
+    label: "Search box centre Y"
+    value: 0
+    min: -999
+    max: 999
+    step: 0.1
+    help: "Angstrom."
+
+  center_z:
+    widget: number
+    label: "Search box centre Z"
+    value: 0
+    min: -999
+    max: 999
+    step: 0.1
+    help: "Angstrom."
+
+  size:
+    widget: number
+    label: "Search box size"
+    value: 20
+    min: 5
+    max: 60
+    step: 1
+    help: "Cubic box edge in angstrom."
+
+  exhaustiveness:
+    widget: number
+    label: "Exhaustiveness"
+    value: 8
+    min: 1
+    max: 64
+    step: 1
+    help: "Higher samples more thoroughly and takes longer."
+
+  # ── Resources ───────────────────────────────────────
+  ncpus:
+    widget: number
+    label: "CPU cores (1 - 16)"
+    value: 16
+    min: 1
+    max: 16
+    step: 1
+    help: "Jobs requesting up to 16 CPUs can run on any Katana node."
+
+  mem:
+    widget: select
+    label: "Memory"
+    value: "16gb"
+    options:
+      - [ "8 GB",   "8gb"   ]
+      - [ "16 GB",  "16gb"  ]
+      - [ "32 GB",  "32gb"  ]
+      - [ "64 GB",  "64gb"  ]
+      - [ "124 GB", "124gb" ]
+    help: "Up to 124gb available on any node."
+
+  time:
+    widget: number
+    label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
+    size:    2
+    value:   [ 12, 0 ]
+    min:     [ 0, 0 ]
+    max:     [ 200, 59 ]
+    step:    [ 1, 1 ]
+    help: "Maximum 200 hours on Katana. Jobs <= 12hrs can run on any node."
+
+  # ── Advanced options ─────────────────────────────────────
+  show_advanced_option:
+    widget: checkbox
+    options:
+      - [ "Show advanced options", "", show-mail_events, show-log, show-logname, show-module ]
+
+  mail_events:
+    label: "Mail events"
+    widget: checkbox
+    direction: horizontal
+    separator: ""
+    indent: 1
+    options:
+      - [ "Send email when a job ends abnormally", "a" ]
+      - [ "Send email when a job starts",          "b" ]
+      - [ "Send email when a job ends",            "e" ]
+
+  log:
+    widget: checkbox
+    indent: 1
+    options:
+      - [ "Merge stderr into stdout (-j oe)", "oe", disable-logname ]
+
+  logname:
+    widget: text
+    indent: 1
+    label:  [ "File name of stdout", "File name of stderr" ]
+    size:   2
+
+  module:
+    widget: multi_select
+    label: "Additional modules"
+    indent: 1
+    separator: " "
+    help: "The main module is loaded for you. Add others only if your own post-processing needs them."
+    options:
+    <% require 'open3'
+       stdout, _ = Open3.capture2e(
+         {"MODULEPATH" => "/etc/scl/modulefiles:/apps/Modules/linux-rocky8-ivybridge:/apps/neurodesk/modules:/usr/share/Modules/modulefiles:/etc/modulefiles:/usr/share/modulefiles"},
+         "/usr/share/Modules/libexec/modulecmd.tcl", "sh", "avail", "-t"
+       )
+       mods = stdout.split(/\s+/).reject { |m|
+         m.empty? || m.end_with?(":") || m.start_with?("/")
+       }.select { |m|
+         m.match?(/vina|autodock|python/i)
+       }.sort
+       mods.each do |mod| %>
+      - [ "<%= mod %>", "<%= mod %>" ]
+    <% end %>
+
+  # ── Output directory ──────────────────────────────────────
+  working_dir:
+    widget: path
+    label: "Output directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Recommended: your scratch directory /srv/scratch/zID"
+
+script: |
+  #!/bin/bash
+  #PBS -N #{job_name}
+  #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}
+  #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
+  #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au
+  #PBS -m #{mail_events}
+  #PBS -j #{log}
+  #PBS -o #{logname_1}
+  #PBS -e #{logname_2}
+
+  set -eo pipefail
+
+  OUTDIR="#{working_dir}"
+  mkdir -p "$OUTDIR"
+
+  echo "========================================"
+  echo "  Molecular Docking (AutoDock Vina)"
+  echo "========================================"
+  echo "Timestamp : $(date)"
+  echo "Job ID    : $PBS_JOBID"
+  echo "Hostname  : $(hostname)"
+  echo "Output    : $OUTDIR"
+  echo ""
+
+  # Module scripts reference unset variables, so keep nounset off here.
+  module purge
+  module load autodock-vina/1.2.5 #{module}
+
+  echo "Loaded modules:"
+  module list 2>&1 | sed 's/^/  /'
+  echo ""
+
+  RESULTS="$OUTDIR/scores.csv"
+  echo "ligand,affinity_kcal_per_mol" > "$RESULTS"
+  for L in "#{ligands}"/*.pdbqt; do
+    [ -e "$L" ] || { echo "No .pdbqt ligands in #{ligands}"; exit 1; }
+    N=$(basename "$L" .pdbqt)
+    vina --receptor "#{receptor}" --ligand "$L" \
+      --center_x #{center_x} --center_y #{center_y} --center_z #{center_z} \
+      --size_x #{size} --size_y #{size} --size_z #{size} \
+      --exhaustiveness #{exhaustiveness} --cpu #{ncpus} \
+      --out "$OUTDIR/${N}_out.pdbqt" > "$OUTDIR/${N}.log" 2>&1
+    A=$(awk "/^ *1 /{print \$2; exit}" "$OUTDIR/${N}.log")
+    echo "$N,$A" >> "$RESULTS"
+  done
+  echo "Top hits:"; sort -t, -k2 -g "$RESULTS" | head -10
+
+  echo ""
+  echo "Results in: $OUTDIR"
+  echo "========================================"
+  echo "  Complete"
+  echo "========================================"
+
+check: |
+  if @time_1.to_i == 0 && @time_2.to_i == 0
+    halt 500, "Walltime cannot be zero."
+  end
+
+  if @time_1.to_i > 200
+    halt 500, "Maximum walltime on Katana is 200 hours."
+  end
+
+  if @working_dir.to_s.strip.empty?
+    halt 500, "Choose an output directory - your scratch space is recommended."
+  end

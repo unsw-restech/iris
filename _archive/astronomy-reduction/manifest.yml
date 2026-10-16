@@ -1,0 +1,9 @@
+name: Astronomy Data Reduction
+category: Physics
+icon: bi-stars
+description: |
+  Reduction of ESO instrument data with EsoReflex - bias and flat correction,
+  wavelength calibration, extraction and quality control.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/astronomy-reduction/

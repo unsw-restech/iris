@@ -1,0 +1,9 @@
+name: Neutronics (OpenMC)
+category: Physics
+icon: bi-radioactive
+description: |
+  Monte Carlo neutron and photon transport for reactor physics, criticality
+  safety and shielding studies.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/openmc-neutronics/

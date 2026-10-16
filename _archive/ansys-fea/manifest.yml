@@ -1,0 +1,12 @@
+name: Finite Element Analysis (ANSYS)
+category: Engineering
+icon: bi-bounding-box-circles
+description: |
+  Structural, thermal and modal finite element analysis in batch mode, for
+  parameter sweeps too large to sit through interactively.
+
+  Uses UNSW's licensed ANSYS installation; jobs check out a licence at run
+  time and may queue if all seats are in use.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/ansys-fea/

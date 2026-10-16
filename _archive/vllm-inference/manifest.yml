@@ -1,0 +1,14 @@
+name: LLM Batch Inference (vLLM)
+category: Data & AI
+icon: bi-chat-square-text
+description: |
+  Run an open-weight language model over a corpus on UNSW GPUs -
+  classification, extraction, summarisation or scoring at scale.
+
+  Because inference happens on Katana, sensitive or ethics-restricted text
+  never leaves the university.
+
+  **Model weights are not downloaded for you** - stage them in scratch first.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/vllm-inference/

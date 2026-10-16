@@ -1,0 +1,10 @@
+name: Metagenomics Profiling
+category: Genomics
+icon: bi-bezier2
+description: |
+  Taxonomic profiling of shotgun metagenomes with Kraken2.
+
+  Suitable for gut, soil and marine microbiome studies.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/metagenomics-profiling/

@@ -1,0 +1,10 @@
+name: Single-cell RNA-seq (10x)
+category: Genomics
+icon: bi-grid-1x2
+description: |
+  Process 10x Genomics single-cell RNA-seq runs with Cell Ranger:
+  demultiplexing, alignment, barcode counting and feature-barcode matrices
+  ready for Seurat or Scanpy.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/scrnaseq-10x/

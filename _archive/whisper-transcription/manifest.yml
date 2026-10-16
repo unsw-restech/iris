@@ -1,0 +1,23 @@
+name: Audio Transcription (Whisper)
+category: Data & AI
+icon: bi-mic
+description: |
+  Transcribe interviews, lectures, oral histories or fieldwork recordings to
+  text on a GPU.
+
+  Your audio never leaves UNSW. No commercial transcription service is
+  involved, which matters for ethics-approved and otherwise sensitive
+  recordings.
+
+  **No input data is required to try it** — leave the audio field empty and the
+  job synthesises a short sample, transcribes that, and prints the result. Point
+  it at your own file when you are ready.
+
+  Outputs land in your chosen directory as `.txt`, `.srt`, `.vtt` and `.json`,
+  the last including per-segment timings.
+
+  A GPU is strongly recommended: on CPU, transcription runs at roughly real time
+  or slower, so an hour of audio takes at least an hour. The `medium` and `large`
+  models require one.
+
+  Documentation: https://patricktung.github.io/iris/workflows/whisper-transcription/

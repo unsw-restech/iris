@@ -1,0 +1,9 @@
+name: Regional Climate Downscaling
+category: Climate
+icon: bi-cloud-drizzle
+description: |
+  Statistical downscaling of CMIP6 global model output onto regional
+  Australian grids.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/climate-downscaling/

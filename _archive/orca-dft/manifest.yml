@@ -1,0 +1,12 @@
+name: DFT Geometry Optimisation (ORCA)
+category: Chemistry
+icon: bi-hexagon
+description: |
+  Molecular density functional theory - geometry optimisation, frequency
+  analysis and single-point energies for isolated molecules.
+
+  For periodic solids rather than molecules, see Materials DFT under
+  Engineering.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/orca-dft/

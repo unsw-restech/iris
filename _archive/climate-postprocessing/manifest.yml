@@ -1,0 +1,9 @@
+name: Climate Data Post-processing
+category: Climate
+icon: bi-thermometer-half
+description: |
+  Regridding and temporal aggregation over NetCDF climate archives using CDO
+  and NCO.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/climate-postprocessing/

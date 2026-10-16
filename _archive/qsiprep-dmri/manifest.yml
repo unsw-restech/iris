@@ -1,0 +1,12 @@
+name: Diffusion MRI (QSIPrep)
+category: Neuroimaging
+icon: bi-share
+description: |
+  Diffusion-weighted MRI preprocessing and reconstruction - denoising,
+  distortion and eddy-current correction, then orientation distribution
+  functions and tractography via MRtrix3.
+
+  Provided through Neurodesk, which manages the container image for you.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/qsiprep-dmri/

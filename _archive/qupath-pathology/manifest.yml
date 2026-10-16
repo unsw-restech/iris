@@ -1,0 +1,9 @@
+name: Digital Pathology (QuPath)
+category: Imaging
+icon: bi-file-earmark-medical
+description: |
+  Batch whole-slide image analysis with QuPath running headless - tissue
+  detection, cell counting and stain deconvolution across slide cohorts.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/qupath-pathology/

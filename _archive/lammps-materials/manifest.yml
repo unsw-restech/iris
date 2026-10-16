@@ -1,0 +1,9 @@
+name: Materials Modelling (LAMMPS)
+category: Chemistry
+icon: bi-grid-3x2
+description: |
+  Classical molecular dynamics for materials - mechanical properties, thermal
+  transport, diffusion and phase behaviour.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/lammps-materials/

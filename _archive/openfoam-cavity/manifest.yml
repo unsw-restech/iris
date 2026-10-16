@@ -1,0 +1,12 @@
+name: CFD Simulation (OpenFOAM)
+category: Engineering
+icon: bi-wind
+description: |
+  Lid-driven cavity flow solved with icoFoam, using OpenFOAM's own bundled
+  tutorial case.
+
+  **No input data is required** - the case is copied for you and the run
+  finishes in seconds. A working starting point for your own geometry.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/openfoam-cavity/

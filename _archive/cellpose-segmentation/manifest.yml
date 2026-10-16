@@ -1,0 +1,13 @@
+name: Cell Segmentation (Cellpose)
+category: Imaging
+icon: bi-circle
+description: |
+  Automated cell and nucleus segmentation from fluorescence microscopy using
+  Cellpose's generalist deep-learning models.
+
+  **Cellpose has no Katana module.** The job builds a virtual environment in
+  your output directory on first run and installs Cellpose there; later runs
+  reuse it.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/cellpose-segmentation/

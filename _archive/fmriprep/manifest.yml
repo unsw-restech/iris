@@ -1,0 +1,12 @@
+name: fMRI Preprocessing (fMRIPrep)
+category: Neuroimaging
+icon: bi-activity
+description: |
+  Standardised functional MRI preprocessing - motion correction,
+  susceptibility distortion correction, coregistration, normalisation and
+  confound extraction. BIDS in, BIDS-derivatives out.
+
+  Provided through Neurodesk, which manages the container image for you.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/fmriprep/

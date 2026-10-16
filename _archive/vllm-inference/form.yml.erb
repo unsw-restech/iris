@@ -1,0 +1,253 @@
+---
+form:
+
+  job_name:
+    widget: text
+    label: "PBS Job name"
+    value: "iris_vllm_inference"
+    help: "No spaces or special characters."
+
+  model_path:
+    widget: path
+    label: "Model weights directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Local directory holding the model, staged in scratch."
+
+  input_file:
+    widget: path
+    label: "Prompts (JSONL)"
+    show_files: true
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "One JSON record per line, each with a prompt field."
+
+  max_tokens:
+    widget: number
+    label: "Max tokens per reply"
+    value: 512
+    min: 16
+    max: 8192
+    step: 16
+    help: "Generation limit per prompt."
+
+  temperature:
+    widget: number
+    label: "Temperature"
+    value: 0.0
+    min: 0.0
+    max: 2.0
+    step: 0.1
+    help: "0 is deterministic."
+
+  max_model_len:
+    widget: number
+    label: "Max context length"
+    value: 8192
+    min: 512
+    max: 131072
+    step: 512
+    help: "Lower it if the model does not fit in GPU memory."
+
+  # ── Resources ───────────────────────────────────────
+  ngpus:
+    widget: number
+    label: "GPUs (0 = CPU only)"
+    value: 1
+    min: 0
+    max: 1
+    step: 1
+    help: "Required. vLLM has no practical CPU path."
+
+  ncpus:
+    widget: number
+    label: "CPU cores (1 - 16)"
+    value: 8
+    min: 1
+    max: 16
+    step: 1
+    help: "Jobs requesting up to 16 CPUs can run on any Katana node."
+
+  mem:
+    widget: select
+    label: "Memory"
+    value: "64gb"
+    options:
+      - [ "32 GB",  "32gb"  ]
+      - [ "64 GB",  "64gb"  ]
+      - [ "124 GB", "124gb" ]
+      - [ "248 GB", "248gb" ]
+    help: "Up to 124gb available on any node."
+
+  time:
+    widget: number
+    label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
+    size:    2
+    value:   [ 12, 0 ]
+    min:     [ 0, 0 ]
+    max:     [ 200, 59 ]
+    step:    [ 1, 1 ]
+    help: "Maximum 200 hours on Katana. Jobs <= 12hrs can run on any node."
+
+  # ── Advanced options ─────────────────────────────────────
+  show_advanced_option:
+    widget: checkbox
+    options:
+      - [ "Show advanced options", "", show-mail_events, show-log, show-logname, show-module ]
+
+  mail_events:
+    label: "Mail events"
+    widget: checkbox
+    direction: horizontal
+    separator: ""
+    indent: 1
+    options:
+      - [ "Send email when a job ends abnormally", "a" ]
+      - [ "Send email when a job starts",          "b" ]
+      - [ "Send email when a job ends",            "e" ]
+
+  log:
+    widget: checkbox
+    indent: 1
+    options:
+      - [ "Merge stderr into stdout (-j oe)", "oe", disable-logname ]
+
+  logname:
+    widget: text
+    indent: 1
+    label:  [ "File name of stdout", "File name of stderr" ]
+    size:   2
+
+  module:
+    widget: multi_select
+    label: "Additional modules"
+    indent: 1
+    separator: " "
+    help: "The main module is loaded for you. Add others only if your own post-processing needs them."
+    options:
+    <% require 'open3'
+       stdout, _ = Open3.capture2e(
+         {"MODULEPATH" => "/etc/scl/modulefiles:/apps/Modules/linux-rocky8-ivybridge:/apps/neurodesk/modules:/usr/share/Modules/modulefiles:/etc/modulefiles:/usr/share/modulefiles"},
+         "/usr/share/Modules/libexec/modulecmd.tcl", "sh", "avail", "-t"
+       )
+       mods = stdout.split(/\s+/).reject { |m|
+         m.empty? || m.end_with?(":") || m.start_with?("/")
+       }.select { |m|
+         m.match?(/vllm|python|cuda|cudnn/i)
+       }.sort
+       mods.each do |mod| %>
+      - [ "<%= mod %>", "<%= mod %>" ]
+    <% end %>
+
+  # ── Output directory ──────────────────────────────────────
+  working_dir:
+    widget: path
+    label: "Output directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Recommended: your scratch directory /srv/scratch/zID"
+
+script: |
+  #!/bin/bash
+  #PBS -N #{job_name}
+  #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}:ngpus=#{ngpus}
+  #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
+  #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au
+  #PBS -m #{mail_events}
+  #PBS -j #{log}
+  #PBS -o #{logname_1}
+  #PBS -e #{logname_2}
+
+  set -eo pipefail
+
+  OUTDIR="#{working_dir}"
+  mkdir -p "$OUTDIR"
+
+  echo "========================================"
+  echo "  LLM Batch Inference (vLLM)"
+  echo "========================================"
+  echo "Timestamp : $(date)"
+  echo "Job ID    : $PBS_JOBID"
+  echo "Hostname  : $(hostname)"
+  echo "Output    : $OUTDIR"
+  echo ""
+
+  if [ "#{ngpus}" -gt 0 ] && command -v nvidia-smi > /dev/null 2>&1; then
+    nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+  else
+    echo "No GPU requested - running on CPU."
+  fi
+  echo ""
+
+  # Module scripts reference unset variables, so keep nounset off here.
+  module purge
+  module load vllm/0.18.0 #{module}
+
+  echo "Loaded modules:"
+  module list 2>&1 | sed 's/^/  /'
+  echo ""
+
+  python3 -m vllm.entrypoints.openai.api_server \
+    --model "#{model_path}" --max-model-len #{max_model_len} &
+  SERVER=$!
+  trap 'kill $SERVER 2>/dev/null' EXIT
+  echo "Waiting for the server"
+  for i in $(seq 1 60); do
+    curl -sf http://localhost:8000/v1/models > /dev/null && break
+    sleep 10
+  done
+  curl -sf http://localhost:8000/v1/models > /dev/null \
+    || { echo "ERROR: vLLM did not start"; exit 1; }
+  echo "Server up. Processing #{input_file}"
+  # Built with printf rather than a heredoc: every line here must stay
+  # indented to remain inside the YAML block scalar, and a heredoc body
+  # would carry that indentation into the Python.
+  printf "%s\n" \
+    'import json, os, urllib.request' \
+    'url = "http://localhost:8000/v1/chat/completions"' \
+    'out = open(os.environ["OUT"], "w", encoding="utf-8")' \
+    'for line in open(os.environ["INFILE"], encoding="utf-8"):' \
+    '    line = line.strip()' \
+    '    if not line: continue' \
+    '    rec = json.loads(line)' \
+    '    body = json.dumps({"model": os.environ["MODEL"],' \
+    '        "max_tokens": int(os.environ["MAXTOK"]),' \
+    '        "temperature": float(os.environ["TEMP"]),' \
+    '        "messages": [{"role": "user", "content": rec["prompt"]}]}).encode()' \
+    '    req = urllib.request.Request(url, data=body,' \
+    '        headers={"Content-Type": "application/json"})' \
+    '    resp = json.load(urllib.request.urlopen(req))' \
+    '    rec["completion"] = resp["choices"][0]["message"]["content"]' \
+    '    out.write(json.dumps(rec) + chr(10))' \
+    'out.close()' \
+    > "$OUTDIR/run_vllm.py"
+  MODEL="#{model_path}" INFILE="#{input_file}" \
+    OUT="$OUTDIR/completions.jsonl" \
+    MAXTOK=#{max_tokens} TEMP=#{temperature} \
+    python3 "$OUTDIR/run_vllm.py"
+  wc -l "$OUTDIR/completions.jsonl"
+
+  echo ""
+  echo "Results in: $OUTDIR"
+  echo "========================================"
+  echo "  Complete"
+  echo "========================================"
+
+check: |
+  if @time_1.to_i == 0 && @time_2.to_i == 0
+    halt 500, "Walltime cannot be zero."
+  end
+
+  if @time_1.to_i > 200
+    halt 500, "Maximum walltime on Katana is 200 hours."
+  end
+
+  if @working_dir.to_s.strip.empty?
+    halt 500, "Choose an output directory - your scratch space is recommended."
+  end
+
+  if @ngpus.to_i == 0
+    halt 500, "vLLM requires a GPU."
+  end

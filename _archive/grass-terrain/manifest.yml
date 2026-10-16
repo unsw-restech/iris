@@ -1,0 +1,9 @@
+name: Terrain and Hydrology (GRASS)
+category: Geospatial
+icon: bi-triangle
+description: |
+  Terrain and hydrological analysis from digital elevation models - slope,
+  aspect, flow accumulation and stream extraction.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/grass-terrain/

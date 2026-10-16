@@ -2,7 +2,7 @@
 
 `AGENTS.md` is the source of truth for agent instructions. Edit this file.
 
-IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and it stays that way. `README.md` covers structure, previewing, adding a workflow and the **tier table** of which workflows actually run. Read the tier table before telling anyone a workflow "works": all 28 cards look identical and are marked Active by Patrick's deliberate choice (2026-08-06), but only two have been run.
+IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and it stays that way. `README.md` covers structure, previewing, adding a workflow and the **tier table** of which workflows actually run. Read the tier table before telling anyone a workflow "works": the catalogue has one Run-able workflow (`mnist-classification`) and two Planned ones with no form, and only `mnist-classification` and the onboarding `hello-world` have ever run.
 
 ## Layout
 
@@ -11,9 +11,10 @@ IRIS_github_pages\               <- parent directory, not a git repo
 ├── available-modules.md         <- what is installed on Katana
 ├── katana-forms-and-manifests\  <- OpenComposer forms, not in the repo
 └── iris\                        <- the git repo (github.com/PatrickTung/iris)
+    └── _archive\                <- retired forms, kept but never served
 ```
 
-Renamed from ARES on 2026-10-13. The catalogue still spans 11 domains, most of them not imaging. The old `patricktung.github.io/ares/` address does not redirect.
+Renamed from ARES on 2026-10-13. Pruned to imaging on 2026-10-16: the 25 removed workflow pages are recoverable from the `pre-prune` tag. The old `patricktung.github.io/ares/` address does not redirect.
 
 Working plans go in `plan.md` at the repo root. Delete it when the work is done.
 
@@ -58,11 +59,11 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 
 ## Deliberate, leave as is
 
-- **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, the filters and the workflow count, and kept on its own styles rather than `assets/iris.css`.
+- **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
 - **Katana links point at `/pun/dev/`** while pre-launch. Switching to `/pun/sys/` is a known launch task.
-- **Two DFT workflows**: `dft-materials` (periodic solids, Quantum ESPRESSO) and `orca-dft` (molecular) are different physics.
+- **Planned cards still link to their pages**, keeping the dimmed `.planned` style with no hover lift.
 
-**Adding a domain** changes four things together: a `.card-domain.<x>` rule in `index.html`, a matching `.wf-domain.<x>` rule in `iris.css`, a `filterCards('<x>', this)` button, and `data-domain="<x>"` on the card.
+**Adding a modality** takes a `.card-domain.<x>` rule in `index.html` and `<span class="card-domain <x>">` as the modality tag on the card. There is no filter bar.
 
 ## Katana
 
@@ -77,14 +78,12 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 
 ## OpenComposer forms
 
-`..\katana-forms-and-manifests\<slug>\` holds one form per workflow, a strict 1:1 match with `workflows\`: the directory name is the OnDemand URL segment each "Run on Katana" button points at. They are copied to the OnDemand host, never published.
+`..\katana-forms-and-manifests\<slug>\` is where the live forms come from, `hello-world` and `mnist-classification` (it still holds copies of the archived ones too): the directory name is the OnDemand URL segment each "Run on Katana" button points at. They are copied to the OnDemand host. Planned workflows have no form.
+
+`_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it. Their originals are still in `..\katana-forms-and-manifests\`; deleting them is Patrick's call.
 
 - **Exception:** `hello-world` is deployed as `IRIS`, so its page links `OpenComposer/IRIS`.
-- **Written is not installed.** Only `hello-world`, `whisper-transcription` and `mnist-classification` are confirmed opening (Patrick, 2026-08-06). The other 26 have never been loaded.
+- **Written is not installed.** Only `hello-world` and `mnist-classification` are confirmed opening (Patrick, 2026-08-06).
 - **`hello-world` is the reference schema.** Match its structure exactly.
-- **Every line inside `script: |` stays indented**, which rules out heredocs. Build embedded files with `printf '%s\n'`, as `vllm-inference` does.
+- **Every line inside `script: |` stays indented**, which rules out heredocs. Build embedded files with `printf '%s\n'`, as `_archive\vllm-inference` does.
 - **Use string concatenation inside `check:`.** Ruby `#{}` collides with OpenComposer's own substitution.
-
-## Overclaims in `index.html`
-
-Left because product copy is Patrick's call. Raise them before adding new copy: the hero and step 03 name **Gadi**, and there is a Gadi compute card, but nothing targets Gadi; step 02 describes a params file no workflow ships; step 03 says **Nextflow** handles scheduling, and there is none in the repo.

@@ -1,0 +1,14 @@
+name: Materials DFT (Quantum ESPRESSO)
+category: Engineering
+icon: bi-diamond
+description: |
+  Plane-wave density functional theory for periodic solids - electronic
+  structure, total energies, forces and stress.
+
+  **No input data is required**: a bulk silicon calculation and its 74 KB
+  pseudopotential are fetched for you and converge in seconds.
+
+  For isolated molecules rather than crystals, see ORCA under Chemistry.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/dft-materials/

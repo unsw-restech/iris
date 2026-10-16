@@ -1,0 +1,11 @@
+name: Large-scale Optimisation (Gurobi)
+category: Social & economic
+icon: bi-graph-up
+description: |
+  Linear, quadratic and mixed-integer programming for scheduling, logistics,
+  network design and resource allocation.
+
+  Gurobi is licensed to UNSW; jobs check out a licence at run time.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/gurobi-optimisation/

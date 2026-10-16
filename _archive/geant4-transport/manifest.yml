@@ -1,0 +1,9 @@
+name: Particle Transport (Geant4)
+category: Physics
+icon: bi-asterisk
+description: |
+  Monte Carlo simulation of particles passing through matter - detector
+  response, radiation shielding and medical physics dosimetry.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/geant4-transport/

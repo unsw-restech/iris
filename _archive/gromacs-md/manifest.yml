@@ -1,0 +1,10 @@
+name: Molecular Dynamics (GROMACS)
+category: Chemistry
+icon: bi-diagram-3-fill
+description: |
+  Biomolecular molecular dynamics with GPU acceleration - energy
+  minimisation, equilibration and production runs from a prepared structure
+  and topology.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/gromacs-md/

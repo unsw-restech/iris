@@ -1,0 +1,174 @@
+---
+form:
+
+  job_name:
+    widget: text
+    label: "PBS Job name"
+    value: "iris_openfoam_cavity"
+    help: "No spaces or special characters."
+
+  case_path:
+    widget: text
+    label: "Tutorial case"
+    value: "incompressible/icoFoam/cavity/cavity"
+    help: "Path within OpenFOAM's tutorials directory."
+
+  solver:
+    widget: text
+    label: "Solver"
+    value: "icoFoam"
+    help: "Must match the case setup."
+
+  # ── Resources ───────────────────────────────────────
+  ncpus:
+    widget: number
+    label: "CPU cores (1 - 16)"
+    value: 4
+    min: 1
+    max: 16
+    step: 1
+    help: "Jobs requesting up to 16 CPUs can run on any Katana node."
+
+  mem:
+    widget: select
+    label: "Memory"
+    value: "8gb"
+    options:
+      - [ "8 GB",   "8gb"   ]
+      - [ "16 GB",  "16gb"  ]
+      - [ "32 GB",  "32gb"  ]
+      - [ "64 GB",  "64gb"  ]
+    help: "Up to 124gb available on any node."
+
+  time:
+    widget: number
+    label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
+    size:    2
+    value:   [ 0, 20 ]
+    min:     [ 0, 0 ]
+    max:     [ 200, 59 ]
+    step:    [ 1, 1 ]
+    help: "Maximum 200 hours on Katana. Jobs <= 12hrs can run on any node."
+
+  # ── Advanced options ─────────────────────────────────────
+  show_advanced_option:
+    widget: checkbox
+    options:
+      - [ "Show advanced options", "", show-mail_events, show-log, show-logname, show-module ]
+
+  mail_events:
+    label: "Mail events"
+    widget: checkbox
+    direction: horizontal
+    separator: ""
+    indent: 1
+    options:
+      - [ "Send email when a job ends abnormally", "a" ]
+      - [ "Send email when a job starts",          "b" ]
+      - [ "Send email when a job ends",            "e" ]
+
+  log:
+    widget: checkbox
+    indent: 1
+    options:
+      - [ "Merge stderr into stdout (-j oe)", "oe", disable-logname ]
+
+  logname:
+    widget: text
+    indent: 1
+    label:  [ "File name of stdout", "File name of stderr" ]
+    size:   2
+
+  module:
+    widget: multi_select
+    label: "Additional modules"
+    indent: 1
+    separator: " "
+    help: "The main module is loaded for you. Add others only if your own post-processing needs them."
+    options:
+    <% require 'open3'
+       stdout, _ = Open3.capture2e(
+         {"MODULEPATH" => "/etc/scl/modulefiles:/apps/Modules/linux-rocky8-ivybridge:/apps/neurodesk/modules:/usr/share/Modules/modulefiles:/etc/modulefiles:/usr/share/modulefiles"},
+         "/usr/share/Modules/libexec/modulecmd.tcl", "sh", "avail", "-t"
+       )
+       mods = stdout.split(/\s+/).reject { |m|
+         m.empty? || m.end_with?(":") || m.start_with?("/")
+       }.select { |m|
+         m.match?(/openfoam|paraview|openmpi/i)
+       }.sort
+       mods.each do |mod| %>
+      - [ "<%= mod %>", "<%= mod %>" ]
+    <% end %>
+
+  # ── Output directory ──────────────────────────────────────
+  working_dir:
+    widget: path
+    label: "Output directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Recommended: your scratch directory /srv/scratch/zID"
+
+script: |
+  #!/bin/bash
+  #PBS -N #{job_name}
+  #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}
+  #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
+  #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au
+  #PBS -m #{mail_events}
+  #PBS -j #{log}
+  #PBS -o #{logname_1}
+  #PBS -e #{logname_2}
+
+  set -eo pipefail
+
+  OUTDIR="#{working_dir}"
+  mkdir -p "$OUTDIR"
+
+  echo "========================================"
+  echo "  CFD Simulation (OpenFOAM)"
+  echo "========================================"
+  echo "Timestamp : $(date)"
+  echo "Job ID    : $PBS_JOBID"
+  echo "Hostname  : $(hostname)"
+  echo "Output    : $OUTDIR"
+  echo ""
+
+  # Module scripts reference unset variables, so keep nounset off here.
+  module purge
+  module load openfoam/2506 #{module}
+
+  echo "Loaded modules:"
+  module list 2>&1 | sed 's/^/  /'
+  echo ""
+
+  TUT="${FOAM_TUTORIALS:-$WM_PROJECT_DIR/tutorials}/#{case_path}"
+  if [ ! -d "$TUT" ]; then
+    echo "ERROR: tutorial case not found at $TUT"
+    echo "FOAM_TUTORIALS=${FOAM_TUTORIALS:-<unset>}"
+    exit 1
+  fi
+  RUNDIR="$OUTDIR/$(basename "#{case_path}")"
+  rm -rf "$RUNDIR"; cp -r "$TUT" "$RUNDIR"; cd "$RUNDIR"
+  echo "[1/2] blockMesh"; blockMesh 2>&1 | tail -20
+  echo "[2/2] #{solver}";  #{solver} 2>&1 | tail -30
+  echo ""; echo "Time directories:"; ls -d [0-9]* | sort -g | sed "s/^/  /"
+
+  echo ""
+  echo "Results in: $OUTDIR"
+  echo "========================================"
+  echo "  Complete"
+  echo "========================================"
+
+check: |
+  if @time_1.to_i == 0 && @time_2.to_i == 0
+    halt 500, "Walltime cannot be zero."
+  end
+
+  if @time_1.to_i > 200
+    halt 500, "Maximum walltime on Katana is 200 hours."
+  end
+
+  if @working_dir.to_s.strip.empty?
+    halt 500, "Choose an output directory - your scratch space is recommended."
+  end

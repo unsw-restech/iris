@@ -1,0 +1,11 @@
+name: AlphaFold2 Batch
+category: Structural biology
+icon: bi-bounding-box
+description: |
+  Batch protein structure prediction with AlphaFold2, run through the
+  nf-core/proteinfold pipeline and nf-core's UNSW Katana profile.
+
+  A GPU is strongly recommended; runtimes scale sharply with sequence length.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/alphafold-batch/

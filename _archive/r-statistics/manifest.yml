@@ -1,0 +1,13 @@
+name: Statistical Modelling (R)
+category: Social & economic
+icon: bi-bar-chart-line
+description: |
+  Fit and compare linear models, with coefficient tables, an analysis of
+  variance and a correlation matrix written as plain text.
+
+  Base R only - no CRAN packages - so nothing is installed into your home
+  directory. **No input data is required**: leave the CSV field empty and a
+  dataset built into R is used instead.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/r-statistics/

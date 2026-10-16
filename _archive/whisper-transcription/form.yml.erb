@@ -1,0 +1,265 @@
+---
+form:
+
+  job_name:
+    widget: text
+    label: "PBS Job name"
+    value: "iris_whisper_transcription"
+    help: "No spaces or special characters."
+
+  # ── Input ─────────────────────────────────────────────────────
+  audio_file:
+    widget: path
+    label: "Audio or video file"
+    show_files: true
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Leave empty to transcribe a short synthesised sample - useful for a first test with no data of your own."
+
+  model:
+    widget: select
+    label: "Model size"
+    value: "base"
+    options:
+      - [ "tiny - fastest, least accurate",        "tiny"   ]
+      - [ "base - good default",                   "base"   ]
+      - [ "small",                                 "small"  ]
+      - [ "medium - needs a GPU",                  "medium" ]
+      - [ "large - most accurate, needs a GPU",    "large"  ]
+    help: "Larger models are more accurate but need more GPU memory and time."
+
+  language:
+    widget: select
+    label: "Spoken language"
+    value: "en"
+    options:
+      - [ "English",           "en"   ]
+      - [ "Auto-detect",       "auto" ]
+      - [ "Mandarin Chinese",  "zh"   ]
+      - [ "Cantonese",         "yue"  ]
+      - [ "Arabic",            "ar"   ]
+      - [ "Hindi",             "hi"   ]
+      - [ "Indonesian",        "id"   ]
+      - [ "Japanese",          "ja"   ]
+      - [ "Korean",            "ko"   ]
+      - [ "Vietnamese",        "vi"   ]
+      - [ "Spanish",           "es"   ]
+      - [ "French",            "fr"   ]
+      - [ "German",            "de"   ]
+    help: "Auto-detect costs a little extra time and is less reliable on short or noisy recordings."
+
+  output_format:
+    widget: select
+    label: "Output format"
+    value: "all"
+    options:
+      - [ "All formats (txt, srt, vtt, json)", "all"  ]
+      - [ "Plain text",                        "txt"  ]
+      - [ "Subtitles (SRT)",                   "srt"  ]
+      - [ "WebVTT captions",                   "vtt"  ]
+      - [ "JSON with word timings",            "json" ]
+
+  # ── Resources ─────────────────────────────────────────────────
+  ngpus:
+    widget: number
+    label: "GPUs (0 = CPU only)"
+    value: 1
+    min: 0
+    max: 1
+    step: 1
+    help: "A GPU is strongly recommended. On CPU, transcription runs at roughly real time or slower."
+
+  ncpus:
+    widget: number
+    label: "CPU cores (1 - 16)"
+    value: 4
+    min: 1
+    max: 16
+    step: 1
+    help: "Jobs requesting up to 16 CPUs can run on any Katana node."
+
+  mem:
+    widget: select
+    label: "Memory"
+    value: "16gb"
+    options:
+      - [ "8 GB",   "8gb"   ]
+      - [ "16 GB",  "16gb"  ]
+      - [ "32 GB",  "32gb"  ]
+      - [ "64 GB",  "64gb"  ]
+      - [ "124 GB", "124gb" ]
+    help: "16gb suits the base model. Allow 32gb or more for medium and large."
+
+  time:
+    widget: number
+    label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
+    size:    2
+    value:   [ 1, 0 ]
+    min:     [ 0, 0 ]
+    max:     [ 200, 59 ]
+    step:    [ 1, 1 ]
+    help: "Maximum 200 hours on Katana. Jobs <= 12hrs can run on any node. On a GPU, expect well under real time."
+
+  # ── Advanced options ──────────────────────────────────────────
+  show_advanced_option:
+    widget: checkbox
+    options:
+      - [ "Show advanced options", "", show-mail_events, show-log, show-logname, show-module ]
+
+  mail_events:
+    label: "Mail events"
+    widget: checkbox
+    direction: horizontal
+    separator: ""
+    indent: 1
+    options:
+      - [ "Send email when a job ends abnormally", "a" ]
+      - [ "Send email when a job starts",          "b" ]
+      - [ "Send email when a job ends",            "e" ]
+
+  log:
+    widget: checkbox
+    indent: 1
+    options:
+      - [ "Merge stderr into stdout (-j oe)", "oe", disable-logname ]
+
+  logname:
+    widget: text
+    indent: 1
+    label:  [ "File name of stdout", "File name of stderr" ]
+    size:   2
+
+  module:
+    widget: multi_select
+    label: "Additional modules"
+    indent: 1
+    separator: " "
+    help: "The whisper module is loaded for you. Add others here only if your own post-processing needs them."
+    options:
+    <% require 'open3'
+       stdout, _ = Open3.capture2e(
+         {"MODULEPATH" => "/etc/scl/modulefiles:/apps/Modules/linux-rocky8-ivybridge:/apps/neurodesk/modules:/usr/share/Modules/modulefiles:/etc/modulefiles:/usr/share/modulefiles"},
+         "/usr/share/Modules/libexec/modulecmd.tcl", "sh", "avail", "-t"
+       )
+       mods = stdout.split(/\s+/).reject { |m|
+         m.empty? || m.end_with?(":") || m.start_with?("/")
+       }.select { |m|
+         m.match?(/python|ffmpeg|sox|espeak|cuda|julia|^R\//i)
+       }.sort
+       mods.each do |mod| %>
+      - [ "<%= mod %>", "<%= mod %>" ]
+    <% end %>
+
+  # ── Output directory ──────────────────────────────────────────
+  working_dir:
+    widget: path
+    label: "Output directory"
+    show_files: false
+    favorites:
+      - /srv/scratch/<%= ENV['USER'] %>
+    help: "Recommended: your scratch directory /srv/scratch/zID"
+
+script: |
+  #!/bin/bash
+  #PBS -N #{job_name}
+  #PBS -l select=1:ncpus=#{ncpus}:mem=#{mem}:ngpus=#{ngpus}
+  #PBS -l walltime=#{time_1}:#{zeropadding(time_2, 2)}:00
+  #PBS -M <%= ENV['USER'] %>@ad.unsw.edu.au
+  #PBS -m #{mail_events}
+  #PBS -j #{log}
+  #PBS -o #{logname_1}
+  #PBS -e #{logname_2}
+
+  set -eo pipefail
+
+  OUTDIR="#{working_dir}"
+  mkdir -p "$OUTDIR"
+
+  echo "========================================"
+  echo "  IRIS Whisper transcription"
+  echo "========================================"
+  echo "Timestamp : $(date)"
+  echo "Job ID    : $PBS_JOBID"
+  echo "Hostname  : $(hostname)"
+  echo ""
+
+  if [ "#{ngpus}" -gt 0 ] && command -v nvidia-smi > /dev/null 2>&1; then
+    nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+  else
+    echo "No GPU requested - transcribing on CPU. This will be slow."
+  fi
+  echo ""
+
+  # Module scripts reference unset variables, so keep nounset off here.
+  module purge
+  module load whisper/20230314 #{module}
+
+  if ! command -v whisper > /dev/null 2>&1; then
+    echo "ERROR: the whisper module loaded but 'whisper' is not on PATH."
+    echo "Run 'module avail whisper' on a login node and tell restech@unsw.edu.au."
+    exit 1
+  fi
+
+  # No audio supplied: synthesise a short sample so the job still runs end to end.
+  AUDIO="#{audio_file}"
+  if [ -z "$AUDIO" ] || [ ! -f "$AUDIO" ]; then
+    echo "No audio file given - synthesising a sample with espeak-ng."
+    module load espeak-ng/1.52.0
+    AUDIO="$OUTDIR/sample.wav"
+    espeak-ng -w "$AUDIO" \
+      "This is a test recording for the IRIS workflow catalogue at UNSW. \
+       Research technology services runs the Katana high performance computing cluster."
+    echo "Sample written to: $AUDIO"
+    echo ""
+  fi
+
+  echo "Transcribing: $AUDIO"
+  echo "Model: #{model}   Language: #{language}"
+  echo "----------------------------------------"
+
+  whisper "$AUDIO" \
+    --model #{model} \
+    --language #{language} \
+    --output_dir "$OUTDIR" \
+    --output_format #{output_format}
+
+  echo "----------------------------------------"
+  echo ""
+
+  TRANSCRIPT="$OUTDIR/$(basename "${AUDIO%.*}").txt"
+  if [ -f "$TRANSCRIPT" ]; then
+    echo "Transcript:"
+    sed 's/^/  /' "$TRANSCRIPT"
+    echo ""
+  fi
+
+  echo "Results in: $OUTDIR"
+  echo "========================================"
+  echo "  Complete"
+  echo "========================================"
+
+check: |
+  if @time_1.to_i == 0 && @time_2.to_i == 0
+    halt 500, "Walltime cannot be zero."
+  end
+
+  if @time_1.to_i > 200
+    halt 500, "Maximum walltime on Katana is 200 hours."
+  end
+
+  if @working_dir.to_s.strip.empty?
+    halt 500, "Choose an output directory - your scratch space is recommended."
+  end
+
+  if @ngpus.to_i == 0 && ["medium", "large"].include?(@model)
+    halt 500, "The " + @model + " model is impractically slow on CPU. Request a GPU, or choose tiny, base or small."
+  end
+
+  mem_gb = @mem.gsub("gb", "").to_i
+  if @model == "large" && mem_gb < 32
+    halt 500, "The large model needs at least 32 GB. Increase memory or choose a smaller model."
+  end
+
+  if mem_gb > 124 && @time_1.to_i > 12
+    halt 500, "Jobs requesting more than 124gb are restricted to school-owned nodes."
+  end

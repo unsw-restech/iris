@@ -1,0 +1,12 @@
+name: RNA-seq Pipeline
+category: Genomics
+icon: bi-diagram-3
+description: |
+  Bulk RNA-seq from FASTQ to differential expression using the nf-core/rnaseq
+  pipeline. Supports human and mouse references and paired-end reads.
+
+  Runs through Nextflow with nf-core's UNSW Katana profile, so containers and
+  per-process scheduling are handled for you.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/rna-seq-pipeline/

@@ -1,0 +1,8 @@
+name: Raster Processing (GDAL)
+category: Geospatial
+icon: bi-map
+description: |
+  Batch reprojection of satellite and aerial imagery archives.
+
+
+  Documentation: https://patricktung.github.io/iris/workflows/gdal-raster/
