@@ -51,3 +51,11 @@ _Avoid_: Stack, scan
 **Label volume**:
 An image or volume of the same shape as its source in which each pixel or voxel holds a class number. In training labels, 0 marks it as unlabelled. A label slice is a one-slice label volume.
 _Avoid_: Mask, annotation, ground truth
+
+**Dataset**:
+One volume together with its training pairs, kept in a single folder in the researcher's scratch with a fixed layout. A run reads one dataset.
+_Avoid_: Project, input folder
+
+**Training pair**:
+An image slice and its label slice, matched by filename, used to train a workflow's model.
+_Avoid_: Sample, annotation
