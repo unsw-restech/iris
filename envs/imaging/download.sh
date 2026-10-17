@@ -13,7 +13,7 @@ set -euo pipefail
 
 VERSION="${1:?usage: download.sh <version>}"
 RECIPE="$(cd "$(dirname "$0")" && pwd)"
-WHEELHOUSE="/srv/scratch/iris/wheelhouse/imaging/$VERSION"
+WHEELHOUSE="/srv/scratch/katana_ai/iris/wheelhouse/imaging/$VERSION"
 
 if [ "$(hostname -s)" != "kdm" ]; then
     echo "Run this on the data mover (ssh katana-dm), not on $(hostname -s)."

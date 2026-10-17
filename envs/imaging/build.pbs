@@ -20,8 +20,8 @@ set -eo pipefail
 
 : "${VERSION:?submit with qsub -v VERSION=<n> build.pbs}"
 RECIPE="${PBS_O_WORKDIR:?submit with qsub from envs/imaging}"
-ENV_DIR="/srv/scratch/iris/envs/imaging/$VERSION"
-WHEELHOUSE="/srv/scratch/iris/wheelhouse/imaging/$VERSION"
+ENV_DIR="/srv/scratch/katana_ai/iris/envs/imaging/$VERSION"
+WHEELHOUSE="/srv/scratch/katana_ai/iris/wheelhouse/imaging/$VERSION"
 
 REQS="$RECIPE/requirements.lock"
 [ -f "$REQS" ] || REQS="$RECIPE/requirements.in"

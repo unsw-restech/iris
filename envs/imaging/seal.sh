@@ -8,7 +8,7 @@
 set -euo pipefail
 
 VERSION="${1:?usage: seal.sh <version>}"
-ENV_DIR="/srv/scratch/iris/envs/imaging/$VERSION"
+ENV_DIR="/srv/scratch/katana_ai/iris/envs/imaging/$VERSION"
 
 if [ "$(hostname -s)" != "kdm" ]; then
     echo "Run this on the data mover (ssh katana-dm), not on $(hostname -s)."

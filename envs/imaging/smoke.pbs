@@ -16,7 +16,7 @@
 set -eo pipefail
 
 : "${VERSION:?submit with qsub -v VERSION=<n> smoke.pbs}"
-ENV_DIR="/srv/scratch/iris/envs/imaging/$VERSION"
+ENV_DIR="/srv/scratch/katana_ai/iris/envs/imaging/$VERSION"
 
 . /etc/profile.d/modules.sh
 module load python/3.13.2
