@@ -1,0 +1,18 @@
+name: microCT 2D Segmentation (U-Net)
+category: Imaging
+icon: bi-layers
+description: |
+  Train a 2D U-Net from scratch on a few labelled slices of a microCT scan,
+  then segment the whole scan slice by slice.
+
+  Pick a dataset folder in your scratch holding `volume/` (the scan's
+  netCDF blocks) and `train/images/` with `train/labels/` (TIFF pairs with
+  matching names, 0 = unlabelled). The job runs in the pre-built IRIS
+  imaging environment, so nothing is installed.
+
+  Everything lands in `<dataset>/runs/<job ID>/`: `labels.tif` (the label
+  volume), `model.pt`, `params.json`, `metrics.json` and `commit.txt` (the
+  IRIS commit that ran). The job output, `runs/<job ID>.OU`, ends with the
+  `iris-view` line that opens the result in a Virtual Desktop.
+
+  Documentation: https://patricktung.github.io/iris/workflows/microct-2d-segmentation/

@@ -15,13 +15,13 @@ The arch list for version 1 was read from the `torch-2.10.0+cu128` cp313 wheel i
 - `requirements.in`: the top-level packages we ask for.
 - `requirements.lock`: the `pip freeze` of the version actually built, copied from the environment after `build.pbs`. A rebuild installs exactly this. It doesn't exist until version 1 is built.
 - `build-info.txt`: the Python, PyTorch, CUDA and compiled GPU archs of the built version, copied alongside the lock.
-- `download.sh`, `build.pbs`, `smoke.pbs`, `seal.sh`: the four build steps, in order.
+- `download.sh`, `build.pbs`, `smoke.pbs`, `test.pbs`, `seal.sh`: the five build steps, in order.
 - `check_imports.py`: imports every package listed in a requirements file. Used by `build.pbs` and `desktop.sh`.
 - `desktop.sh`: the desktop CPU venv for the synthetic-dataset test.
 
 ## Building version *n* on Katana
 
-All four steps run from `envs/imaging/` in a clone on Katana. Every `qsub` is named, with its resources, for Patrick's go-ahead first.
+All five steps run from `envs/imaging/` in a clone on Katana. Every `qsub` is named, with its resources, for Patrick's go-ahead first.
 
 1. **Download** on the data mover, never a login node: `ssh katana-dm`, then `./download.sh <n>`. This puts every wheel into `/srv/scratch/katana_ai/iris/wheelhouse/imaging/<n>/`. It reads `requirements.lock` if present, otherwise `requirements.in`.
 2. **Build** in a short CPU job (2 CPUs, 8 GB, 1 h): `qsub -v VERSION=<n> build.pbs`. This creates the venv at its final path with `pip install --no-index`, then writes `requirements.lock` and `build-info.txt` into it and imports every package in the lock. It fails if PyTorch has no `sm_70`, or if a rebuild from the lock installs anything different. It refuses to touch an environment that already exists, so after a failed build the half-built folder has to be deleted before retrying. That deletion is Patrick's call, by name.
@@ -31,7 +31,8 @@ All four steps run from `envs/imaging/` in a clone on Katana. Every `qsub` is na
    qsub -v VERSION=<n> -l select=1:ncpus=2:ngpus=1:mem=8gb:gpu_model=A100 smoke.pbs
    ```
    Each job passes if `sm_70` is in `torch.cuda.get_arch_list()` and a small forward pass on the GPU matches the CPU.
-4. **Seal** on the data mover: `./seal.sh <n>`. This makes the environment readable by everyone and writable by no one.
+4. **Test** in a short CPU job (2 CPUs, 8 GB, 20 min): `qsub -v VERSION=<n> test.pbs`. This runs the reference workflow's tests (`workflows/microct-2d-segmentation/tests`) against the environment, including the `lib/iris-job.sh` tests that need Katana's module system and so are skipped on the desktop.
+5. **Seal** on the data mover: `./seal.sh <n>`. This makes the environment readable by everyone and writable by no one.
 
 Then copy `requirements.lock` and `build-info.txt` from `/srv/scratch/katana_ai/iris/envs/imaging/<n>/` into this folder, update the table above, and commit all three. The lock pins the packages; `build-info.txt` records the PyTorch version, CUDA version and arch list. The first build of a version resolves `requirements.in` and freezes the result into the lock. A rebuild installs from the lock and `build.pbs` checks that nothing changed.
 

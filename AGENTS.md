@@ -48,6 +48,10 @@ for f in $(find workflows -name form.yml.erb); do                               
   tr -d '\r' < "$f" | grep -qx "  #PBS -A iris-$d" || echo "MISSING USAGE TAG: $f"
 done
 
+for f in $(grep -l '^ *ENV_DIR=' $(find workflows -name form.yml.erb)); do        # imaging forms source the job library
+  tr -d '\r' < "$f" | grep -qxF '  source "$CODE/../../lib/iris-job.sh"' || echo "NO JOB LIBRARY: $f"
+done
+
 for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' index.html | sed 's/href="//;s/"//' | sort -u); do
   [ -f "$p/index.html" ] || echo "BROKEN CARD LINK: $p"
 done
@@ -57,6 +61,12 @@ Any change to `lib/` or to an imaging workflow's `src/` also needs the synthetic
 
 ```
 ~/.venvs/iris-imaging/bin/python -m unittest discover -s workflows/microct-2d-segmentation/tests
+```
+
+A change to `microct-2d-segmentation/form.yml.erb` also needs its form test, which runs on Katana because `check:` looks inside `/srv/scratch/$USER`. Run it from a copy of the working tree in scratch, so the dev clone is never touched:
+
+```
+module load ruby/3.2.0 && ruby workflows/microct-2d-segmentation/tests/test_form.rb
 ```
 
 Check non-ASCII with perl, not grep. `grep -P` exits 2 in Git Bash, which a `||` chain reads as clean. `[^ -~]` flags every line of a CRLF working copy (`core.autocrlf` is on). And WSL's grep missed a real non-ASCII byte with both `[^[:print:][:space:]]` and a `\x80-\xff` range.
@@ -88,7 +98,7 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 
 ## OpenComposer forms
 
-Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, page and code: `hello-world` and `mnist-classification`. The folder name is the OnDemand URL segment each "Run on Katana" button points at. Patrick's dev OpenComposer's `apps_dir` points at his dev clone's `workflows/`, and a `git pull` there is the deploy. Planned workflows have no form, so OpenComposer never lists them.
+Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, page and code: `hello-world`, `mnist-classification` and `microct-2d-segmentation`. The folder name is the OnDemand URL segment each "Run on Katana" button points at. Patrick's dev OpenComposer's `apps_dir` points at his dev clone's `workflows/`, and a `git pull` there is the deploy. Planned workflows have no form, so OpenComposer never lists them.
 
 - **A form runs its own clone's code.** It sets `CODE` to `File.expand_path(File.join(@apps_dir, @OC_DIR_NAME))` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. Guard the expression: OpenComposer re-reads the form on submit with `@apps_dir` unset (it submits the script rendered on GET). No job downloads its own code.
 - **Manifests use built-in icon names** (`bi-...`). Local icon files don't resolve with an absolute `apps_dir`.
