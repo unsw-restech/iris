@@ -71,23 +71,23 @@ form:
   mem:
     widget: select
     label: "Memory"
-    value: "32gb"
+    value: "16gb"
     options:
       - [ "16 GB",  "16gb"  ]
       - [ "32 GB",  "32gb"  ]
       - [ "64 GB",  "64gb"  ]
       - [ "124 GB", "124gb" ]
-    help: "32 GB covers a 2520 x 2520 scan. Larger slices may need more."
+    help: "16 GB covers a 2520 x 2520 x 1280 scan, which used 6 GB. Larger slices may need more."
 
   time:
     widget: number
     label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
     size:    2
-    value:   [ 4, 0 ]
+    value:   [ 2, 0 ]
     min:     [ 0, 0 ]
     max:     [ 200, 59 ]
     step:    [ 1, 1 ]
-    help: "Training plus segmenting the whole volume. Jobs up to 12 hours can run on any node."
+    help: "Training plus segmenting the whole volume: a 16 GB scan took 23 minutes on a V100 at the defaults. Jobs up to 12 hours can run on any node."
 
   # ── Advanced options ──────────────────────────────────────────
   show_advanced_option:
