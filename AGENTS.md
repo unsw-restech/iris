@@ -105,7 +105,8 @@ Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, pa
 
 `_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it.
 
-- **Written is not installed.** `hello-world` is confirmed opening and running from the dev clone (job 9543031, 2026-10-17). `mnist-classification` was confirmed only from the old out-of-repo copy (Patrick, 2026-08-06).
+- **Written is not installed.** `hello-world` is confirmed opening and running from the dev clone (job 9543031, 2026-10-17). `mnist-classification` was confirmed only from the old out-of-repo copy (Patrick, 2026-08-06). `microct-2d-segmentation` has run from the dev clone with its script rendered outside the browser (job 9544838, 2026-10-17); opening it in OnDemand is not yet confirmed.
 - **`hello-world` is the reference schema.** Match its structure exactly.
 - **Every line inside `script: |` stays indented**, which rules out heredocs. Build embedded files with `printf '%s\n'`, as `_archive\vllm-inference` does.
+- **Imaging forms fail `check:` with `oc_assert(cond, msg)`**, which re-renders the form with the values kept; `halt 500`, as in `hello-world`, shows a bare error page. Katana's dev OpenComposer is 1.9.0, and `oc_assert` needs 1.4.0.
 - **Use string concatenation inside `check:`.** Ruby `#{}` collides with OpenComposer's own substitution.

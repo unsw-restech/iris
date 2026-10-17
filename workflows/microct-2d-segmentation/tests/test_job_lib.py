@@ -23,9 +23,11 @@ ON_KATANA = Path("/etc/profile.d/modules.sh").exists()
 
 
 def source_job_lib(env_dir, run_dir, then="echo AFTER"):
-    """Run a job script's opening lines: set CODE, ENV_DIR and RUN_DIR,
-    source the library, then run `then`."""
+    """Run a job script's opening lines as the form writes them: set CODE,
+    ENV_DIR and RUN_DIR, turn on set -eo pipefail, source the library, then
+    run `then`."""
     script = (
+        'set -eo pipefail\n'
         f'CODE="{WORKFLOW}"\n'
         f'ENV_DIR="{env_dir}"\n'
         f'RUN_DIR="{run_dir}"\n'

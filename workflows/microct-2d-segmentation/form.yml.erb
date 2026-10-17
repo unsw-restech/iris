@@ -156,8 +156,8 @@ script: |
   DATASET="#{dataset}"
   RUN_DIR="${DATASET%/}/runs/${PBS_JOBID%%.*}"
 
-  source "$CODE/../../lib/iris-job.sh"
   set -eo pipefail
+  source "$CODE/../../lib/iris-job.sh"
 
   python "$CODE/src/run.py" \
     --dataset "$DATASET" --run-dir "$RUN_DIR" \
@@ -179,8 +179,8 @@ check: |
   imgs = File.join(ds, "train", "images")
   labs = File.join(ds, "train", "labels")
   oc_assert(File.directory?(imgs) && File.directory?(labs), "Missing train/images or train/labels in " + ds + ".")
-  a = Dir.children(imgs).select { |f| File.file?(File.join(imgs, f)) }.sort
-  b = Dir.children(labs).select { |f| File.file?(File.join(labs, f)) }.sort
-  oc_assert(!a.empty?, "No training images in " + imgs + ".")
-  oc_assert(a == b, "train/images and train/labels hold different file names: " + ((a - b) + (b - a)).first(5).join(", "))
+  image_names = Dir.children(imgs).select { |f| File.file?(File.join(imgs, f)) }.sort
+  label_names = Dir.children(labs).select { |f| File.file?(File.join(labs, f)) }.sort
+  oc_assert(!image_names.empty?, "No training images in " + imgs + ".")
+  oc_assert(image_names == label_names, "train/images and train/labels hold different file names: " + ((image_names - label_names) + (label_names - image_names)).first(5).join(", "))
   oc_assert(@time_1.to_i > 0 || @time_2.to_i > 0, "Walltime cannot be zero.")
