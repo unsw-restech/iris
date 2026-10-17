@@ -13,11 +13,15 @@ import xarray as xr
 def to_intensity(array):
     """Apply the signed/unsigned rule to stored intensities.
 
-    Provisional rule, until a full-range read of the sample volume on Katana
-    fixes it (#24, Further Notes): 16-bit data stored as `short` is read as
-    unsigned, as the sample's `data_description` ("<ushort>") says. The bits
-    are reinterpreted, so 40000 stored as -25536 reads as 40000 again.
-    Works on numpy and dask arrays alike.
+    16-bit data stored as `short` is read as unsigned, as the sample's
+    `data_description` ("<ushort>") says. The bits are reinterpreted, so
+    40000 stored as -25536 reads as 40000 again. Works on numpy and dask
+    arrays alike.
+
+    Fixed by a full-range read of the microCT sample (job 9544832, #29):
+    read as unsigned, its brightest 293 voxels continue the histogram's
+    tail smoothly past 32767 up to 34311; read as signed they would sit
+    alone near -32768, with nothing between -3 and -1.
     """
     if array.dtype == np.int16:
         return array.view(np.uint16)
