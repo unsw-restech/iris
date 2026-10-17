@@ -4,7 +4,7 @@ The shared, versioned venv that imaging workflows run in. Nothing is installed w
 
 | Version | Path on Katana | PyTorch | Compiled GPU archs | Status |
 |---|---|---|---|---|
-| 1 | `/srv/scratch/katana_ai/iris/envs/imaging/1/` | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Built (job 9543171); GPU smoke tests and seal pending |
+| 1 | `/srv/scratch/katana_ai/iris/envs/imaging/1/` | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Built (job 9543171), smoke-tested on V100 (9544165) and A100 (9544166), sealed 2026-10-17 |
 
 Everything lives under `/srv/scratch/katana_ai/iris/` until ResTech creates the planned `/srv/scratch/iris` group scratch. `katana_ai` is an existing group scratch whose only member is Patrick, and researchers can read it. A venv can't be moved, because its paths are written into it. Moving means rebuilding each version from its lock at the new path, changing the paths in these scripts, and repointing the workflows' job scripts.
 
