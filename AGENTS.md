@@ -53,6 +53,12 @@ for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' index.html | sed 's/href="//;
 done
 ```
 
+Any change to `lib/` or to an imaging workflow's `src/` also needs the synthetic-dataset test to pass in the desktop CPU venv (`envs/imaging/desktop.sh` builds it):
+
+```
+~/.venvs/iris-imaging/bin/python -m unittest discover -s workflows/microct-2d-segmentation/tests
+```
+
 Check non-ASCII with perl, not grep. `grep -P` exits 2 in Git Bash, which a `||` chain reads as clean. `[^ -~]` flags every line of a CRLF working copy (`core.autocrlf` is on). And WSL's grep missed a real non-ASCII byte with both `[^[:print:][:space:]]` and a `\x80-\xff` range.
 
 ## Deploying

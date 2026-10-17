@@ -15,6 +15,7 @@ iris/
 │   └── iris.css                      # Shared styles for workflow detail pages
 ├── _archive/<slug>/                  # Retired OpenComposer forms, never served by OpenComposer
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
+├── lib/iris/                         # Shared Python for imaging workflows: volume reader, label writer
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html
@@ -28,6 +29,9 @@ iris/
     │   ├── katana/iris_mnist_classification.pbs, prepare.sh
     │   ├── src/train_mnist.py
     │   └── local/run_local.sh, run_local.ps1
+    ├── microct-2d-segmentation/      # Reference workflow, in progress (no page or form yet)
+    │   ├── src/run.py                # Entry point: train, then segment into a run directory
+    │   └── tests/test_synthetic.py   # Synthetic-dataset test (see AGENTS.md)
     ├── cellpose-segmentation/index.html   # Planned
     └── qupath-pathology/index.html        # Planned
 ```
