@@ -28,7 +28,12 @@ set +u
 module load python/3.13.2
 set -u
 
-mkdir -p "$WHEELHOUSE"
+# pip stages every download in TMPDIR, and the data mover's /tmp (4 GB) is
+# smaller than the wheels. Keep its cache out of the 10 GB home too.
+mkdir -p "$WHEELHOUSE" "$WHEELHOUSE.tmp"
+trap 'rm -rf "$WHEELHOUSE.tmp"' EXIT
+export TMPDIR="$WHEELHOUSE.tmp" PIP_NO_CACHE_DIR=1
+
 echo "From       : $REQS"
 echo "Wheelhouse : $WHEELHOUSE"
 python3 -m pip download \
