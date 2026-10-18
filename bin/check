@@ -69,7 +69,7 @@ card_links() {
 check "broken card links" card_links
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
-check "ruff" bash -c 'uvx ruff@0.17.1 check --quiet --output-format concise .'
+check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
 
 if [ -x "$PYTHON" ]; then
     out="$("$PYTHON" -m unittest discover -s workflows/microct-2d-segmentation/tests 2>&1)" || {
