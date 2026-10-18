@@ -68,6 +68,10 @@ _Avoid_: Mask, annotation, ground truth
 One volume together with its training pairs, kept in a single folder in the researcher's scratch with a fixed layout. A run reads one dataset.
 _Avoid_: Project, input folder
 
+**Dataset record**:
+What a run notes about the dataset it read, so the researcher can find it again and spot if it changed: the folders' paths and file counts, the volume's size, modification time, shape, data type, voxel spacing if the volume records one, and intensity statistics. It holds no content hash; the digest MLflow shows hashes the record itself.
+_Avoid_: Fingerprint, checksum, manifest
+
 **Training pair**:
 An image slice and its label slice, matched by filename, used to train a workflow's model.
 _Avoid_: Sample, annotation

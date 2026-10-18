@@ -8,6 +8,8 @@ written into --run-dir:
   labels.tif    the label volume, uint8 BigTIFF, one deflate page per slice
   model.pt      the trained weights
   params.json   every form field, including the seed actually used
+  dataset.json  which dataset the run read: its folders, file counts and
+                volume, and the volume's intensity statistics
   metrics.json  training loss and per-class Dice/IoU on held-out patches,
                 per epoch and final
   run.json      the experiment, job ID, environment and how the run ended,
@@ -31,6 +33,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from iris.dataset import IntensityStats, dataset_record
 from iris.labels import MAX_CLASSES, write_label_volume
 from iris.record import RunRecord
 from iris.volume import open_volume, to_intensity
@@ -216,8 +219,9 @@ def score(model, images, labels, n_classes, batch_size, device):
 # -- Inference -------------------------------------------------------------
 
 @torch.no_grad()
-def segment(model, vol, mean, std, device):
-    """Yield one uint8 label slice (classes 1..K) per z-slice of `vol`.
+def segment(model, vol, mean, std, device, intensity):
+    """Yield one uint8 label slice (classes 1..K) per z-slice of `vol`,
+    adding each slice's stored intensities to `intensity`.
 
     Each slice is segmented in TILE x TILE tiles, each seen with MARGIN
     pixels of context on every side so tile edges leave no seams."""
@@ -226,7 +230,9 @@ def segment(model, vol, mean, std, device):
     tile = min(TILE, max(ny, nx) + -max(ny, nx) % DOWNSAMPLE)
     h, w = ny + -ny % tile, nx + -nx % tile
     for z in range(vol.shape[0]):
-        img = (vol[z].values.astype(np.float32) - mean) / std
+        raw = vol[z].values
+        intensity.add(raw)
+        img = (raw.astype(np.float32) - mean) / std
         img = np.pad(pad_to(img, h, w), MARGIN, mode="reflect")
         out = np.empty((h, w), dtype=np.uint8)
         for y in range(0, h, tile):
@@ -294,12 +300,17 @@ def main(argv=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     gpu = torch.cuda.get_device_name(device) if device.type == "cuda" else "none"
     with RunRecord(run_dir, args.experiment, CODE, tags={"gpu": gpu}) as record:
-        train_and_segment(args, record, pairs, n_classes, vol, device)
+        dataset = record.write_dataset(lambda: dataset_record(args.dataset, vol))
+        intensity = IntensityStats()
+        train_and_segment(args, record, pairs, n_classes, vol, device, intensity)
+        if dataset is not None:
+            record.write_dataset(lambda: {**dataset, "intensity": intensity.summary()})
 
 
-def train_and_segment(args, record, pairs, n_classes, vol, device):
+def train_and_segment(args, record, pairs, n_classes, vol, device, intensity):
     """Train on the training pairs, then segment the whole volume into the
-    run directory, recording params and per-epoch metrics as it goes."""
+    run directory, recording params and per-epoch metrics as it goes and
+    adding every slice it reads to `intensity`, an IntensityStats."""
     run_dir = record.run_dir
     started = time.time()
     torch.manual_seed(args.seed)
@@ -351,7 +362,7 @@ def train_and_segment(args, record, pairs, n_classes, vol, device):
     torch.save({"state_dict": model.state_dict(), "n_classes": n_classes,
                 "intensity_mean": mean, "intensity_std": std}, run_dir / "model.pt")
 
-    write_label_volume(run_dir / "labels.tif", segment(model, vol, mean, std, device), vol.shape)
+    write_label_volume(run_dir / "labels.tif", segment(model, vol, mean, std, device, intensity), vol.shape)
     print(f"Wrote {run_dir / 'labels.tif'} {tuple(vol.shape)} in {time.time() - started:.0f} s")
 
 

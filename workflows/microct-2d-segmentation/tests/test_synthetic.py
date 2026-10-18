@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 import netCDF4
@@ -34,6 +35,7 @@ BLOCK_SLICES = 3
 N_BLOCKS = 2
 NY, NX = 70, 50  # not a multiple of the patch size or of the U-Net's stride
 SHAPE = (BLOCK_SLICES * N_BLOCKS, NY, NX)
+VOXEL_SIZE_XYZ = [0.5, 0.5, 0.25]
 
 
 def make_volume():
@@ -60,6 +62,8 @@ def write_dataset(root, vol, labels):
             nc.createDimension("tomo_xdim", NX)
             nc.createDimension("md5_dim", 16)
             nc.data_description = "Raw reconstructed tomogram data <ushort>"
+            nc.voxel_size_xyz = np.array(VOXEL_SIZE_XYZ, dtype=np.float32)  # as the sample has them
+            nc.voxel_unit = "mm"
             var = nc.createVariable("tomo", "i2", ("tomo_zdim", "tomo_ydim", "tomo_xdim"), fill_value=False)
             var.set_auto_maskandscale(False)
             var[:] = block.view(np.int16)  # stored as `short`, like the sample volume
@@ -179,6 +183,32 @@ class SyntheticRun(unittest.TestCase):
         self.assertRegex(tags["commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(list(self.run_dir.glob("*.tmp")), [])
 
+    def test_dataset_record_names_the_training_folders_and_the_volume(self):
+        dataset = json.loads((self.run_dir / "dataset.json").read_text())
+        root = self.dataset.resolve()
+        self.assertEqual(dataset["path"], str(root))
+        self.assertEqual(dataset["train"], {
+            "images": {"path": str(root / "train" / "images"), "files": 3},
+            "labels": {"path": str(root / "train" / "labels"), "files": 3},
+        })
+        volume = dataset["volume"]
+        blocks = sorted((root / "volume").glob("*.nc"))
+        self.assertEqual(volume["path"], str(root / "volume"))
+        self.assertEqual(volume["size_bytes"], sum(f.stat().st_size for f in blocks))
+        newest = max(f.stat().st_mtime for f in blocks)
+        self.assertAlmostEqual(datetime.fromisoformat(volume["mtime"]).timestamp(), newest, delta=1e-3)
+        self.assertEqual(volume["shape"], list(SHAPE))
+        self.assertEqual(volume["dtype"], "uint16")
+        self.assertEqual(volume["voxel_spacing"], {"xyz": VOXEL_SIZE_XYZ, "unit": "mm"})
+
+    def test_dataset_record_holds_the_volumes_intensity_statistics(self):
+        intensity = json.loads((self.run_dir / "dataset.json").read_text())["intensity"]
+        self.assertEqual(intensity["min"], int(self.vol.min()))
+        self.assertEqual(intensity["max"], 65535)
+        self.assertAlmostEqual(intensity["mean"], float(self.vol.mean()), places=6)
+        self.assertAlmostEqual(intensity["std"], float(self.vol.std()), places=6)
+        self.assertEqual(sorted(intensity), ["max", "mean", "min", "std"])
+
     def test_run_index_points_at_the_run_directory(self):
         pointer = self.iris_home / "run-index" / "1234"
         self.assertEqual(pointer.read_text(), str(self.run_dir.resolve()) + "\n")
@@ -198,6 +228,7 @@ class Import(unittest.TestCase):
         result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, seed="7")
         assert result.returncode == 0, result.stderr
         cls.metrics = json.loads((cls.run_dir / "metrics.json").read_text())
+        cls.dataset_record = json.loads((cls.run_dir / "dataset.json").read_text())
         cls.first = import_runs(cls.iris_home)
         cls.client = mlflow.MlflowClient(store_uri(cls.iris_home))
 
@@ -247,6 +278,31 @@ class Import(unittest.TestCase):
         self.assertEqual(tags["job_id"], "1234")
         self.assertEqual(tags["run_dir"], str(self.run_dir.resolve()))
 
+    def test_the_dataset_record_is_the_runs_dataset_input(self):
+        inputs = self.only_run().inputs.dataset_inputs
+        self.assertEqual(len(inputs), 1)
+        dataset = inputs[0].dataset
+        self.assertEqual(dataset.name, "dataset")
+        self.assertEqual(dataset.source_type, "local")
+        self.assertEqual(json.loads(dataset.source), {"uri": str(self.dataset.resolve())})
+        self.assertEqual(json.loads(dataset.profile), self.dataset_record)
+        self.assertEqual(sorted(self.dataset_record), ["intensity", "path", "train", "volume"])
+        self.assertRegex(dataset.digest, r"^[0-9a-f]{8}$")
+
+    def test_a_run_without_dataset_json_imports_without_a_dataset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home, bare = Path(tmp) / "iris", Path(tmp) / "777"
+            bare.mkdir()
+            (bare / "run.json").write_text(json.dumps({
+                "experiment": "bare", "job_id": "777", "status": "FINISHED",
+                "start_time": 1.0, "end_time": 2.0, "tags": {"job_id": "777"}}))
+            (home / "run-index").mkdir(parents=True)
+            (home / "run-index" / "777").write_text(str(bare) + "\n")
+            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+            client = mlflow.MlflowClient(store_uri(home))
+            [run] = client.search_runs([client.get_experiment_by_name("bare").experiment_id])
+            self.assertEqual(run.inputs.dataset_inputs, [])
+
     def test_importing_again_adds_no_run(self):
         self.assertEqual(import_runs(self.iris_home), {"imported": 0, "pending": 0})
         self.only_run()
@@ -292,6 +348,21 @@ class UnwritableRunIndex(unittest.TestCase):
             for name in ("params.json", "metrics.json", "run.json"):
                 json.loads((run_dir / name).read_text())
             self.assertTrue((run_dir / "labels.tif").exists())
+
+
+class UnwritableDatasetRecord(unittest.TestCase):
+
+    def test_the_run_succeeds_and_warns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "dataset"
+            write_dataset(dataset, make_volume(), two_class_labels())
+            run_dir = dataset / "runs" / "1234"
+            (run_dir / "dataset.json").mkdir(parents=True)  # a folder can't be replaced by a file
+            result = run_entry(dataset, run_dir, Path(tmp) / "iris")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("dataset.json", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertEqual(json.loads((run_dir / "run.json").read_text())["status"], "FINISHED")
 
 
 class VolumeReader(unittest.TestCase):

@@ -6,7 +6,7 @@ in its run directory and a pointer in /srv/scratch/$USER/iris/run-index/
 /srv/scratch/$USER/iris/tracking.db, creating the store on first import
 with its artifact root, artifacts/, next to it. Each becomes one MLflow run
 named by its job ID, under its experiment, with its params, metrics history
-and tags.
+and tags, and its dataset.json, if it wrote one, as its dataset input.
 
 Runs with no run.json yet are left for the next import. A run is marked
 complete only once everything is logged; one whose import fails is deleted
@@ -17,6 +17,7 @@ either is redone. A lock file keeps it to one importer per store at a time.
 """
 
 import fcntl
+import hashlib
 import json
 import os
 import sys
@@ -25,7 +26,7 @@ from pathlib import Path
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
 
 from mlflow import MlflowClient  # noqa: E402
-from mlflow.entities import Metric, Param, RunTag, ViewType  # noqa: E402
+from mlflow.entities import Dataset, DatasetInput, Metric, Param, RunTag, ViewType  # noqa: E402
 from mlflow.store.tracking.sqlalchemy_store import SqlAlchemyStore  # noqa: E402
 
 from iris.record import iris_home, run_index  # noqa: E402
@@ -92,6 +93,23 @@ def metric_values(epoch):
                 yield (f"{key}/{name}" if name is not None else key), float(v)
 
 
+def dataset_input(record):
+    """A run's dataset record (iris.dataset) as an MLflow dataset input,
+    named after the dataset folder, with the whole record as its profile.
+    The digest hashes the record, never the volume's contents: everything
+    but the intensity statistics, so a run killed before inference finished gets the same
+    digest as a finished one on the same, unchanged dataset."""
+    stable = {k: v for k, v in record.items() if k != "intensity"}
+    digest = hashlib.sha256(json.dumps(stable, sort_keys=True).encode()).hexdigest()[:8]
+    return DatasetInput(Dataset(
+        name=Path(record["path"]).name,
+        digest=digest,
+        source_type="local",
+        source=json.dumps({"uri": record["path"]}),
+        profile=json.dumps(record),
+    ))
+
+
 def read_json(path, empty):
     """`path`'s contents, or `empty` if the run ended before writing it."""
     try:
@@ -110,6 +128,7 @@ def replay(client, home, run_dir, record):
     step fails, the half-logged run is deleted."""
     params = read_json(run_dir / "params.json", {})
     epochs = read_json(run_dir / "metrics.json", {"epochs": []})["epochs"]
+    dataset = read_json(run_dir / "dataset.json", None)
     run = client.create_run(
         experiment_id(client, record["experiment"], home),
         start_time=int(record["start_time"] * 1000),
@@ -125,6 +144,8 @@ def replay(client, home, run_dir, record):
         log_in_batches(client, run_id, "metrics",
                        [Metric(name, value, int(epoch["time"] * 1000), epoch["epoch"])
                         for epoch in epochs for name, value in metric_values(epoch)], METRICS_PER_CALL)
+        if dataset is not None:
+            client.log_inputs(run_id, datasets=[dataset_input(dataset)])
         client.set_terminated(run_id, record["status"], int(record["end_time"] * 1000))
         client.set_tag(run_id, IMPORT_TAG, "complete")
     except Exception:

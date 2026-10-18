@@ -5,14 +5,15 @@ A job never opens the tracking store (docs/adr/0001). Instead it writes:
   params.json   every form field plus the seed, and what the run derived
   metrics.json  {"epochs": [{"epoch", "time", <metric>: number or
                 {<class>: number or null}}...], "final": <last epoch>}
+  dataset.json  which dataset the run read (iris.dataset)
   run.json      written last: experiment, job ID, the run's tags (venv,
                 commit, slug, job ID, GPU, queue, run directory) and how
                 the run ended
 
 and then the pointer file /srv/scratch/$USER/iris/run-index/<job ID>, one
 line naming the run directory ($IRIS_HOME replaces /srv/scratch/$USER/iris
-in tests). Every file is written atomically. Only run.json and the pointer
-can fail without failing the run: they warn instead.
+in tests). Every file is written atomically. Only dataset.json, run.json
+and the pointer can fail without failing the run: they warn instead.
 
     with RunRecord(run_dir, experiment, code_dir) as record:
         record.write_params(params)
@@ -113,6 +114,19 @@ class RunRecord:
         """Record one epoch's metrics, rewriting metrics.json."""
         self.epochs.append({"epoch": epoch, "time": time.time(), **metrics})
         write_json(self.run_dir / "metrics.json", {"epochs": self.epochs, "final": self.epochs[-1]})
+
+    def write_dataset(self, describe):
+        """Write dataset.json from describe(), which builds the dataset record
+        (iris.dataset), and return that record. A failure in either
+        warns and returns None: the run goes on without it."""
+        try:
+            dataset = describe()
+            write_json(self.run_dir / "dataset.json", dataset)
+            return dataset
+        except Exception as e:  # noqa: BLE001 - the record must never fail the run
+            print(f"WARNING: could not write {self.run_dir / 'dataset.json'}, so MLflow will "
+                  f"not show which dataset this run used: {e}", file=sys.stderr)
+            return None
 
     def run_tags(self):
         return {
