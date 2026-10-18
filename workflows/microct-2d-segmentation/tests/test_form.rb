@@ -87,7 +87,37 @@ class FormTest < Minitest::Test
 
   def test_a_blank_seed_still_passes_seed_to_the_entry_point
     script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds, seed: ""))
-    assert_includes script, %(--seed ""\n)
+    assert_includes script, %(--seed "" \\\n)
+  end
+
+  def test_experiment_defaults_to_the_slug
+    script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds))
+    assert_includes script, %(--experiment "microct-2d-segmentation" \\\n)
+  end
+
+  def test_a_named_experiment_reaches_the_entry_point
+    assert_nil check(experiment: "pore sizes v2")
+    script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds, experiment: "pore sizes v2"))
+    assert_includes script, %(--experiment "pore sizes v2" \\\n)
+  end
+
+  def test_rejects_a_blank_experiment_or_one_that_breaks_the_script
+    ["", "  ", "say \"hi\"", "$HOME", "a`b`", "a\\b", " leading"].each do |name|
+      assert_match(/experiment name/, check(experiment: name), name.inspect)
+    end
+  end
+
+  def test_rejects_a_job_name_that_breaks_the_script
+    ["", "my job", "a\"b", "$x"].each do |name|
+      assert_match(/job name/, check(job_name: name), name.inspect)
+    end
+  end
+
+  def test_the_resource_fields_are_recorded
+    script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds))
+    assert_includes script, "--field ngpus=1 --field ncpus=8 --field mem=16gb \\\n"
+    assert_includes script, "--field walltime=2:00:00 \\\n"
+    assert_includes script, %(--field "job_name=iris_microct" --field "mail_events=ae"\n)
   end
 
   def test_mail_on_end_and_abnormal_end_by_default

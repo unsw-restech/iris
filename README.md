@@ -14,10 +14,12 @@ iris/
 ├── assets/
 │   └── iris.css                      # Shared styles for workflow detail pages
 ├── _archive/<slug>/                  # Retired OpenComposer forms, never served by OpenComposer
+├── bin/
+│   └── iris-import                   # Import new runs into your MLflow tracking store
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
-│   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer
+│   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html

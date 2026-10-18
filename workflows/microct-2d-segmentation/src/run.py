@@ -7,9 +7,12 @@ written into --run-dir:
 
   labels.tif    the label volume, uint8 BigTIFF, one deflate page per slice
   model.pt      the trained weights
-  params.json   every parameter, including the seed actually used
+  params.json   every form field, including the seed actually used
   metrics.json  training loss and per-class Dice/IoU on held-out patches,
                 per epoch and final
+  run.json      the experiment, job ID, environment and how the run ended,
+                written last; the run index then points at the run
+                directory, so the importer can replay it into MLflow
 
 Classes are 1..K, where K is the highest value in train/labels; 0 marks an
 unlabelled pixel and is never predicted. lib/ must be on PYTHONPATH (the job
@@ -17,7 +20,6 @@ script does this).
 """
 
 import argparse
-import json
 import secrets
 import sys
 import time
@@ -30,7 +32,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from iris.labels import MAX_CLASSES, write_label_volume
+from iris.record import RunRecord
 from iris.volume import open_volume, to_intensity
+
+CODE = Path(__file__).resolve().parents[1]  # this workflow's folder; its name is the slug
 
 DOWNSAMPLE = 16  # the U-Net halves the image four times
 TILE = 1024      # inference tile edge; bounds GPU memory whatever the slice size
@@ -245,6 +250,8 @@ def parse_args(argv):
     p.add_argument("--val-percent", type=float, default=20)
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--seed", default="", help="blank picks a new random seed, which is recorded")
+    p.add_argument("--field", action="append", default=[], metavar="NAME=VALUE",
+                   help="a form field this script does not use, such as ncpus, recorded in params.json")
     args = p.parse_args(argv)
     if args.patch_size < 2 * DOWNSAMPLE or args.patch_size % DOWNSAMPLE:
         # Below 32 the U-Net's bottleneck is 1x1, where BatchNorm fails on a batch of one.
@@ -258,17 +265,16 @@ def parse_args(argv):
             p.error("--seed must be a whole number or blank")
     else:
         args.seed = secrets.randbelow(2 ** 31)
+    try:
+        args.fields = dict(f.split("=", 1) for f in args.field)
+    except ValueError:
+        p.error("--field must be NAME=VALUE")
     return args
-
-
-def write_json(path, obj):
-    path.write_text(json.dumps(obj, indent=2) + "\n")
 
 
 def main(argv=None):
     args = parse_args(argv)
     run_dir = Path(args.run_dir)
-    started = time.time()
 
     # Everything that can fail on the dataset fails here, before training.
     pairs = read_training_pairs(args.dataset)
@@ -285,11 +291,20 @@ def main(argv=None):
             # intensity scale would quietly ruin the whole label volume.
             raise DatasetError(f"{name} is {img.dtype}; the volume is {vol.dtype}. Export training images at the volume's bit depth.")
 
-    run_dir.mkdir(parents=True, exist_ok=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    gpu = torch.cuda.get_device_name(device) if device.type == "cuda" else "none"
+    with RunRecord(run_dir, args.experiment, CODE, tags={"gpu": gpu}) as record:
+        train_and_segment(args, record, pairs, n_classes, vol, device)
+
+
+def train_and_segment(args, record, pairs, n_classes, vol, device):
+    """Train on the training pairs, then segment the whole volume into the
+    run directory, recording params and per-epoch metrics as it goes."""
+    run_dir = record.run_dir
+    started = time.time()
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
     generator = torch.Generator().manual_seed(args.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     pixels = np.concatenate([img.ravel() for _, img, _ in pairs]).astype(np.float32)
     mean, std = float(pixels.mean()), float(pixels.std()) or 1.0
@@ -316,8 +331,9 @@ def main(argv=None):
         "intensity_std": std,
         "volume_shape": list(vol.shape),
         "device": str(device),
+        **args.fields,
     }
-    write_json(run_dir / "params.json", params)
+    record.write_params(params)
     if args.val_percent > 0 and not len(val_idx):
         print("WARNING: only one labelled patch, so none is held out and Dice/IoU are empty. "
               "Use a smaller patch size or label more slices.", file=sys.stderr)
@@ -326,12 +342,10 @@ def main(argv=None):
 
     model = UNet(n_classes).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
-    history = []
     for epoch in range(1, args.epochs + 1):
         loss = train_epoch(model, opt, images[train_idx], labels[train_idx], args.batch_size, device, generator)
         dice, iou = score(model, images[val_idx], labels[val_idx], n_classes, args.batch_size, device)
-        history.append({"epoch": epoch, "train_loss": loss, "dice": dice, "iou": iou})
-        write_json(run_dir / "metrics.json", {"epochs": history, "final": history[-1]})
+        record.log_epoch(epoch, train_loss=loss, dice=dice, iou=iou)
         print(f"epoch {epoch}/{args.epochs}  loss {loss:.4f}  dice {dice}")
 
     torch.save({"state_dict": model.state_dict(), "n_classes": n_classes,

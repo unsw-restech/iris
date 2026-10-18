@@ -1,0 +1,152 @@
+"""The record a run leaves in its run directory, for the importer to replay.
+
+A job never opens the tracking store (docs/adr/0001). Instead it writes:
+
+  params.json   every form field plus the seed, and what the run derived
+  metrics.json  {"epochs": [{"epoch", "time", <metric>: number or
+                {<class>: number or null}}...], "final": <last epoch>}
+  run.json      written last: experiment, job ID, the run's tags (venv,
+                commit, slug, job ID, GPU, queue, run directory) and how
+                the run ended
+
+and then the pointer file /srv/scratch/$USER/iris/run-index/<job ID>, one
+line naming the run directory ($IRIS_HOME replaces /srv/scratch/$USER/iris
+in tests). Every file is written atomically. Only run.json and the pointer
+can fail without failing the run: they warn instead.
+
+    with RunRecord(run_dir, experiment, code_dir) as record:
+        record.write_params(params)
+        record.log_epoch(1, train_loss=0.4, dice={"1": 0.9})
+"""
+
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def iris_home():
+    """The folder holding the run index and the tracking store."""
+    if os.environ.get("IRIS_HOME"):
+        return Path(os.environ["IRIS_HOME"])
+    return Path("/srv/scratch", os.environ.get("USER", ""), "iris")
+
+
+def run_index(home):
+    return home / "run-index"
+
+
+def job_id():
+    """The PBS job number (9544838 of 9544838.kman...), or None outside PBS."""
+    full = os.environ.get("PBS_JOBID", "")
+    return full.split(".")[0] or None
+
+
+def write_atomic(path, text):
+    """Write via a temp file and a rename, so a reader, or a run killed
+    mid-write, leaves all or nothing."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
+def write_json(path, obj):
+    write_atomic(path, json.dumps(obj, indent=2) + "\n")
+
+
+class Killed(BaseException):
+    """PBS sent SIGTERM: the walltime ran out or the job was deleted."""
+
+
+def _on_sigterm(signum, frame):
+    raise Killed()
+
+
+class RunRecord:
+    """One run's record. Use it as a context manager around the run: on exit
+    it writes run.json with how the run ended, then the pointer file."""
+
+    def __init__(self, run_dir, experiment, code_dir, tags=None):
+        self.run_dir = Path(run_dir).resolve()
+        self.experiment = experiment
+        self.code_dir = Path(code_dir)
+        self.job_id = job_id() or self.run_dir.name
+        self.tags = dict(tags or {})
+        self.epochs = []
+
+    def __enter__(self):
+        self.start_time = time.time()
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+        self._previous_sigterm = signal.signal(signal.SIGTERM, _on_sigterm)
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        signal.signal(signal.SIGTERM, self._previous_sigterm)
+        if exc_type is None:
+            status = "FINISHED"
+        elif issubclass(exc_type, (Killed, KeyboardInterrupt)):
+            status = "KILLED"
+        else:
+            status = "FAILED"
+        try:
+            self.write_run(status)
+        except Exception as e:  # noqa: BLE001 - the record must never fail the run
+            print(f"WARNING: could not write {self.run_dir / 'run.json'}, so this run "
+                  f"will not appear in MLflow: {e}", file=sys.stderr)
+        else:
+            try:
+                self.write_pointer()
+            except Exception as e:  # noqa: BLE001
+                print(f"WARNING: could not add this run to the run index, so it will "
+                      f"not appear in MLflow: {e}", file=sys.stderr)
+        if exc_type is Killed:
+            sys.exit(143)  # what an unhandled SIGTERM exits with
+        return False
+
+    def write_params(self, params):
+        write_json(self.run_dir / "params.json", params)
+
+    def log_epoch(self, epoch, **metrics):
+        """Record one epoch's metrics, rewriting metrics.json."""
+        self.epochs.append({"epoch": epoch, "time": time.time(), **metrics})
+        write_json(self.run_dir / "metrics.json", {"epochs": self.epochs, "final": self.epochs[-1]})
+
+    def run_tags(self):
+        return {
+            "slug": self.code_dir.name,
+            "job_id": self.job_id,
+            "commit": self._commit(),
+            "venv": sys.prefix,
+            "queue": os.environ.get("PBS_QUEUE", "none"),
+            "run_dir": str(self.run_dir),
+            **self.tags,
+        }
+
+    def _commit(self):
+        recorded = self.run_dir / "commit.txt"  # written by lib/iris-job.sh
+        if recorded.exists():
+            return recorded.read_text().strip()
+        try:
+            return subprocess.run(["git", "-C", str(self.code_dir), "rev-parse", "HEAD"],
+                                  capture_output=True, text=True, check=True).stdout.strip()
+        except (OSError, subprocess.CalledProcessError):
+            return "unknown"
+
+    def write_run(self, status):
+        run = {
+            "experiment": self.experiment,
+            "job_id": self.job_id,
+            "status": status,
+            "start_time": self.start_time,
+            "end_time": time.time(),
+            "tags": self.run_tags(),
+        }
+        write_json(self.run_dir / "run.json", run)
+
+    def write_pointer(self):
+        index = run_index(iris_home())
+        index.mkdir(parents=True, exist_ok=True)
+        write_atomic(index / self.job_id, str(self.run_dir) + "\n")

@@ -11,6 +11,14 @@ form:
       - /srv/scratch/<%= ENV['USER'] %>
     help: "The folder you copied to your scratch, holding volume/ and train/. Results go into its runs/ folder."
 
+  # ── Tracking ──────────────────────────────────────────────────
+  experiment:
+    widget: text
+    label: "Experiment name"
+    value: "microct-2d-segmentation"
+    required: true
+    help: "Groups the runs you want to compare, such as runs on one dataset with different settings. Every run is recorded in your tracking store, /srv/scratch/<%= ENV['USER'] %>/iris/tracking.db: to compare runs, open a Virtual Desktop and run iris-compare."
+
   # ── Training ──────────────────────────────────────────────────
   epochs:
     widget: number
@@ -161,9 +169,12 @@ script: |
 
   python "$CODE/src/run.py" \
     --dataset "$DATASET" --run-dir "$RUN_DIR" \
-    --experiment "microct-2d-segmentation" \
+    --experiment "#{:experiment}" \
     --epochs #{epochs} --patch-size #{patch_size} --lr #{learning_rate} \
-    --val-percent #{val_percent} --batch-size #{batch_size} --seed "#{:seed}"
+    --val-percent #{val_percent} --batch-size #{batch_size} --seed "#{:seed}" \
+    --field ngpus=#{ngpus} --field ncpus=#{ncpus} --field mem=#{mem} \
+    --field walltime=#{time_1}:#{zeropadding(time_2, 2)}:00 \
+    --field "job_name=#{:job_name}" --field "mail_events=#{:mail_events}"
 
   echo ""
   echo "Done. View the result in a Virtual Desktop with:"
@@ -183,4 +194,6 @@ check: |
   label_names = Dir.children(labs).select { |f| File.file?(File.join(labs, f)) }.sort
   oc_assert(!image_names.empty?, "No training images in " + imgs + ".")
   oc_assert(image_names == label_names, "train/images and train/labels hold different file names: " + ((image_names - label_names) + (label_names - image_names)).first(5).join(", "))
+  oc_assert(@experiment.to_s =~ /\A[A-Za-z0-9._-]+( [A-Za-z0-9._-]+)*\z/, "The experiment name can hold only letters, digits, spaces, dots, dashes and underscores.")
+  oc_assert(@job_name.to_s =~ /\A[A-Za-z0-9._-]+\z/, "The job name can hold only letters, digits, dots, dashes and underscores.")
   oc_assert(@time_1.to_i > 0 || @time_2.to_i > 0, "Walltime cannot be zero.")

@@ -75,3 +75,11 @@ _Avoid_: Sample, annotation
 **Run directory**:
 The folder inside a dataset where one run writes all its outputs: the label volume, the trained weights and the record of what the run did.
 _Avoid_: Output folder, results
+
+**Run index**:
+The folder `/srv/scratch/$USER/iris/run-index/` in which every finished run leaves one file, named by its job ID, pointing at its run directory. It is how the importer finds runs.
+_Avoid_: Registry, queue
+
+**Importer**:
+The single process that replays run directories from the run index into the tracking store. Jobs never write the store themselves (ADR-0001).
+_Avoid_: Sync, uploader
