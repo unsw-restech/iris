@@ -1,0 +1,20 @@
+# bin/check on every push and pull request: the shipping greps, ruff and
+# the synthetic-dataset test, in the desktop CPU venv.
+name: check
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv python install 3.13.2
+      - id: venv
+        uses: actions/cache@v4
+        with:
+          path: ~/.venvs/iris-imaging
+          key: venv-${{ runner.os }}-${{ hashFiles('envs/imaging/requirements.lock', 'envs/imaging/desktop.sh') }}
+      - if: steps.venv.outputs.cache-hit != 'true'
+        run: envs/imaging/desktop.sh
+      - run: bin/check

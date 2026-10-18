@@ -2,7 +2,7 @@
 
 `AGENTS.md` is the source of truth for agent instructions. Edit this file.
 
-IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and it stays that way. `README.md` covers structure, previewing, adding a workflow and the **tier table** of which workflows actually run. Read the tier table before telling anyone a workflow "works": the catalogue has one Run-able workflow (`mnist-classification`) and two Planned ones with no form, and only `mnist-classification` and the onboarding `hello-world` have ever run.
+IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and it stays that way. `README.md` covers structure, previewing, adding a workflow and the **tier table** of which workflows actually run. Read the tier table before telling anyone a workflow "works".
 
 ## Layout
 
@@ -12,8 +12,6 @@ IRIS_github_pages\               <- parent directory, not a git repo
 └── iris\                        <- the git repo (github.com/PatrickTung/iris)
     └── _archive\                <- retired forms, kept but never served
 ```
-
-Renamed from ARES on 2026-10-13. Pruned to imaging on 2026-10-16: the 25 removed workflow pages are recoverable from the `pre-prune` tag. The old `patricktung.github.io/ares/` address does not redirect.
 
 Working plans go in `plan.md` at the repo root. Delete it when the work is done.
 
@@ -33,43 +31,13 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazi
 
 ## Checks before shipping
 
-The site is served from the `/iris/` subpath, so every link is relative (`../../` from a workflow page). Run from the repo root; all should return nothing:
-
-```
-grep -rn 'href="/'  . --include=*.html                                           # root-absolute links
-grep -n  'href="#"' index.html                                                   # dead placeholder cards
-grep -rn 'unsw-restech' . --exclude-dir=.git --exclude=AGENTS.md                 # wrong repo URL
-grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md # stale account / old repo
-grep -rn 'workflowhub.eu/projects/24' . --include=*.html                         # wrong project; ours is 472
-perl -ne 'if (/[^\x00-\x7f]/) { print "$ARGV\n"; close ARGV }' $(find . -name '*.ps1' -not -path './.git/*')  # non-ASCII breaks PowerShell 5.1
-
-for f in $(find workflows -name form.yml.erb); do                                # usage tag matches the folder
-  d=$(basename "$(dirname "$f")")
-  tr -d '\r' < "$f" | grep -qx "  #PBS -A iris-$d" || echo "MISSING USAGE TAG: $f"
-done
-
-for f in $(grep -l '^ *ENV_DIR=' $(find workflows -name form.yml.erb)); do        # imaging forms source the job library
-  tr -d '\r' < "$f" | grep -qxF '  source "$CODE/../../lib/iris-job.sh"' || echo "NO JOB LIBRARY: $f"
-done
-
-for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' index.html | sed 's/href="//;s/"//' | sort -u); do
-  [ -f "$p/index.html" ] || echo "BROKEN CARD LINK: $p"
-done
-```
-
-Any change to `lib/` or to an imaging workflow's `src/` also needs the synthetic-dataset test to pass in the desktop CPU venv (`envs/imaging/desktop.sh` builds it):
-
-```
-~/.venvs/iris-imaging/bin/python -m unittest discover -s workflows/microct-2d-segmentation/tests
-```
+Run `bin/check` before committing; CI runs it on every push. It covers the link and URL greps, usage tags, ruff and the synthetic-dataset test, which needs the desktop CPU venv (`envs/imaging/desktop.sh` builds it).
 
 A change to `microct-2d-segmentation/form.yml.erb` also needs its form test, which runs on Katana because `check:` looks inside `/srv/scratch/$USER`. Run it from a copy of the working tree in scratch, so the dev clone is never touched:
 
 ```
 module load ruby/3.2.0 && ruby workflows/microct-2d-segmentation/tests/test_form.rb
 ```
-
-Check non-ASCII with perl, not grep. `grep -P` exits 2 in Git Bash, which a `||` chain reads as clean. `[^ -~]` flags every line of a CRLF working copy (`core.autocrlf` is on). And WSL's grep missed a real non-ASCII byte with both `[^[:print:][:space:]]` and a `\x80-\xff` range.
 
 ## Deploying
 
@@ -94,6 +62,7 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 - **GPU models for queued jobs**: A100, H100, H200, L40S, V100. `RP6000` in `pbsnodes` is ResTech's in-house development node and never runs queued jobs (Patrick, 2026-10-14).
 - **Limits** (confirmed by Patrick, 2026-08-05): walltime 200 hours, memory 1 TB, no fixed CPU cap. The 24 cpus / 248 GB / 100 h in nf-core's `unsw_katana.config` are that config's own ceilings, not Katana's. Size requests to the job anyway; oversized ones queue longer.
 - **Downloads run on the data mover (`katana-dm`) before the job** (Patrick, 2026-10-14). A download needed only mid-run goes in the job script itself. `mnist-classification`'s `prepare.sh` still assumes a login node.
+- **Real-run acceptance** (a ticket's "a real run shows…"): follow `docs/agents/katana-test-run.md`.
 - **Usage tag**: every form's generated header sets `#PBS -A iris-<slug>`, `hello-world` included. It is never a form field. Jobs write nothing for counting; ResTech counts runs per tag from PBS accounting.
 
 ## OpenComposer forms
@@ -105,7 +74,7 @@ Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, pa
 
 `_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it.
 
-- **Written is not installed.** `hello-world` is confirmed opening and running from the dev clone (job 9543031, 2026-10-17). `mnist-classification` was confirmed only from the old out-of-repo copy (Patrick, 2026-08-06). `microct-2d-segmentation` has run from the dev clone with its script rendered outside the browser (job 9544838, 2026-10-17), and it opens in dev OnDemand with `check:` keeping the entered values (Patrick, 2026-10-19).
+- **Written is not installed.** A form counts as working only once a real job from the dev clone has run; cite its job ID.
 - **`hello-world` is the reference schema.** Match its structure exactly.
 - **Every line inside `script: |` stays indented**, which rules out heredocs. Build embedded files with `printf '%s\n'`, as `_archive\vllm-inference` does.
 - **Imaging forms fail `check:` with `oc_assert(cond, msg)`**, which re-renders the form with the values kept; `halt 500`, as in `hello-world`, shows a bare error page. Katana's dev OpenComposer is 1.9.0, and `oc_assert` needs 1.4.0.

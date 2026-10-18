@@ -1,0 +1,86 @@
+#!/bin/bash
+# Every check to pass before committing, as CI runs them on each push
+# (.github/workflows/check.yml). Run from anywhere in the clone; it prints
+# each failure and exits 1 if there was any.
+#
+#   bin/check
+#
+# The synthetic-dataset test runs in the desktop CPU venv, which
+# envs/imaging/desktop.sh builds (IRIS_PYTHON names another interpreter).
+# The microCT form test needs Katana and is not run here: see AGENTS.md.
+
+cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
+PYTHON="${IRIS_PYTHON:-$HOME/.venvs/iris-imaging/bin/python}"
+failed=0
+
+# Run a check; any output is its failure.
+check() {
+    local name="$1"; shift
+    local out
+    out="$("$@" 2>&1)"
+    if [ -n "$out" ]; then
+        echo "FAIL: $name"
+        echo "$out" | sed 's/^/  /'
+        failed=1
+    fi
+}
+
+# The site is served from the /iris/ subpath, so every link is relative
+# (../../ from a workflow page).
+check "root-absolute links" grep -rn 'href="/' . --include=*.html
+check "dead placeholder cards" grep -n 'href="#"' index.html
+check "wrong repo URL" grep -rn 'unsw-restech' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
+check "stale account or old repo" grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
+check "wrong WorkflowHub project; ours is 472" grep -rn 'workflowhub.eu/projects/24' . --include=*.html
+
+# Non-ASCII breaks PowerShell 5.1. Checked with perl, not grep: grep -P
+# exits 2 in Git Bash, which reads as clean; [^ -~] flags every line of a
+# CRLF working copy (core.autocrlf is on); and WSL's grep missed a real
+# non-ASCII byte with both [^[:print:][:space:]] and a \x80-\xff range.
+non_ascii_ps1() {
+    find . -name '*.ps1' -not -path './.git/*' -print0 |
+        xargs -0 -r perl -ne 'if (/[^\x00-\x7f]/) { print "$ARGV\n"; close ARGV }'
+}
+check "non-ASCII in PowerShell scripts" non_ascii_ps1
+
+usage_tags() {
+    local f d
+    for f in $(find workflows -name form.yml.erb); do
+        d=$(basename "$(dirname "$f")")
+        tr -d '\r' < "$f" | grep -qx "  #PBS -A iris-$d" || echo "$f: no '#PBS -A iris-$d'"
+    done
+}
+check "usage tag matches the folder" usage_tags
+
+job_library() {
+    local f
+    for f in $(grep -l '^ *ENV_DIR=' $(find workflows -name form.yml.erb)); do
+        tr -d '\r' < "$f" | grep -qxF '  source "$CODE/../../lib/iris-job.sh"' || echo "$f"
+    done
+}
+check "imaging forms source the job library" job_library
+
+card_links() {
+    local p
+    for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' index.html | sed 's/href="//;s/"//' | sort -u); do
+        [ -f "$p/index.html" ] || echo "$p"
+    done
+}
+check "broken card links" card_links
+
+# Mechanical Python checks only; ruff.toml holds the rule set.
+check "ruff" bash -c 'uvx ruff@0.17.1 check --quiet --output-format concise .'
+
+if [ -x "$PYTHON" ]; then
+    out="$("$PYTHON" -m unittest discover -s workflows/microct-2d-segmentation/tests 2>&1)" || {
+        echo "FAIL: synthetic-dataset test"
+        echo "$out" | tail -40 | sed 's/^/  /'
+        failed=1
+    }
+else
+    echo "FAIL: synthetic-dataset test: no venv at $PYTHON; build it with envs/imaging/desktop.sh"
+    failed=1
+fi
+
+[ "$failed" = 0 ] && echo "All checks passed."
+exit "$failed"

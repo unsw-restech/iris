@@ -14,7 +14,10 @@ iris/
 ├── assets/
 │   └── iris.css                      # Shared styles for workflow detail pages
 ├── _archive/<slug>/                  # Retired OpenComposer forms, never served by OpenComposer
+├── .github/workflows/check.yml       # CI: runs bin/check on every push
+├── ruff.toml                         # The Python lint rules bin/check applies
 ├── bin/
+│   ├── check                         # Every check to pass before committing
 │   └── iris-import                   # Import new runs into your MLflow tracking store
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
@@ -73,7 +76,7 @@ If the workflow ships a `local/run_local.ps1`, **keep it ASCII-only**. These fil
 
 ## Deployment
 
-GitHub Pages is already configured and deploys from the `main` branch. There is no Actions workflow; pushing to `main` publishes.
+GitHub Pages is already configured and deploys from the `main` branch. Pushing to `main` publishes. The `check` Actions workflow runs `bin/check` on every push, but it doesn't gate the deploy: run `bin/check` before pushing.
 
 The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points at `workflows/` in a clone on Katana, and `git pull` in that clone deploys them. A form runs the code of the clone that served it and records that clone's commit in `commit.txt`.
 
@@ -92,7 +95,7 @@ Both forms moved into the repo on 2026-10-16 and have not yet run from a clone; 
 
 The microCT reference workflow, `microct-2d-segmentation`, gets its card when its page lands.
 
-The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`.
+IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`.
 
 ## Contact
 
