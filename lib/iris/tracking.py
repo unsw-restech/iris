@@ -11,7 +11,8 @@ and tags, and its dataset.json, if it wrote one, as its dataset input.
 Runs with no run.json yet are left for the next import. A run is marked
 complete only once everything is logged; one whose import fails is deleted
 at once, and one whose import was interrupted is deleted next time, so
-either is redone. A lock file keeps it to one importer per store at a time.
+either is redone. A lock file keeps it to one importer per store at a time;
+one told not to wait leaves a held store alone.
 
     python -m iris.tracking        # or bin/iris-import
 """
@@ -153,9 +154,10 @@ def replay(client, home, run_dir, record):
         raise
 
 
-def import_runs(home=None):
+def import_runs(home=None, wait=True):
     """Import every indexed run not yet in the store. Returns the number
-    imported and the number still waiting for their run.json."""
+    imported and the number still waiting for their run.json, or None if
+    another import holds the store and `wait` is false."""
     home = Path(home) if home else iris_home()
     index = run_index(home)
     home.mkdir(parents=True, exist_ok=True)
@@ -163,6 +165,8 @@ def import_runs(home=None):
         try:
             fcntl.lockf(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:
+            if not wait:
+                return None
             print("Waiting for another import into this store to finish...", file=sys.stderr)
             fcntl.lockf(lock, fcntl.LOCK_EX)
 
@@ -194,10 +198,13 @@ def import_runs(home=None):
     return {"imported": imported, "pending": pending}
 
 
+def summary(result, home):
+    return (f"Imported {result['imported']} new run(s) into {home / 'tracking.db'}."
+            + (f" Skipped {result['pending']} indexed run(s) with no run.json yet." if result["pending"] else ""))
+
+
 def main():
-    result = import_runs()
-    print(f"Imported {result['imported']} new run(s) into {iris_home() / 'tracking.db'}."
-          + (f" Skipped {result['pending']} indexed run(s) with no run.json yet." if result["pending"] else ""))
+    print(summary(import_runs(), iris_home()))
 
 
 if __name__ == "__main__":

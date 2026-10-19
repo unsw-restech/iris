@@ -1,11 +1,11 @@
 #!/bin/bash
 # Import every new run in the run index into your tracking store,
 # /srv/scratch/$USER/iris/tracking.db (lib/iris/tracking.py). Run it in a
-# Virtual Desktop or a job, not on a login node. iris-compare (#37) is to run
-# it before it opens MLflow.
+# Virtual Desktop or a job, not on a login node. bin/iris-compare runs it
+# before it opens MLflow.
 #
-# Runs with the imaging environment the form pins (keep the two in step),
-# or another with ENV_DIR=...
+# Runs with the imaging environment the form pins (keep it in step with the
+# form and bin/iris-compare), or another with ENV_DIR=...
 # Keep it free of `set -u`: the module scripts reference unset variables.
 
 set -eo pipefail

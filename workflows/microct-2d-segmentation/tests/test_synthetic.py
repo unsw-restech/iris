@@ -9,6 +9,7 @@ in the desktop CPU venv (envs/imaging/desktop.sh):
 
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -26,6 +27,7 @@ LIB = REPO / "lib"
 ENTRY = WORKFLOW / "src" / "run.py"
 
 sys.path.insert(0, str(LIB))
+from iris.compare import start_ui  # noqa: E402
 from iris.tracking import import_runs, store_uri  # noqa: E402
 from iris.volume import open_volume  # noqa: E402
 
@@ -331,6 +333,62 @@ class Import(unittest.TestCase):
             self.assertEqual(self.client.search_runs([experiment.experiment_id]), [])
         finally:
             (self.iris_home / "run-index" / "999").unlink()
+
+    def test_an_import_that_will_not_wait_leaves_a_held_store_alone(self):
+        ready = self.dataset / "runs" / "4321"
+        ready.mkdir()
+        (ready / "run.json").write_text(json.dumps({
+            "experiment": "held", "job_id": "4321", "status": "FINISHED",
+            "start_time": 1.0, "end_time": 2.0, "tags": {"job_id": "4321"}}))
+        (self.iris_home / "run-index" / "4321").write_text(str(ready) + "\n")
+        holder = subprocess.Popen(  # lockf locks belong to a process, so hold it from another
+            [sys.executable, "-c", HOLD_LOCK, str(self.iris_home / "import.lock")],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(holder.stdout.readline(), "held\n")
+            self.assertIsNone(import_runs(self.iris_home, wait=False))
+            self.assertIsNone(self.client.get_experiment_by_name("held"))
+        finally:
+            holder.communicate("")
+            (self.iris_home / "run-index" / "4321").unlink()
+
+
+    def test_the_ui_shows_the_imported_run_on_localhost_only(self):
+        server, url = start_ui(self.iris_home)
+        try:
+            self.assertTrue(url.startswith("http://127.0.0.1:"), url)
+            experiment = mlflow.MlflowClient(url).get_experiment_by_name("microct-2d-segmentation")
+            [run] = mlflow.MlflowClient(url).search_runs([experiment.experiment_id])
+            self.assertEqual(run.info.run_name, "1234")
+            address = outward_address()
+            if address is None:
+                self.skipTest("no non-loopback address to try")
+            with self.assertRaises(ConnectionRefusedError):
+                socket.create_connection((address, int(url.rsplit(":", 1)[1])), timeout=5).close()
+        finally:
+            server.terminate()
+            server.wait(30)
+
+
+def outward_address():
+    """This machine's address on its default route, or None if it has none.
+    Connecting a UDP socket sends nothing."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            s.connect(("10.255.255.255", 1))
+        except OSError:
+            return None
+        address = s.getsockname()[0]
+    return None if address.startswith("127.") else address
+
+
+HOLD_LOCK = """
+import fcntl, sys
+with open(sys.argv[1], "w") as lock:
+    fcntl.lockf(lock, fcntl.LOCK_EX)
+    print("held", flush=True)
+    sys.stdin.read()
+"""
 
 
 class UnwritableRunIndex(unittest.TestCase):

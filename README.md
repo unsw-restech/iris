@@ -18,11 +18,12 @@ iris/
 ├── ruff.toml                         # The Python lint rules bin/check applies
 ├── bin/
 │   ├── check                         # Every check to pass before committing
-│   └── iris-import                   # Import new runs into your MLflow tracking store
+│   ├── iris-import                   # Import new runs into your MLflow tracking store
+│   └── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
-│   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer
+│   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html
