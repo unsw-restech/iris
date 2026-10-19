@@ -6,11 +6,13 @@ Name every `qsub` and its resources in chat as you submit it. Delete nothing wit
 
 ## 1. Copy the committed tree to scratch
 
-Commit first: the run records `git rev-parse HEAD` of the copy, so a clean tree makes `commit.txt` mean something. Copy `.git` too, through the data mover. `rsync` there won't create a missing parent, so make the folder first:
+Commit first: the run records `git rev-parse HEAD` of the copy, so the copy is a clone of a bundle of `HEAD`, carried by the data mover. A bundle works from a worktree too, where `.git` is only a pointer back to the main clone. `rsync` there won't create a missing parent, so make the folder first:
 
 ```
+git -C <clone or worktree> bundle create /tmp/iris-test-<n>.bundle HEAD
 ssh katana 'mkdir /srv/scratch/$USER/iris-test-<n>'
-rsync -a --exclude __pycache__ iris/ katana-dm:/srv/scratch/z3224749/iris-test-<n>/iris/
+rsync /tmp/iris-test-<n>.bundle katana-dm:/srv/scratch/z3224749/iris-test-<n>/
+ssh katana 'cd /srv/scratch/$USER/iris-test-<n> && git clone -q iris-test-<n>.bundle iris'
 ```
 
 ## 2. Render the job script from the form
