@@ -31,7 +31,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazi
 
 ## Checks before shipping
 
-Run `bin/check` before committing; CI runs it on every push. It covers the link and URL greps, usage tags, ruff and the synthetic-dataset test, which needs the desktop CPU venv (`envs/imaging/desktop.sh` builds it).
+Run `bin/check` before committing; CI runs it on every push. It covers the link and URL greps, the form and manifest rules, executable bits, ruff and the synthetic-dataset test, which needs the desktop CPU venv (`envs/imaging/desktop.sh` builds it).
 
 A change to `microct-2d-segmentation/form.yml.erb` also needs its form test, which runs on Katana because `check:` looks inside `/srv/scratch/$USER`. Run it from a copy of the working tree in scratch, so the dev clone is never touched:
 
@@ -69,13 +69,10 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 
 Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, page and code: `hello-world`, `mnist-classification` and `microct-2d-segmentation`. The folder name is the OnDemand URL segment each "Run on Katana" button points at. Patrick's dev OpenComposer's `apps_dir` points at his dev clone's `workflows/`, and a `git pull` there is the deploy. Planned workflows have no form, so OpenComposer never lists them.
 
-- **A form runs its own clone's code.** It sets `CODE` to `File.expand_path(File.join(@apps_dir, @OC_DIR_NAME))` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. Guard the expression: OpenComposer re-reads the form on submit with `@apps_dir` unset (it submits the script rendered on GET). No job downloads its own code.
-- **Manifests use built-in icon names** (`bi-...`). Local icon files don't resolve with an absolute `apps_dir`.
+- **A form runs its own clone's code.** It sets `CODE` from `@apps_dir` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. No job downloads its own code.
 
 `_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it.
 
 - **Written is not installed.** A form counts as working only once a real job from the dev clone has run; cite its job ID.
-- **`hello-world` is the reference schema.** Match its structure exactly.
-- **Every line inside `script: |` stays indented**, which rules out heredocs. Build embedded files with `printf '%s\n'`, as `_archive\vllm-inference` does.
+- **Start a new form from `hello-world`**, the reference schema.
 - **Imaging forms fail `check:` with `oc_assert(cond, msg)`**, which re-renders the form with the values kept; `halt 500`, as in `hello-world`, shows a bare error page. Katana's dev OpenComposer is 1.9.0, and `oc_assert` needs 1.4.0.
-- **Use string concatenation inside `check:`.** Ruby `#{}` collides with OpenComposer's own substitution.

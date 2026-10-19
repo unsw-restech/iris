@@ -60,6 +60,47 @@ job_library() {
 }
 check "imaging forms source the job library" job_library
 
+# Print form lines that break a rule, by top-level section: no heredoc in
+# script: (every line there stays indented), no Ruby #{} in check: (it
+# collides with OpenComposer's own substitution).
+form_sections() {
+    local f
+    for f in $(find workflows -name form.yml.erb); do
+        tr -d '\r' < "$f" | awk -v f="$f" '
+            /^[A-Za-z_]+:/ { sec = $1 }
+            sec == "script:" && /<</ { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
+            sec == "check:" && /#\{/ { print f ":" NR ": #{} in check: (use + concatenation)" }'
+    done
+}
+check "form script: and check: sections" form_sections
+
+# The job runs its own clone's code: CODE comes from @apps_dir, guarded
+# because OpenComposer re-reads the form on submit with @apps_dir unset.
+code_guard() {
+    local f
+    for f in $(find workflows -name form.yml.erb); do
+        tr -d '\r' < "$f" | grep -qxF '<% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>' &&
+            tr -d '\r' < "$f" | grep -qxF '  CODE="<%= code %>"' || echo "$f"
+    done
+}
+check "forms set CODE from a guarded @apps_dir" code_guard
+
+# Local icon files don't resolve with an absolute apps_dir.
+manifest_icons() {
+    local f
+    for f in $(find workflows -name manifest.yml); do
+        tr -d '\r' < "$f" | grep -qE '^icon: bi-[a-z0-9-]+$' || echo "$f"
+    done
+}
+check "manifests use a built-in bi- icon" manifest_icons
+
+# Scripts run by path need the executable bit in git; core.fileMode is off
+# on the Windows mount, so chmod alone does not record it.
+exec_bits() {
+    git ls-files -s bin 'envs/*.sh' | awk '$1 != "100755" { print $4 }'
+}
+check "scripts run by path are 100755 (git update-index --chmod=+x)" exec_bits
+
 card_links() {
     local p
     for p in $(grep -oE 'href="workflows/[a-z0-9-]+/"' index.html | sed 's/href="//;s/"//' | sort -u); do

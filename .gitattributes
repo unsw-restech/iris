@@ -1,0 +1,4 @@
+# LF everywhere, in the repo and the working copy: shell scripts, PBS jobs
+# and forms run on Katana, and this clone sits on a Windows mount with
+# core.autocrlf on, which these attributes override.
+* text=auto eol=lf

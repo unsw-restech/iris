@@ -2,15 +2,17 @@
 
 Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
+The desktop's `gh` is Ubuntu's 2.4.0: `gh issue view` works only with `--json` (plain or `--comments` fails on Projects classic), `gh issue close` has no `--comment`, and there is no `--parent` or `--add-sub-issue`. The commands below are the ones that work on it.
+
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
 - **Read an issue**: `gh issue view <number> --json number,title,body,labels,comments`.
 - **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
-- **Make an issue a sub-issue of a parent**: `gh issue create --parent <parent> ...`, or `gh issue edit <parent> --add-sub-issue <child>` afterwards (`gh` 2.94+). Older `gh`: `gh api --method POST repos/<owner>/<repo>/issues/<parent>/sub_issues -F sub_issue_id=<child-db-id>` (database id, as in **Blocking** below). Without sub-issues, put `Part of #<parent>` at the top of the child body.
+- **Make an issue a sub-issue of a parent**: `gh api --method POST repos/PatrickTung/iris/issues/<parent>/sub_issues -F sub_issue_id=<child-db-id>` (database id, as in **Blocking** below).
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`
+- **Close with a comment**: `gh issue comment <number> --body "..."`, then `gh issue close <number>`
 
 The repo is `PatrickTung/iris`. `gh` infers it when run inside the clone (`iris\`); from the parent `IRIS_github_pages\` directory, which is not a git repo, pass `-R PatrickTung/iris`.
 
