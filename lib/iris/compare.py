@@ -23,7 +23,7 @@ from iris.record import iris_home  # noqa: E402
 from iris.tracking import artifact_root, import_runs, store_uri, summary  # noqa: E402
 
 HOST = "127.0.0.1"
-START_TIMEOUT = 120  # seconds; a first start on GPFS takes a while
+START_TIMEOUT = 120  # seconds; a guess, not yet measured in a Virtual Desktop
 
 
 def free_port():
@@ -32,11 +32,10 @@ def free_port():
         return s.getsockname()[1]
 
 
-def start_ui(home=None):
+def start_ui(home):
     """Serve the tracking store in `home` with `mlflow ui` on localhost.
     Returns the server process and its URL once it answers; its log is
     ui.log next to the store."""
-    home = home or iris_home()
     port = free_port()
     url = f"http://{HOST}:{port}"
     with open(home / "ui.log", "w") as log:
@@ -62,13 +61,13 @@ def start_ui(home=None):
 def main():
     home = iris_home()
     result = import_runs(home, wait=False)
-    if result is None:
+    if result is not None:
+        print(summary(result, home))
+    elif (home / "tracking.db").exists():
         print("Another import into this store is running, so new runs may be missing:"
               " showing the runs already imported.")
     else:
-        print(summary(result, home))
-    if not (home / "tracking.db").exists():
-        sys.exit(f"There is no tracking store at {home / 'tracking.db'} yet.")
+        sys.exit("Another import is creating your tracking store; run iris-compare again once it finishes.")
 
     server, url = start_ui(home)
     print(f"MLflow is at {url}. Leave this open while you use it; Ctrl+C stops it.")

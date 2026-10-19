@@ -352,13 +352,13 @@ class Import(unittest.TestCase):
             holder.communicate("")
             (self.iris_home / "run-index" / "4321").unlink()
 
-
     def test_the_ui_shows_the_imported_run_on_localhost_only(self):
         server, url = start_ui(self.iris_home)
         try:
             self.assertTrue(url.startswith("http://127.0.0.1:"), url)
-            experiment = mlflow.MlflowClient(url).get_experiment_by_name("microct-2d-segmentation")
-            [run] = mlflow.MlflowClient(url).search_runs([experiment.experiment_id])
+            client = mlflow.MlflowClient(url)
+            experiment = client.get_experiment_by_name("microct-2d-segmentation")
+            [run] = client.search_runs([experiment.experiment_id])
             self.assertEqual(run.info.run_name, "1234")
             address = outward_address()
             if address is None:
