@@ -1,0 +1,61 @@
+#!/bin/bash
+# Wait on the desktop for Katana jobs to finish, then show how each ended:
+# Exit_status, the log path PBS actually wrote and the log's last lines.
+#
+#   bin/qwait <job id>...        (9551129 or 9551129.kman.restech.unsw.edu.au)
+#
+# Exits 0 if every job exited 0, 1 if any did not, and 2 if a job can't be
+# queried (unknown ID, qstat or ssh failing), so a broken wait stops at once
+# instead of polling an error. One light qstat per poll, over `ssh katana`.
+# QWAIT_INTERVAL (seconds, default 60) and QWAIT_TAIL (lines, default 20).
+
+[ $# -gt 0 ] || { sed -n '5p' "$0" | sed 's/^# *//'; exit 2; }
+INTERVAL="${QWAIT_INTERVAL:-60}"
+TAIL="${QWAIT_TAIL:-20}"
+pending=("$@")
+status=0
+ssh_failures=0
+
+# Prints "<id> <state> <exit status> <log path>" per job, or fails on an
+# unknown job. A folder Output_Path (the forms' `#PBS -o <dir>/`) means
+# PBS named the log <full job id>.OU inside it.
+query() {
+    ssh katana python3 - "$@" <<'EOF'
+# Katana's system python3 is 3.6: no capture_output or text.
+import json, subprocess, sys
+for job in sys.argv[1:]:
+    p = subprocess.run(["qstat", "-xf", "-F", "json", job], stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, universal_newlines=True)
+    if p.returncode:
+        sys.exit(f"qstat {job}: {(p.stderr or p.stdout).strip()}")
+    for full, j in json.loads(p.stdout)["Jobs"].items():
+        log = j.get("Output_Path", "").split(":", 1)[-1]
+        if log.endswith("/"):
+            log += full + ".OU"
+        print(full.split(".")[0], j["job_state"], j.get("Exit_status", "-"), log)
+EOF
+}
+
+while [ ${#pending[@]} -gt 0 ]; do
+    out="$(query "${pending[@]}" 2>&1)"
+    rc=$?
+    if [ $rc -eq 255 ] && [ $((++ssh_failures)) -lt 3 ]; then
+        sleep "$INTERVAL"; continue    # ssh itself failed: retry twice
+    elif [ $rc -ne 0 ]; then
+        echo "qwait: $out" >&2; exit 2
+    fi
+    ssh_failures=0
+    still=()
+    while read -r id state exit_status log; do
+        if [ "$state" != F ]; then
+            still+=("$id"); continue
+        fi
+        echo "== $id finished: Exit_status $exit_status"
+        echo "   log: $log"
+        ssh katana "tail -n $TAIL '$log' 2>&1" | sed 's/^/   /'
+        [ "$exit_status" = 0 ] || status=1
+    done <<< "$out"
+    pending=("${still[@]}")
+    [ ${#pending[@]} -eq 0 ] || sleep "$INTERVAL"
+done
+exit $status

@@ -18,8 +18,10 @@ iris/
 ├── ruff.toml                         # The Python lint rules bin/check applies
 ├── bin/
 │   ├── check                         # Every check to pass before committing
+│   ├── ciwait                        # Wait for a pushed commit's CI run (desktop)
 │   ├── iris-import                   # Import new runs into your MLflow tracking store
-│   └── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
+│   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
+│   └── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)

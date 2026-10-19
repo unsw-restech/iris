@@ -37,6 +37,8 @@ ssh katana 'cd /srv/scratch/$USER/iris-test-<n> && qsub -v IRIS_HOME=/srv/scratc
 
 The form's `#PBS -o` is a folder, so the log is `<dataset>/runs/<job number>.kman.restech.unsw.edu.au.OU`, not `<job name>.o<number>`. The run directory is `<dataset>/runs/<job number>/`.
 
+Wait with `bin/qwait <job id>…` from the desktop, run in the background. When each job finishes, it prints `Exit_status`, the real log path and the log's last lines. It exits 2 at once if a job can't be queried.
+
 Timing on a V100 for the sample: about 9 s per epoch of training and about 1370 s of inference (job 9551129), within the form's 2 h default.
 
 ## 4. Import and inspect
