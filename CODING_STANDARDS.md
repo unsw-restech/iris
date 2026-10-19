@@ -16,4 +16,5 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 ## Job code
 
 - **A record step warns, a run step fails.** Writing the run record or dataset record only warns on failure; anything the run's own result depends on stops the job.
+- **Killed halfway leaves a whole file or none.** Anything that writes a file a later run reads (a record, a pointer, a store) writes it under a temporary name and renames it into place, as `record.write_atomic` and `tracking.rebuild` do, or leaves a state the next run recovers from (the importer's `incomplete` tag). Walltime and `qdel` will interrupt it.
 - **Katana facts cite their source.** A limit, module name or path in code or docs names the job ID, file or Patrick's confirmation (with date) behind it.

@@ -19,7 +19,7 @@ Working plans go in `plan.md` at the repo root. Delete it when the work is done.
 
 ### Issue tracker
 
-Issues live in GitHub Issues on `PatrickTung/iris`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues on `PatrickTung/iris`, via the `gh` CLI. Read `docs/agents/issue-tracker.md` before the first `gh` call: the desktop's `gh` 2.4.0 needs `--json` on `gh issue view`.
 
 ### Triage labels
 
