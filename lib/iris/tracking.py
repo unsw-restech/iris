@@ -14,6 +14,9 @@ at once, and one whose import was interrupted is deleted next time, so
 either is redone. A lock file keeps it to one importer per store at a time;
 one told not to wait leaves a held store alone.
 
+rebuild() is the same import into a fresh store, from the run index or
+from dataset folders' runs/ folders (iris.rebuild).
+
     python -m iris.tracking        # or bin/iris-import
 """
 
@@ -35,6 +38,10 @@ from iris.record import iris_home, run_index  # noqa: E402
 IMPORT_TAG = "iris_import"  # "incomplete" until every value is logged, then "complete"
 PARAMS_TAGS_PER_CALL = 100  # MLflow's caps per log_batch call
 METRICS_PER_CALL = 1000
+
+
+class StoreExists(Exception):
+    """A rebuild was pointed at a tracking store that already exists."""
 
 
 def store_uri(home):
@@ -154,12 +161,51 @@ def replay(client, home, run_dir, record):
         raise
 
 
+def indexed_runs(index):
+    """(job ID, run directory) for each pointer in the run index."""
+    for pointer in sorted(index.iterdir()) if index.is_dir() else []:
+        if not pointer.name.endswith(".tmp"):
+            yield pointer.name, Path(pointer.read_text().strip())
+
+
 def import_runs(home=None, wait=True):
     """Import every indexed run not yet in the store. Returns the number
     imported and the number still waiting for their run.json, or None if
     another import holds the store and `wait` is false."""
     home = Path(home) if home else iris_home()
-    index = run_index(home)
+    return import_run_dirs(home, indexed_runs(run_index(home)), wait)
+
+
+def dataset_runs(datasets):
+    """(None, run directory) for each folder in the datasets' runs/ folders.
+    Their names are not taken as job IDs: run.json holds the job ID."""
+    for dataset in datasets:
+        for run_dir in sorted((Path(dataset) / "runs").iterdir()):
+            if run_dir.is_dir():
+                yield None, run_dir
+
+
+def rebuild(home, datasets=(), index_home=None):
+    """Recreate a lost tracking store in `home` from run directories: those
+    in the named dataset folders' runs/ folders, or, with none named, those
+    the run index in `index_home` (default: `home`) points at. Raises
+    StoreExists rather than write into a store already there, and
+    FileNotFoundError if a runs/ folder or the run index is missing."""
+    home = Path(home)
+    sources = ([Path(d) / "runs" for d in datasets] if datasets
+               else [run_index(Path(index_home) if index_home else home)])
+    for source in sources:  # before the store exists: a mistyped folder leaves none behind
+        if not source.is_dir():
+            raise FileNotFoundError(f"{source} is not a folder")
+    run_dirs = dataset_runs(datasets) if datasets else indexed_runs(sources[0])
+    return import_run_dirs(home, run_dirs, fresh=True)
+
+
+def import_run_dirs(home, run_dirs, wait=True, fresh=False):
+    """Import into the store in `home` each of `run_dirs`, (job ID or None,
+    run directory) pairs, whose run is not there yet. With `fresh`, the
+    store must not exist yet: checked under the lock, so an import that
+    creates it meanwhile is not written into."""
     home.mkdir(parents=True, exist_ok=True)
     with open(home / "import.lock", "w") as lock:
         try:
@@ -170,17 +216,17 @@ def import_runs(home=None, wait=True):
             print("Waiting for another import into this store to finish...", file=sys.stderr)
             fcntl.lockf(lock, fcntl.LOCK_EX)
 
+        if fresh and (home / "tracking.db").exists():
+            raise StoreExists(f"{home / 'tracking.db'} already exists")
         client = open_store(home)
         for run in tagged_runs(client, "incomplete"):
             client.delete_run(run.info.run_id)  # interrupted: redo it
         done = {run.data.tags.get("job_id") for run in tagged_runs(client, "complete")}
 
         imported = pending = 0
-        pointers = sorted(index.iterdir()) if index.is_dir() else []
-        for pointer in pointers:
-            if pointer.name.endswith(".tmp") or pointer.name in done:
+        for job_id, run_dir in run_dirs:
+            if job_id is not None and job_id in done:
                 continue
-            run_dir = Path(pointer.read_text().strip())
             try:
                 record = json.loads((run_dir / "run.json").read_text())
             except FileNotFoundError:

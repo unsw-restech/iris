@@ -28,7 +28,7 @@ ENTRY = WORKFLOW / "src" / "run.py"
 
 sys.path.insert(0, str(LIB))
 from iris.compare import start_ui  # noqa: E402
-from iris.tracking import import_runs, store_uri  # noqa: E402
+from iris.tracking import StoreExists, import_runs, rebuild, store_uri  # noqa: E402
 from iris.volume import open_volume  # noqa: E402
 
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
@@ -389,6 +389,93 @@ with open(sys.argv[1], "w") as lock:
     print("held", flush=True)
     sys.stdin.read()
 """
+
+
+def write_run_dir(run_dir, experiment, job_id, lr):
+    """A finished run's record, written by hand as RunRecord would leave it."""
+    run_dir.mkdir(parents=True)
+    (run_dir / "params.json").write_text(json.dumps({"experiment": experiment, "lr": lr, "epochs": 2}))
+    (run_dir / "metrics.json").write_text(json.dumps({"epochs": [
+        {"epoch": 1, "time": 10.0, "train_loss": 0.6, "dice": {"1": 0.5, "2": None}},
+        {"epoch": 2, "time": 20.0, "train_loss": 0.4, "dice": {"1": 0.7, "2": 0.2}},
+    ]}))
+    (run_dir / "dataset.json").write_text(json.dumps({"path": str(run_dir.parents[1]), "volume": {"shape": [6, 70, 50]}}))
+    (run_dir / "run.json").write_text(json.dumps({
+        "experiment": experiment, "job_id": job_id, "status": "FINISHED",
+        "start_time": 5.0, "end_time": 25.0,
+        "tags": {"job_id": job_id, "slug": "microct-2d-segmentation", "run_dir": str(run_dir)}}))
+
+
+class Rebuild(unittest.TestCase):
+    """Rebuilding a lost tracking store from run directories alone."""
+
+    RUNS = {"1001": ("bone", "a", 0.01), "1002": ("bone", "a", 0.001), "2001": ("teeth", "b", 0.01)}
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.iris_home = self.tmp / "iris"
+        (self.iris_home / "run-index").mkdir(parents=True)
+        for job_id, (experiment, dataset, lr) in self.RUNS.items():
+            run_dir = self.tmp / dataset / "runs" / job_id
+            write_run_dir(run_dir, experiment, job_id, lr)
+            (self.iris_home / "run-index" / job_id).write_text(str(run_dir) + "\n")
+
+    def assert_every_run_is_back(self, store):
+        client = mlflow.MlflowClient(store_uri(store))
+        found = {}
+        for experiment in ("bone", "teeth"):
+            for run in client.search_runs([client.get_experiment_by_name(experiment).experiment_id]):
+                found[run.info.run_name] = (experiment, run)
+        self.assertEqual(sorted(found), sorted(self.RUNS))
+        for job_id, (experiment, run) in found.items():
+            expected_experiment, dataset, lr = self.RUNS[job_id]
+            self.assertEqual(experiment, expected_experiment)
+            self.assertEqual(run.info.status, "FINISHED")
+            self.assertEqual(run.data.params, {"experiment": experiment, "lr": str(lr), "epochs": "2"})
+            self.assertEqual(run.data.tags["job_id"], job_id)
+            self.assertEqual(run.data.tags["run_dir"], str(self.tmp / dataset / "runs" / job_id))
+            self.assertEqual([(m.step, m.value) for m in client.get_metric_history(run.info.run_id, "train_loss")],
+                             [(1, 0.6), (2, 0.4)])
+            self.assertEqual([m.step for m in client.get_metric_history(run.info.run_id, "dice/2")], [2])
+            [dataset_input] = run.inputs.dataset_inputs
+            self.assertEqual(dataset_input.dataset.name, dataset)
+            self.assertEqual(json.loads(dataset_input.dataset.profile)["volume"], {"shape": [6, 70, 50]})
+
+    def test_from_the_run_index(self):
+        store = self.tmp / "rebuilt"
+        self.assertEqual(rebuild(store, index_home=self.iris_home), {"imported": 3, "pending": 0})
+        self.assert_every_run_is_back(store)
+
+    def test_from_named_dataset_folders_once_the_run_index_is_gone_too(self):
+        for pointer in (self.iris_home / "run-index").iterdir():
+            pointer.unlink()
+        (self.iris_home / "run-index").rmdir()
+        (self.tmp / "a" / "runs" / "1003").mkdir()  # still running: no run.json yet
+        store = self.tmp / "rebuilt"
+        self.assertEqual(rebuild(store, datasets=[self.tmp / "a", self.tmp / "b"]), {"imported": 3, "pending": 1})
+        self.assert_every_run_is_back(store)
+
+    def test_refuses_to_write_into_an_existing_store(self):
+        import_runs(self.iris_home)
+        write_run_dir(self.tmp / "a" / "runs" / "1004", "bone", "1004", 0.1)
+        (self.iris_home / "run-index" / "1004").write_text(str(self.tmp / "a" / "runs" / "1004") + "\n")
+        with self.assertRaises(StoreExists):
+            rebuild(self.iris_home)
+        with self.assertRaises(StoreExists):
+            rebuild(self.iris_home, datasets=[self.tmp / "a"])
+        client = mlflow.MlflowClient(store_uri(self.iris_home))
+        bone = client.get_experiment_by_name("bone").experiment_id
+        self.assertEqual(sorted(r.info.run_name for r in client.search_runs([bone])), ["1001", "1002"])
+
+    def test_a_missing_source_fails_before_creating_a_store(self):
+        store = self.tmp / "rebuilt"
+        with self.assertRaises(FileNotFoundError):
+            rebuild(store, datasets=[self.tmp / "a", self.tmp / "typo"])
+        with self.assertRaises(FileNotFoundError):
+            rebuild(store, index_home=self.tmp / "nowhere")
+        self.assertFalse((store / "tracking.db").exists())
 
 
 class UnwritableRunIndex(unittest.TestCase):
