@@ -95,6 +95,11 @@ class FormTest < Minitest::Test
     assert_includes script, %(--experiment "microct-2d-segmentation" \\\n)
   end
 
+  def test_experiment_help_names_the_clones_iris_compare
+    clone = File.expand_path("../../..", __dir__)
+    assert_includes @form["form"]["experiment"]["help"], " #{clone}/bin/iris-compare "
+  end
+
   def test_a_named_experiment_reaches_the_entry_point
     assert_nil check(experiment: "pore sizes v2")
     script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds, experiment: "pore sizes v2"))

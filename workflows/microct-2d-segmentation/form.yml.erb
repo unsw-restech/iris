@@ -17,7 +17,7 @@ form:
     label: "Experiment name"
     value: "microct-2d-segmentation"
     required: true
-    help: "Groups the runs you want to compare, such as runs on one dataset with different settings. Every run is recorded in your tracking store, /srv/scratch/<%= ENV['USER'] %>/iris/tracking.db: to compare runs, open a Virtual Desktop and run iris-compare."
+    help: "Groups the runs you want to compare, such as runs on one dataset with different settings. Every run is recorded in your tracking store, /srv/scratch/<%= ENV['USER'] %>/iris/tracking.db: to compare runs, run <%= File.expand_path(File.join(@apps_dir.to_s, "..", "bin", "iris-compare")) %> in a terminal in a Virtual Desktop."
 
   # ── Training ──────────────────────────────────────────────────
   epochs:
@@ -177,8 +177,10 @@ script: |
     --field "job_name=#{:job_name}" --field "mail_events=#{:mail_events}"
 
   echo ""
-  echo "Done. View the result in a Virtual Desktop with:"
-  echo "iris-view $RUN_DIR"
+  echo "Done. In a terminal in a Virtual Desktop, view the result with:"
+  echo "$IRIS_BIN/iris-view $RUN_DIR"
+  echo "and compare your runs with:"
+  echo "$IRIS_BIN/iris-compare"
 
 check: |
   scratch = "/srv/scratch/" + ENV['USER']

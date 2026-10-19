@@ -51,7 +51,7 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 ## Deliberate, leave as is
 
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
-- **Katana links point at `/pun/dev/`** while pre-launch. Switching to `/pun/sys/` is a known launch task.
+- **Katana links point at `/pun/dev/`** while pre-launch. Switching to `/pun/sys/` is a known launch task; its clone goes in `/srv/scratch/katana_ai/iris/` (Patrick, 2026-10-19), since the dev clone's home folder is unreadable to researchers.
 - **Planned cards still link to their pages**, keeping the dimmed `.planned` style with no hover lift.
 
 **Adding a modality** takes a `.card-domain.<x>` rule in `index.html` and `<span class="card-domain <x>">` as the modality tag on the card. There is no filter bar.
@@ -72,7 +72,7 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 
 Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, page and code: `hello-world`, `mnist-classification` and `microct-2d-segmentation`. The folder name is the OnDemand URL segment each "Run on Katana" button points at. Patrick's dev OpenComposer's `apps_dir` points at his dev clone's `workflows/`, and a `git pull` there is the deploy. Planned workflows have no form, so OpenComposer never lists them.
 
-- **A form runs its own clone's code.** It sets `CODE` from `@apps_dir` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. No job downloads its own code.
+- **A form runs its own clone's code.** It sets `CODE` from `@apps_dir` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. No job downloads its own code. Researchers' commands run from that clone too: the job output and the Experiment help print `<clone>/bin/iris-view` and `<clone>/bin/iris-compare` in full, and nothing goes on the PATH.
 
 `_archive\<slug>\` in the repo keeps the forms of the 25 pruned workflows and of the two Planned ones. It is public and OpenComposer never serves it.
 
