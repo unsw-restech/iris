@@ -7,7 +7,8 @@ from the run index next to it; name dataset folders to rebuild from their
 runs/ folders instead, if the run index is gone too. Each run lands under its
 recorded experiment, named by its job ID. It never writes into a store that
 already exists: --store points it at another folder, such as an empty one to
-try a rebuild without touching your own.
+try a rebuild without touching your own. A rebuild that fails or is killed
+leaves no store behind, so it can simply be run again.
 
     python -m iris.rebuild [--store FOLDER] [DATASET ...]    # or bin/iris-rebuild
 """
@@ -17,7 +18,7 @@ import sys
 from pathlib import Path
 
 from iris.record import iris_home
-from iris.tracking import StoreExists, rebuild
+from iris.tracking import STORE, StoreExists, rebuild
 
 
 def main():
@@ -25,17 +26,17 @@ def main():
     parser.add_argument("datasets", nargs="*", type=Path, metavar="DATASET",
                         help="dataset folders whose runs/ folders to rebuild from, instead of the run index")
     parser.add_argument("--store", type=lambda p: Path(p).resolve(), default=iris_home(), metavar="FOLDER",
-                        help="the folder to create tracking.db in (default: %(default)s)")
+                        help=f"the folder to create {STORE} in (default: %(default)s)")
     args = parser.parse_args()
     try:
         result = rebuild(args.store, datasets=args.datasets, index_home=iris_home())
     except StoreExists:
-        sys.exit(f"{args.store / 'tracking.db'} already exists, so there is nothing to rebuild."
+        sys.exit(f"{args.store / STORE} already exists, so there is nothing to rebuild."
                  " To try a rebuild, give --store an empty folder.")
     except FileNotFoundError as e:
         sys.exit(f"{e}." + ("" if args.datasets else
                             " With no run index, name the dataset folders to rebuild from."))
-    print(f"Rebuilt {args.store / 'tracking.db'} with {result['imported']} run(s)."
+    print(f"Rebuilt {args.store / STORE} with {result['imported']} run(s)."
           + (f" Skipped {result['pending']} run directory(s) with no run.json." if result["pending"] else ""))
 
 

@@ -435,6 +435,7 @@ class Rebuild(unittest.TestCase):
             self.assertEqual(run.info.status, "FINISHED")
             self.assertEqual(run.data.params, {"experiment": experiment, "lr": str(lr), "epochs": "2"})
             self.assertEqual(run.data.tags["job_id"], job_id)
+            self.assertEqual(run.data.tags["slug"], "microct-2d-segmentation")
             self.assertEqual(run.data.tags["run_dir"], str(self.tmp / dataset / "runs" / job_id))
             self.assertEqual([(m.step, m.value) for m in client.get_metric_history(run.info.run_id, "train_loss")],
                              [(1, 0.6), (2, 0.4)])
@@ -468,6 +469,18 @@ class Rebuild(unittest.TestCase):
         client = mlflow.MlflowClient(store_uri(self.iris_home))
         bone = client.get_experiment_by_name("bone").experiment_id
         self.assertEqual(sorted(r.info.run_name for r in client.search_runs([bone])), ["1001", "1002"])
+
+    def test_a_rebuild_that_dies_partway_leaves_no_store_and_can_be_run_again(self):
+        broken = self.tmp / "b" / "runs" / "2002" / "run.json"
+        broken.parent.mkdir()
+        broken.write_text("{")  # not JSON: the importer stops on it
+        store = self.tmp / "rebuilt"
+        with self.assertRaises(ValueError):
+            rebuild(store, datasets=[self.tmp / "a", self.tmp / "b"])
+        self.assertFalse((store / "tracking.db").exists())
+        broken.unlink()
+        self.assertEqual(rebuild(store, datasets=[self.tmp / "a", self.tmp / "b"]), {"imported": 3, "pending": 1})
+        self.assert_every_run_is_back(store)
 
     def test_a_missing_source_fails_before_creating_a_store(self):
         store = self.tmp / "rebuilt"

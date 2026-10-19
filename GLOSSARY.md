@@ -85,5 +85,5 @@ The folder `/srv/scratch/$USER/iris/run-index/` in which every finished run leav
 _Avoid_: Registry, queue
 
 **Importer**:
-The single process that replays run directories from the run index into the tracking store. Jobs never write the store themselves (ADR-0001).
+The single process that replays run directories from the run index into the tracking store. Jobs never write the store themselves (ADR-0001). Rebuilding a lost store is the same importer run into a fresh store, from the run index or, if that is gone too, from the `runs/` folders of named datasets.
 _Avoid_: Sync, uploader
