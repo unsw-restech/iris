@@ -6,6 +6,7 @@
 #
 # Runs with the imaging environment the form pins (keep it in step with the
 # form and bin/iris-import), or another with ENV_DIR=...
+# Unbuffered (-u), so its lines keep their order when logged or piped.
 # Keep it free of `set -u`: the module scripts reference unset variables.
 
 set -eo pipefail
@@ -16,4 +17,4 @@ if [ -f /etc/profile.d/modules.sh ]; then
     . /etc/profile.d/modules.sh
     module load python/3.13.2
 fi
-PYTHONPATH="$LIB${PYTHONPATH:+:$PYTHONPATH}" exec "$ENV_DIR/bin/python" -m iris.compare
+PYTHONPATH="$LIB${PYTHONPATH:+:$PYTHONPATH}" exec "$ENV_DIR/bin/python" -u -m iris.compare
