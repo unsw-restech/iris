@@ -32,8 +32,10 @@ The sample dataset is `/srv/scratch/z3224749/datasets/iris-microct-sample`: 32 n
 `IRIS_HOME` replaces `/srv/scratch/$USER/iris`, which holds the run index and the store:
 
 ```
-ssh katana 'cd /srv/scratch/$USER/iris-test-<n> && qsub -v IRIS_HOME=/srv/scratch/$USER/iris-test-<n>/home run.pbs'
+ssh katana 'cd /srv/scratch/$USER/iris-test-<n> && qsub -m abe -v IRIS_HOME=/srv/scratch/$USER/iris-test-<n>/home,PYTHONUNBUFFERED=1 run.pbs'
 ```
+
+`PYTHONUNBUFFERED=1` goes in every job you submit, this one and the helper jobs you write: Python block-buffers output to a file, so a job that is killed or stalls leaves an empty log (job 9553213).
 
 The form's `#PBS -o` is a folder, so the log is `<dataset>/runs/<job number>.kman.restech.unsw.edu.au.OU`, not `<job name>.o<number>`. The run directory is `<dataset>/runs/<job number>/`.
 
@@ -48,3 +50,9 @@ A second job runs `bin/iris-import` twice against the same `IRIS_HOME`, expectin
 ## 5. Report, then clean up
 
 Post results on the ticket in the shape of #35's and #36's closing comments: what landed, each acceptance box with its job IDs and evidence, the submissions with their resources, and what is known but not fixed. Then ask Patrick before removing `/srv/scratch/$USER/iris-test-<n>/` and the run's folder and `.OU` log in the sample's `runs/`.
+
+## When a job hangs or dies
+
+Before resubmitting, submit a **canary**: 1 CPU, 1 GB, 5 min, running only `. /etc/profile.d/modules.sh; module load python/3.13.2; timeout 120 /srv/scratch/katana_ai/iris/envs/imaging/1/bin/python -c 'import mlflow'`. If the canary hangs too, compute nodes can't read the shared environment: stop submitting and tell Patrick, as it goes to ResTech, not into code. On 2026-10-19 from 14:39 this stalled four jobs on k192, k216 and k217 while the login node read the same files in milliseconds.
+
+To trace a script, put `set -x` after its `module load`. `bash -x` over the whole script traces the module system too and floods the log with its environment.

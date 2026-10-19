@@ -1,5 +1,5 @@
-# bin/check on every push and pull request: the shipping greps, ruff and
-# the synthetic-dataset test, in the desktop CPU venv.
+# bin/check on every push and pull request: the shipping greps, shellcheck,
+# ruff and the synthetic-dataset test, in the desktop CPU venv.
 name: check
 on: [push, pull_request]
 

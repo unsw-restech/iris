@@ -31,7 +31,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazi
 
 ## Checks before shipping
 
-Run `bin/check` before committing; CI runs it on every push. It covers the link and URL greps, the form and manifest rules, executable bits, ruff and the synthetic-dataset test, which needs the desktop CPU venv (`envs/imaging/desktop.sh` builds it).
+Run `bin/check` before committing; CI runs it on every push. It covers the link and URL greps, the form and manifest rules, executable bits, shellcheck, ruff and the synthetic-dataset test, which needs the desktop CPU venv (`envs/imaging/desktop.sh` builds it).
 
 A change to `microct-2d-segmentation/form.yml.erb` also needs its form test, which runs on Katana because `check:` looks inside `/srv/scratch/$USER`. Run it from a copy of the working tree in scratch, so the dev clone is never touched:
 

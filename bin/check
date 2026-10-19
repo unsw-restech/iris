@@ -45,7 +45,7 @@ check "non-ASCII in PowerShell scripts" non_ascii_ps1
 
 usage_tags() {
     local f d
-    for f in $(find workflows -name form.yml.erb); do
+    for f in workflows/*/form.yml.erb; do
         d=$(basename "$(dirname "$f")")
         tr -d '\r' < "$f" | grep -qx "  #PBS -A iris-$d" || echo "$f: no '#PBS -A iris-$d'"
     done
@@ -54,7 +54,7 @@ check "usage tag matches the folder" usage_tags
 
 job_library() {
     local f
-    for f in $(grep -l '^ *ENV_DIR=' $(find workflows -name form.yml.erb)); do
+    for f in $(grep -l '^ *ENV_DIR=' workflows/*/form.yml.erb); do
         tr -d '\r' < "$f" | grep -qxF '  source "$CODE/../../lib/iris-job.sh"' || echo "$f"
     done
 }
@@ -65,7 +65,7 @@ check "imaging forms source the job library" job_library
 # collides with OpenComposer's own substitution).
 form_sections() {
     local f
-    for f in $(find workflows -name form.yml.erb); do
+    for f in workflows/*/form.yml.erb; do
         tr -d '\r' < "$f" | awk -v f="$f" '
             /^[A-Za-z_]+:/ { sec = $1 }
             sec == "script:" && /<</ { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
@@ -78,7 +78,7 @@ check "form script: and check: sections" form_sections
 # because OpenComposer re-reads the form on submit with @apps_dir unset.
 code_guard() {
     local f
-    for f in $(find workflows -name form.yml.erb); do
+    for f in workflows/*/form.yml.erb; do
         tr -d '\r' < "$f" | grep -qxF '<% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>' &&
             tr -d '\r' < "$f" | grep -qxF '  CODE="<%= code %>"' || echo "$f"
     done
@@ -88,7 +88,7 @@ check "forms set CODE from a guarded @apps_dir" code_guard
 # Local icon files don't resolve with an absolute apps_dir.
 manifest_icons() {
     local f
-    for f in $(find workflows -name manifest.yml); do
+    for f in workflows/*/manifest.yml; do
         tr -d '\r' < "$f" | grep -qE '^icon: bi-[a-z0-9-]+$' || echo "$f"
     done
 }
@@ -108,6 +108,25 @@ card_links() {
     done
 }
 check "broken card links" card_links
+
+# Shell scripts (by .sh or a sh/bash shebang, outside _archive), warnings
+# and errors only. CRs are stripped: a Windows working copy can still hold
+# CRLF files from before .gitattributes pinned LF.
+shellcheck_all() {
+    local f files
+    mapfile -t files < <(git ls-files | grep -v '^_archive/' | while IFS= read -r f; do
+        case "$f" in
+            *.sh) echo "$f" ;;
+            *) head -n1 "$f" | grep -qE '^#!.*\b(ba)?sh\b' && echo "$f" ;;
+        esac
+    done)
+    for f in "${files[@]}"; do
+        tr -d '\r' < "$f" |
+            uvx --quiet --from shellcheck-py==0.11.0.1 shellcheck -s bash -S warning -f gcc - |
+            sed "s|^-:|$f:|"
+    done
+}
+check "shellcheck" shellcheck_all
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'

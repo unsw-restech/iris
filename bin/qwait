@@ -52,7 +52,8 @@ while [ ${#pending[@]} -gt 0 ]; do
         fi
         echo "== $id finished: Exit_status $exit_status"
         echo "   log: $log"
-        ssh katana "tail -n $TAIL '$log' 2>&1" | sed 's/^/   /'
+        # -n: ssh would otherwise read the rest of "$out" from this loop's stdin.
+        ssh -n katana "tail -n $TAIL '$log' 2>&1" | sed 's/^/   /'
         [ "$exit_status" = 0 ] || status=1
     done <<< "$out"
     pending=("${still[@]}")
