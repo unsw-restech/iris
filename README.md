@@ -12,7 +12,8 @@ iris/
 ├── .nojekyll                         # Empty — disables Jekyll processing
 ├── .gitignore                        # Python bytecode, stray outputs, OS cruft
 ├── assets/
-│   └── iris.css                      # Shared styles for workflow detail pages
+│   └── iris.css                      # Shared styles for workflow detail pages and the guide
+├── guide/index.html                  # "Using IRIS on Katana": staging and viewing, shared by imaging workflows
 ├── _archive/<slug>/                  # Retired OpenComposer forms, never served by OpenComposer
 ├── .github/workflows/check.yml       # CI: runs bin/check on every push
 ├── ruff.toml                         # The Python lint rules bin/check applies
@@ -41,7 +42,8 @@ iris/
     │   ├── katana/iris_mnist_classification.pbs, prepare.sh
     │   ├── src/train_mnist.py
     │   └── local/run_local.sh, run_local.ps1
-    ├── microct-2d-segmentation/      # Reference workflow, in progress (no page yet)
+    ├── microct-2d-segmentation/      # Reference workflow: copy it to start a new one
+    │   ├── index.html
     │   ├── form.yml.erb, manifest.yml  # OpenComposer form
     │   ├── src/run.py                # Entry point: train, then segment into a run directory
     │   └── tests/                    # Synthetic-dataset, job-library and form tests (see AGENTS.md)
@@ -49,7 +51,7 @@ iris/
     └── qupath-pathology/index.html        # Planned
 ```
 
-Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the workflow detail pages share `assets/iris.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
+Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the workflow detail pages and the guide share `assets/iris.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
 
 `hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for how IRIS provides an environment on Katana: **use a module**. It runs `module purge && module load pytorch/1.13.1` — nothing is installed, nothing large is downloaded, and the module name is a single editable variable at the top of the PBS script.
 
@@ -71,11 +73,16 @@ Opening `index.html` directly over `file://` will not reproduce the real base pa
 
 ## Adding a new workflow
 
-1. Create a folder under `workflows/your-workflow-name/`
-2. Add `index.html` — copy the `mnist-classification` page and link `../../assets/iris.css`
-3. **Use relative links only** (`../../`, `../../#workflows`). Root-absolute links like `href="/"` resolve outside `/iris/` and 404.
-4. Add a card to the workflow grid in `index.html`, with its modality tag
-5. Push to `main` — GitHub Pages redeploys automatically
+The workflow-author checklist. Work on a branch; the dev clone on Katana can check out any branch.
+
+1. **Copy the reference folder**, `workflows/microct-2d-segmentation/`, to `workflows/<slug>/`. To build a Planned workflow, extend its existing folder instead, so its URL never changes.
+2. **Change the slug everywhere**: the folder name, `#PBS -A iris-<slug>` in the form's script header, the Experiment name default and the job name default. The folder name is also the OpenComposer URL segment.
+3. **Set the environment version** in the form's `ENV_DIR`. If the workflow needs packages the environment lacks, build version *n+1* (`envs/imaging/README.md`); never change a built version.
+4. **Set the fields and `check:` rules** in `form.yml.erb`, and the entry point under `src/`. Defaults for memory, walltime and epochs cite the timing run that measured them.
+5. **Write the page text** in `index.html`, linking the guide (`../../guide/#stage` and `../../guide/#view`) for the full staging and viewing steps. Use relative links only: root-absolute links like `href="/"` resolve outside `/iris/` and 404.
+6. **Add the catalogue card** to `index.html`, with its modality tag and compute tag. A new modality also needs a `.card-domain.<x>` style.
+7. **Test on dev**: `bin/check` clean, then from the dev clone the form opens, `check:` rejects one wrong dataset folder, and one real run finishes, appears in MLflow after `iris-compare` and opens with its `iris-view` line. Cite the job ID.
+8. **Merge to `main` and pull** the dev clone (`git pull --ff-only`). Pushing `main` publishes the site.
 
 If the workflow ships a `local/run_local.ps1`, **keep it ASCII-only**. These files have no BOM, and Windows PowerShell 5.1 reads a BOM-less UTF-8 file as ANSI — an em dash or box-drawing character decodes into a byte PowerShell treats as a string delimiter, and the script fails to parse before it runs a single line. Use `-` and `=` in banners. The `.sh` files are unaffected.
 
@@ -94,11 +101,10 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 | Tier | Workflows | What exists |
 |---|---|---|
 | **Run and verified** | `hello-world` (onboarding), `mnist-classification` (Teaching) | Page, form, job script, executed end to end |
+| **Run, browser run pending** | `microct-2d-segmentation` (microCT) | Page, form, job code. Its form's script ran on a V100 from the dev clone (job 9544838); a run submitted from the browser is #46 |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
 
-Both forms moved into the repo on 2026-10-16 and have not yet run from a clone; the runs above were from the old out-of-repo copies.
-
-The microCT reference workflow, `microct-2d-segmentation`, gets its card when its page lands.
+The `hello-world` and `mnist-classification` forms moved into the repo on 2026-10-16 and have not yet run from a clone; their runs above were from the old out-of-repo copies.
 
 IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`.
 

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>microCT 2D Segmentation (U-Net) — IRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/iris.css">
+</head>
+<body>
+<nav>
+  <a href="../../" class="nav-logo">
+    <div class="nav-logo-mark">I</div>
+    <span class="nav-logo-text">IRIS</span>
+  </a>
+  <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / microCT 2D Segmentation</div>
+  <span class="wf-domain imaging">Imaging</span>
+  <h1 class="wf-title">microCT 2D Segmentation (U-Net)</h1>
+  <p class="wf-desc">Label a few slices of a microCT volume, and IRIS trains a 2D U-Net on them and segments the whole volume slice by slice. Each run is recorded, so you can compare runs with different settings side by side.</p>
+
+  <div class="launch">
+    <div>
+      <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/microct-2d-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+      <span class="run-note">Opens the form in Katana OnDemand. Pick your dataset folder and submit: the other fields have working defaults.</span>
+    </div>
+    <div class="ready">
+      <div class="ready-title">You're ready when</div>
+      <ul class="checklist">
+        <li>Your dataset folder is inside your scratch, <code>/srv/scratch/&lt;zID&gt;</code></li>
+        <li>Its <code>volume/</code> folder holds the volume's <code>.nc</code> files</li>
+        <li><code>train/images/</code> and <code>train/labels/</code> hold the same file names</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <div class="col-when">Once per dataset</div>
+      <h3>1 · Stage</h3>
+      <p>Put the volume and your labelled slices in one dataset folder, then copy it to your scratch through the data mover.</p>
+      <p><a href="../../guide/#stage">Staging a dataset</a></p>
+    </div>
+    <div class="col">
+      <div class="col-when">Every run · two clicks</div>
+      <h3>2 · Run</h3>
+      <p>Click Run on Katana, pick the dataset folder and submit. You get an email when the job ends.</p>
+      <p>Change one setting at a time and keep the experiment name, so the runs compare.</p>
+    </div>
+    <div class="col">
+      <div class="col-when">After it finishes</div>
+      <h3>3 · View</h3>
+      <p>In a Virtual Desktop, paste the <code>iris-view</code> line from the end of the job output to see the labels over your volume. <code>iris-compare</code> compares your runs.</p>
+      <p><a href="../../guide/#view">Viewing and comparing runs</a></p>
+    </div>
+  </div>
+
+  <details>
+    <summary>How to lay out and copy your dataset</summary>
+    <p>A dataset is one folder holding one volume and its training pairs:</p>
+    <div class="tree">my-dataset/
+  volume/          <span class="comment">every .nc file of one volume, read in file-name order</span>
+  train/
+    images/        <span class="comment">2D TIFF slices of the volume, at its bit depth</span>
+    labels/        <span class="comment">the same file names; 0 = unlabelled, then 1, 2, 3... per class</span>
+  runs/            <span class="comment">made by IRIS, one folder per run</span></div>
+    <ul>
+      <li>Label 5 to 30 slices in Dragonfly or any other tool. You can label part of a slice: pixels left at 0 are ignored. The number of classes is read from your labels, up to 255.</li>
+      <li>Export each training image at the volume's size and bit depth, with its label slice under the same file name.</li>
+      <li>Copy the folder to anywhere in your scratch through the data mover, never a login node. Replace <code>zID</code> with yours:</li>
+    </ul>
+    <pre class="code-block">rsync -av --progress my-dataset/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/</pre>
+    <!-- Data mover host and route: PatrickTung/iris#11 (katana-dm is kdm.restech.unsw.edu.au). -->
+    <p>On Windows, use WinSCP to the same host and folder. <!-- Quota: PatrickTung/iris#11. -->Your scratch holds 128 GB, about seven 16 GB volumes before any results. The <a href="../../guide/#stage">guide</a> has the details.</p>
+  </details>
+
+  <details>
+    <summary>What each form field does</summary>
+    <!-- Memory and walltime defaults: timing run 9544838 (V100, the slowest queued type, 23 min, 6 GB), PatrickTung/iris#29. 12 h on any node: the form's walltime help and PatrickTung/iris#24. -->
+    <table class="param-table">
+      <thead><tr><th>Field</th><th>Default</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>Dataset folder</td><td>—</td><td>Your dataset in scratch. The form checks its layout before it submits.</td></tr>
+        <tr><td>Experiment name</td><td><code>microct-2d-segmentation</code></td><td>Groups runs you want to compare. Use a new name for a new dataset or question.</td></tr>
+        <tr><td>Epochs</td><td><code>50</code></td><td>Passes over the training patches. Raise it if Dice is still rising at the end.</td></tr>
+        <tr><td>Patch size</td><td><code>256</code></td><td>Slices are cut into square patches of 128, 256 or 512 pixels. Larger patches see more context.</td></tr>
+        <tr><td>Learning rate</td><td><code>0.001</code></td><td>Lower it if the loss jumps around.</td></tr>
+        <tr><td>Validation patches (%)</td><td><code>20</code></td><td>Labelled patches held out to score the model with per-class Dice and IoU.</td></tr>
+        <tr><td>GPUs</td><td><code>1</code></td><td>Any GPU type on Katana. 0 runs on CPU, for a small test only.</td></tr>
+        <tr><td>CPU cores</td><td><code>8</code></td><td>Used to read the volume and prepare patches.</td></tr>
+        <tr><td>Memory</td><td><code>16 GB</code></td><td>A 2520 × 2520 × 1280 volume used 6 GB. Larger slices may need more.</td></tr>
+        <tr><td>Walltime</td><td><code>2 h</code></td><td>A 16 GB volume took 23 minutes on a V100, Katana's slowest GPU. Up to 12 hours runs on any node.</td></tr>
+        <tr><td colspan="3"><strong>Under advanced options</strong></td></tr>
+        <tr><td>Batch size</td><td><code>16</code></td><td>Patches per training step. Lower it if the GPU runs out of memory.</td></tr>
+        <tr><td>Random seed</td><td>blank</td><td>Blank picks a new validation split each run and records its seed. Set it to repeat a split.</td></tr>
+        <tr><td>PBS job name</td><td><code>iris_microct</code></td><td>Your label for the job in the queue.</td></tr>
+        <tr><td>Mail events</td><td>ends, ends abnormally</td><td>When PBS emails you.</td></tr>
+      </tbody>
+    </table>
+    <p>To start from an earlier run's settings, use <strong>Load parameters</strong> in the form's job history.</p>
+  </details>
+
+  <details>
+    <summary>Where results are and how to view them</summary>
+    <p>Each run writes into your dataset, in <code>runs/&lt;job number&gt;/</code>:</p>
+    <table class="param-table">
+      <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td><code>labels.tif</code></td><td>The label volume: one uint8 class number per voxel, the volume's full size, each slice compressed on its own</td></tr>
+        <tr><td><code>model.pt</code></td><td>The trained weights</td></tr>
+        <tr><td><code>params.json</code></td><td>Every form field, and the seed used</td></tr>
+        <tr><td><code>metrics.json</code></td><td>Training loss and per-class Dice and IoU, per epoch and final</td></tr>
+        <tr><td><code>dataset.json</code></td><td>What the run read: folder paths, file counts, the volume's shape, type, voxel size and intensity statistics</td></tr>
+        <tr><td><code>run.json</code></td><td>The experiment, job ID and how the run ended</td></tr>
+        <tr><td><code>commit.txt</code></td><td>The IRIS commit that ran</td></tr>
+      </tbody>
+    </table>
+    <!-- Virtual Desktop size: PatrickTung/iris#14. -->
+    <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. It ends with two lines to paste into a terminal in a Virtual Desktop (CPU only, 4 cores, 16 GB, 4 hours): <code>iris-view</code>, which shows the label volume over your volume in napari, and <code>iris-compare</code>, which opens your runs in MLflow. Fiji and ParaView open the label volume too. The <a href="../../guide/#view">guide</a> covers all four and copying results home.</p>
+    <p>To cite a run, name this workflow and the commit in its <code>commit.txt</code>.</p>
+  </details>
+
+  <details>
+    <summary>Something went wrong</summary>
+    <ul>
+      <li><strong>The form won't submit.</strong> Its warning names the rule your dataset folder broke, and your values are kept. Fix the folder and submit again. A stray <code>.DS_Store</code> or <code>Thumbs.db</code> in one of the <code>train/</code> folders counts as a file-name mismatch: delete it.</li>
+      <li><strong>The job stopped at once with "the IRIS imaging environment is missing".</strong> Nothing is wrong with your data. Email patrick.tung@unsw.edu.au with the job ID.</li>
+      <li><strong>The job stopped before training with an <code>ERROR:</code> line about your dataset.</strong> It names the file and what's wrong: a training image at a different size or bit depth from the volume, a label slice that doesn't match its image, label values that aren't whole numbers from 0, more than 255 classes, or labels that are all 0.</li>
+      <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. Load parameters keeps your other settings.</li>
+      <li><strong>The job ran out of GPU memory.</strong> Lower the batch size under advanced options, or the patch size.</li>
+      <li><strong><code>iris-view</code> says there is no label volume.</strong> The run hasn't finished, or it failed: read the end of its <code>runs/&lt;job ID&gt;.OU</code>.</li>
+      <li><strong>Anything else.</strong> Email restech@unsw.edu.au with the job ID and the end of the job output.</li>
+    </ul>
+  </details>
+</div>
+<footer>
+  <span>IRIS · UNSW ResTech</span>
+  <span>
+    <a href="../../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/PatrickTung/iris" target="_blank">GitHub</a> ·
+    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

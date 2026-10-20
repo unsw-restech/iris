@@ -294,6 +294,7 @@
       color: var(--tag-text);
       text-transform: uppercase; letter-spacing: 1px;
     }
+    .card-domain.microct   { background: rgba(200,169,110,0.12); color: var(--gold); }
     .card-domain.teaching  { background: rgba(143,134,232,0.12); color: var(--violet); }
     .card-domain.microscopy{ background: rgba(78,203,141,0.1); color: var(--green); }
     .card-domain.pathology { background: rgba(224,122,176,0.1); color: var(--pink); }
@@ -373,6 +374,7 @@
       font-size: 13px; color: var(--muted);
       line-height: 1.6;
     }
+    .step-desc a { color: var(--blue2); }
 
     /* ── FOOTER ── */
     footer {
@@ -467,6 +469,21 @@
 
   <div class="workflow-grid">
 
+    <a href="workflows/microct-2d-segmentation/" class="workflow-card">
+      <div class="card-top">
+        <span class="card-domain microct">microCT</span>
+      </div>
+      <div class="card-name">microCT 2D Segmentation (U-Net)</div>
+      <div class="card-desc">Label a few slices of a microCT volume, and a 2D U-Net trained on them segments the whole volume. Every run is recorded so you can compare settings.</div>
+      <div class="card-compute">
+        <span class="compute-tag">Katana GPU · IRIS imaging env</span>
+      </div>
+      <div class="card-meta">
+        <span><span class="status-dot"></span> Active</span>
+        <span>restech@unsw.edu.au</span>
+      </div>
+    </a>
+
     <a href="workflows/mnist-classification/" class="workflow-card">
       <div class="card-top">
         <span class="card-domain teaching">Teaching</span>
@@ -526,7 +543,7 @@
     <div class="step">
       <div class="step-num">01 / STAGE</div>
       <div class="step-title">Stage your dataset</div>
-      <div class="step-desc">Copy your dataset to your Katana scratch once, with rsync or WinSCP.</div>
+      <div class="step-desc">Copy your dataset to your Katana scratch once, with rsync or WinSCP. <a href="guide/#stage">How to stage a dataset</a></div>
     </div>
     <div class="step">
       <div class="step-num">02 / RUN</div>
@@ -536,7 +553,7 @@
     <div class="step">
       <div class="step-num">03 / VIEW &amp; COMPARE</div>
       <div class="step-title">Check and compare runs</div>
-      <div class="step-desc">In a Katana Virtual Desktop, view results in napari and compare runs in MLflow with <code>iris-compare</code>.</div>
+      <div class="step-desc">In a Katana Virtual Desktop, view results in napari and compare runs in MLflow with <code>iris-compare</code>. <a href="guide/#view">How to view and compare</a></div>
     </div>
     <div class="step">
       <div class="step-num">04 / CITE</div>
