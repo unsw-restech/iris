@@ -51,11 +51,20 @@ Timing on a V100 for the sample: about 9 s per epoch of training and about 1370 
 
 A second job runs `bin/iris-import` twice against the same `IRIS_HOME`, expecting `Imported 1`, then `Imported 0`. It then prints what the ticket asks about, through `MlflowClient(store_uri(Path(IRIS_HOME)))` in the pinned environment `/srv/scratch/katana_ai/iris/envs/imaging/1`, after `module load python/3.13.2`. 1 CPU, 4 GB and 15 min are plenty: the #36 import took 45 s.
 
-Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`, and each one's header gives its `qsub` line. Copy them into the test folder and submit from there. They are `canary.pbs`, `job_lib.pbs` (`test_job_lib`, which needs Katana's modules) and `compare.pbs` (`iris-compare` end to end, against a run-index pointer).
+Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`, and each one's header gives its `qsub` line. Copy them into the test folder and submit from there. They are `canary.pbs`, `job_lib.pbs` (`test_job_lib`, which needs Katana's modules) and `compare.pbs` (`iris-compare` end to end, against a run-index pointer, by default the fixture's).
+
+### The fixture run
+
+`/srv/scratch/z3224749/iris-fixtures/` keeps one finished run with a `run.json`, so a check that needs one doesn't spend a training run first. It is job 9573671, a 5-epoch run of the form on the sample dataset:
+
+- `microct-sample/` is the dataset the form was given. Its `volume` and `train` are links to the sample's, and the run is in its `runs/9573671/`, with the `.OU` log beside it.
+- `home/` was the run's `IRIS_HOME`, so its pointer is `home/run-index/9573671`. Copy the pointer into your own test home, as `compare.pbs` does. Don't import into `home/` or write in the fixture.
+
+The fixture goes stale if the run record's format changes, and breaks if the sample dataset moves, since its links point there. To make a new one, in a fresh `iris-fixtures/`, make `microct-sample/` with its `runs/` folder and links named `volume` and `train` to the sample's. Render as in step 2 with `dataset=/srv/scratch/z3224749/iris-fixtures/microct-sample`, and submit as in step 3 with `IRIS_HOME=/srv/scratch/z3224749/iris-fixtures/home`. Then update the job number here and in `compare.pbs`.
 
 ## 5. Report, then clean up
 
-Post results on the ticket in the shape of #35's and #36's closing comments: what landed, each acceptance box with its job IDs and evidence, the submissions with their resources, and what is known but not fixed. Then ask Patrick before removing `/srv/scratch/$USER/iris-test-<n>/` and the run's folder and `.OU` log in the sample's `runs/`.
+Post results on the ticket in the shape of #35's and #36's closing comments: what landed, each acceptance box with its job IDs and evidence, the submissions with their resources, and what is known but not fixed. Then ask Patrick before removing `/srv/scratch/$USER/iris-test-<n>/` and the run's folder and `.OU` log in the sample's `runs/`. The fixture, `/srv/scratch/z3224749/iris-fixtures/`, stays: it is not part of any ticket's cleanup.
 
 ## When a job hangs or dies
 
