@@ -15,6 +15,8 @@ rsync /tmp/iris-test-<n>.bundle katana-dm:/srv/scratch/z3224749/iris-test-<n>/
 ssh katana 'cd /srv/scratch/$USER/iris-test-<n> && git clone -q iris-test-<n>.bundle iris'
 ```
 
+If `mkdir` finds the folder already there, an earlier session started this ticket. Read its `.pbs` files and job logs before you submit anything.
+
 ## 2. Render the job script from the form
 
 `tests/form_helper.rb` renders `form.yml.erb` as OpenComposer 1.9.0 does, runs `check:` and prints the script. Fields are the form's keys. `time` is two numbers, `time_1` hours and `time_2` minutes. Unset fields take the form's defaults.
@@ -49,12 +51,16 @@ Timing on a V100 for the sample: about 9 s per epoch of training and about 1370 
 
 A second job runs `bin/iris-import` twice against the same `IRIS_HOME`, expecting `Imported 1`, then `Imported 0`. It then prints what the ticket asks about, through `MlflowClient(store_uri(Path(IRIS_HOME)))` in the pinned environment `/srv/scratch/katana_ai/iris/envs/imaging/1`, after `module load python/3.13.2`. 1 CPU, 4 GB and 15 min are plenty: the #36 import took 45 s.
 
+Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`, and each one's header gives its `qsub` line. Copy them into the test folder and submit from there. They are `canary.pbs`, `job_lib.pbs` (`test_job_lib`, which needs Katana's modules) and `compare.pbs` (`iris-compare` end to end, against a run-index pointer).
+
 ## 5. Report, then clean up
 
 Post results on the ticket in the shape of #35's and #36's closing comments: what landed, each acceptance box with its job IDs and evidence, the submissions with their resources, and what is known but not fixed. Then ask Patrick before removing `/srv/scratch/$USER/iris-test-<n>/` and the run's folder and `.OU` log in the sample's `runs/`.
 
 ## When a job hangs or dies
 
-Before resubmitting, submit a **canary**: 1 CPU, 1 GB, 5 min, running only `. /etc/profile.d/modules.sh; module load python/3.13.2; timeout 120 /srv/scratch/katana_ai/iris/envs/imaging/1/bin/python -c 'import mlflow'`. If the canary hangs too, compute nodes can't read the shared environment: stop submitting and tell Patrick, as it goes to ResTech, not into code. On 2026-10-19 from 14:39 this stalled four jobs on k192, k216 and k217 while the login node read the same files in milliseconds.
+Before resubmitting, submit a **canary**, `workflows/microct-2d-segmentation/tests/katana/canary.pbs`, which times `import mlflow` from the pinned environment. If the canary hangs too, compute nodes can't read the shared environment: stop submitting and tell Patrick, as it goes to ResTech, not into code. On 2026-10-19 from 14:39 this stalled four jobs on k192, k216 and k217 while the login node read the same files in milliseconds.
+
+Whenever you stop with the ticket unfinished, comment on it first with each job's ID, node and outcome and the test folder's path, so the next session can pick up from there.
 
 To trace a script, put `set -x` after its `module load`. `bash -x` over the whole script traces the module system too and floods the log with its environment.
