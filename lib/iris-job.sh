@@ -22,7 +22,7 @@
 mkdir -p "$(dirname "$RUN_DIR")"
 
 if [ ! -x "$ENV_DIR/bin/python" ]; then
-    echo "ERROR: the IRIS imaging environment is missing at $ENV_DIR. Contact patrick.tung@unsw.edu.au." >&2
+    echo "ERROR: the IRIS imaging environment is missing at $ENV_DIR. Contact restech@unsw.edu.au." >&2
     exit 1
 fi
 
