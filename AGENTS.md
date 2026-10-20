@@ -62,7 +62,7 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 - **GPU models for queued jobs**: A100, H100, H200, L40S, V100. `RP6000` in `pbsnodes` is ResTech's in-house development node and never runs queued jobs (Patrick, 2026-10-14).
 - **Limits** (confirmed by Patrick, 2026-08-05): walltime 200 hours, memory 1 TB, no fixed CPU cap. The 24 cpus / 248 GB / 100 h in nf-core's `unsw_katana.config` are that config's own ceilings, not Katana's. Size requests to the job anyway; oversized ones queue longer.
 - **Downloads run on the data mover (`katana-dm`) before the job** (Patrick, 2026-10-14). A download needed only mid-run goes in the job script itself. `mnist-classification`'s `prepare.sh` still assumes a login node.
-- **Real-run acceptance** (a ticket's "a real run shows…"): follow `docs/agents/katana-test-run.md`.
+- **Real-run acceptance** (a ticket's "a real run shows…"): follow `docs/agents/katana-test-run.md`. When splitting work into tickets, build tickets are accepted on what runs without a real run (`bin/check`, the form test, unit tests), and every "a real run shows…" criterion goes in one final ticket, blocked by all the others, that does a single real run on the integration branch. A build ticket gets its own real run only when a later ticket depends on what that run shows, and then keeps that blocking edge (Patrick, 2026-10-20).
 - **Usage tag**: every form's generated header sets `#PBS -A iris-<slug>`, `hello-world` included. It is never a form field. Jobs write nothing for counting; ResTech counts runs per tag from PBS accounting.
 
 ## OpenComposer forms
