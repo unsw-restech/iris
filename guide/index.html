@@ -23,7 +23,7 @@
 
   <h2 id="stage">Staging a dataset</h2>
   <div class="prose">
-    <p>Do this once per dataset. Every run reads the dataset from your scratch and writes its results back into it.</p>
+    <p>Do this once per dataset. Every run reads the dataset from your scratch and writes its run directory back into it.</p>
 
     <h3 class="sub">Lay out the folder</h3>
     <p>A dataset is one folder holding one volume and its training pairs, laid out like this on your own computer:</p>
@@ -43,13 +43,13 @@
     <p>Copy through Katana's data mover, <code>kdm.restech.unsw.edu.au</code>, never a login node. From a terminal on your computer, replacing <code>zID</code> with yours:</p>
     <pre class="code-block">rsync -av --progress my-dataset/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/</pre>
     <p>On Windows, use <a href="https://winscp.net/" target="_blank">WinSCP</a> to the same host and folder, logging in with your zID. To add or replace a few training pairs later, the OnDemand Files app is fine; copy volumes through the data mover.</p>
-    <p>The dataset can go anywhere under <code>/srv/scratch/zID</code>, so you can keep several datasets your own way. <!-- Quota: PatrickTung/iris#11. -->Your scratch holds 128 GB: about seven 16 GB volumes, before any results. Scratch has no backup, so keep your own copy of the original data.</p>
+    <p>The dataset can go anywhere under <code>/srv/scratch/zID</code>, so you can keep several datasets your own way. <!-- Quota: PatrickTung/iris#11. -->Your scratch holds 128 GB: about seven 16 GB volumes, before any run directories. Scratch has no backup, so keep your own copy of the original data.</p>
   </div>
 
   <h2 id="view">Viewing and comparing runs</h2>
   <div class="prose">
     <h3 class="sub">Find the job output</h3>
-    <p>When a job ends, PBS writes its output into your dataset as <code>runs/&lt;job ID&gt;.OU</code>, beside the run directory, <code>runs/&lt;job number&gt;/</code>. Once the job has finished, its output ends with two lines to paste, one starting with the full path of <code>iris-view</code> and one of <code>iris-compare</code>. Read it in a terminal in the Virtual Desktop below, for example with <code>tail /srv/scratch/zID/my-dataset/runs/1234567*.OU</code>.</p>
+    <p>When a job ends, PBS writes its output into your dataset as <code>runs/&lt;job ID&gt;.OU</code>, beside the run directory, <code>runs/&lt;job number&gt;/</code>. When the job succeeds, its output ends with two lines to paste, one starting with the full path of <code>iris-view</code> and one of <code>iris-compare</code>. Read it in a terminal in the Virtual Desktop below, for example with <code>tail /srv/scratch/zID/my-dataset/runs/1234567*.OU</code>.</p>
 
     <!-- Virtual Desktop size: PatrickTung/iris#14. -->
     <h3 class="sub">Start a Virtual Desktop</h3>
@@ -74,7 +74,7 @@
     <h3 class="sub">A region in 3D with ParaView</h3>
     <p>A whole label volume is too large to render in 3D in the desktop: a 16 GB volume's labels take 8 GB once read. Crop a region in Fiji first.</p>
     <ol>
-      <li>In the Fiji virtual stack, draw a rectangle around the region.</li>
+      <li>In Fiji, draw a rectangle around the region.</li>
       <li>Choose Image › Duplicate…, tick <strong>Duplicate stack</strong> and set a slice range, such as 600–800. Only those slices are read.</li>
       <li>Choose File › Save As › Tiff…, as <code>crop.tif</code>. A 200 × 500 × 500 crop is 50 MB.</li>
       <li>In the terminal, run <code>module load paraview/6.0.0</code>, then <code>paraview</code>. Choose File › Open, pick <code>crop.tif</code>, then click Apply.</li>
@@ -82,7 +82,7 @@
       <li>Choose Filters › Contour at 1.5 and 2.5 to show class boundaries, or set Representation to Volume.</li>
     </ol>
 
-    <h3 class="sub">Copy results home</h3>
+    <h3 class="sub">Copy a run directory home</h3>
     <p>Use the same rsync with its source and destination swapped, run from your computer. For example, one run directory:</p>
     <pre class="code-block">rsync -av --progress zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/runs/1234567/ my-dataset/runs/1234567/</pre>
     <p>Or use WinSCP to the same host and folder.</p>

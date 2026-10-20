@@ -60,26 +60,16 @@
 
   <details>
     <summary>How to lay out and copy your dataset</summary>
-    <p>A dataset is one folder holding one volume and its training pairs:</p>
-    <div class="tree">my-dataset/
-  volume/          <span class="comment">every .nc file of one volume, read in file-name order</span>
-  train/
-    images/        <span class="comment">2D TIFF slices of the volume, at its bit depth</span>
-    labels/        <span class="comment">the same file names; 0 = unlabelled, then 1, 2, 3... per class</span>
-  runs/            <span class="comment">made by IRIS, one folder per run</span></div>
+    <p>Lay out the dataset folder and copy it to your scratch as in <a href="../../guide/#stage">Staging a dataset</a>. For this workflow:</p>
     <ul>
-      <li>Label 5 to 30 slices in Dragonfly or any other tool. You can label part of a slice: pixels left at 0 are ignored. The number of classes is read from your labels, up to 255.</li>
-      <li>Export each training image at the volume's size and bit depth, with its label slice under the same file name.</li>
-      <li>Copy the folder to anywhere in your scratch through the data mover, never a login node. Replace <code>zID</code> with yours:</li>
+      <li>Label 5 to 30 slices. The number of classes is read from your labels, up to 255.</li>
+      <li>Export each training image at the volume's size and bit depth.</li>
     </ul>
-    <pre class="code-block">rsync -av --progress my-dataset/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/</pre>
-    <!-- Data mover host and route: PatrickTung/iris#11 (katana-dm is kdm.restech.unsw.edu.au). -->
-    <p>On Windows, use WinSCP to the same host and folder. <!-- Quota: PatrickTung/iris#11. -->Your scratch holds 128 GB, about seven 16 GB volumes before any results. The <a href="../../guide/#stage">guide</a> has the details.</p>
   </details>
 
   <details>
     <summary>What each form field does</summary>
-    <!-- Memory and walltime defaults: timing run 9544838 (V100, the slowest queued type, 23 min, 6 GB), PatrickTung/iris#29. 12 h on any node: the form's walltime help and PatrickTung/iris#24. -->
+    <!-- Memory and walltime defaults: timing run 9544838 (V100, 23 min, 6 GB), PatrickTung/iris#29. 12 h on any node: the form's walltime help and PatrickTung/iris#24. -->
     <table class="param-table">
       <thead><tr><th>Field</th><th>Default</th><th>What it does</th></tr></thead>
       <tbody>
@@ -92,7 +82,7 @@
         <tr><td>GPUs</td><td><code>1</code></td><td>Any GPU type on Katana. 0 runs on CPU, for a small test only.</td></tr>
         <tr><td>CPU cores</td><td><code>8</code></td><td>Used to read the volume and prepare patches.</td></tr>
         <tr><td>Memory</td><td><code>16 GB</code></td><td>A 2520 × 2520 × 1280 volume used 6 GB. Larger slices may need more.</td></tr>
-        <tr><td>Walltime</td><td><code>2 h</code></td><td>A 16 GB volume took 23 minutes on a V100, Katana's slowest GPU. Up to 12 hours runs on any node.</td></tr>
+        <tr><td>Walltime</td><td><code>2 h</code></td><td>A 16 GB volume took 23 minutes on a V100. Up to 12 hours runs on any node.</td></tr>
         <tr><td colspan="3"><strong>Under advanced options</strong></td></tr>
         <tr><td>Batch size</td><td><code>16</code></td><td>Patches per training step. Lower it if the GPU runs out of memory.</td></tr>
         <tr><td>Random seed</td><td>blank</td><td>Blank picks a new validation split each run and records its seed. Set it to repeat a split.</td></tr>
@@ -104,7 +94,7 @@
   </details>
 
   <details>
-    <summary>Where results are and how to view them</summary>
+    <summary>What a run writes and how to view it</summary>
     <p>Each run writes into your dataset, in <code>runs/&lt;job number&gt;/</code>:</p>
     <table class="param-table">
       <thead><tr><th>File</th><th>What it holds</th></tr></thead>
@@ -118,8 +108,7 @@
         <tr><td><code>commit.txt</code></td><td>The IRIS commit that ran</td></tr>
       </tbody>
     </table>
-    <!-- Virtual Desktop size: PatrickTung/iris#14. -->
-    <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. It ends with two lines to paste into a terminal in a Virtual Desktop (CPU only, 4 cores, 16 GB, 4 hours): <code>iris-view</code>, which shows the label volume over your volume in napari, and <code>iris-compare</code>, which opens your runs in MLflow. Fiji and ParaView open the label volume too. The <a href="../../guide/#view">guide</a> covers all four and copying results home.</p>
+    <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. When the job succeeds, the output ends with two lines to paste into a terminal in a Virtual Desktop: <code>iris-view</code>, which shows the label volume over your volume in napari, and <code>iris-compare</code>, which opens your runs in MLflow. Fiji and ParaView open the label volume too. The <a href="../../guide/#view">guide</a> covers the Virtual Desktop to start, all four, and copying a run directory home.</p>
     <p>To cite a run, name this workflow and the commit in its <code>commit.txt</code>.</p>
   </details>
 
@@ -132,6 +121,7 @@
       <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. Load parameters keeps your other settings.</li>
       <li><strong>The job ran out of GPU memory.</strong> Lower the batch size under advanced options, or the patch size.</li>
       <li><strong><code>iris-view</code> says there is no label volume.</strong> The run hasn't finished, or it failed: read the end of its <code>runs/&lt;job ID&gt;.OU</code>.</li>
+      <li><strong>The job output doesn't end with the <code>iris-view</code> line.</strong> The job stopped at its first error, which is the last thing in the output. The same two lines are printed near the start of the output, before training, so the run directory they name may be incomplete.</li>
       <li><strong>Anything else.</strong> Email restech@unsw.edu.au with the job ID and the end of the job output.</li>
     </ul>
   </details>
