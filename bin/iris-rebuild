@@ -1,0 +1,20 @@
+#!/bin/bash
+# Rebuild a lost tracking store, /srv/scratch/$USER/iris/tracking.db, from
+# the run index or from named dataset folders' runs/ folders
+# (lib/iris/rebuild.py). It never writes into a store that exists; --store
+# names another folder. Run it in a Virtual Desktop or a job, not on a login
+# node. `bin/iris-rebuild --help` lists its options.
+#
+# Runs with the imaging environment the form pins (keep it in step with the
+# form, bin/iris-import and bin/iris-compare), or another with ENV_DIR=...
+# Keep it free of `set -u`: the module scripts reference unset variables.
+
+set -eo pipefail
+ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
+LIB="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib" && pwd)"
+
+if [ -f /etc/profile.d/modules.sh ]; then
+    . /etc/profile.d/modules.sh
+    module load python/3.13.2
+fi
+PYTHONPATH="$LIB${PYTHONPATH:+:$PYTHONPATH}" exec "$ENV_DIR/bin/python" -m iris.rebuild "$@"
