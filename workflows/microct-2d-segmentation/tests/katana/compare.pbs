@@ -5,17 +5,22 @@
 #PBS -l walltime=0:25:00
 #PBS -j oe
 # iris-compare end to end. A fresh store is imported once with an empty run
-# index, then RUN (a finished run's run-index pointer) lands in the index,
+# index, then RUN (a finished run's run-index pointer, by default the
+# fixture's, docs/agents/katana-test-run.md) lands in the index,
 # and bin/iris-compare runs in the foreground as in a terminal while a
 # background probe checks it: the UI lists the run through its REST API,
 # listens on 127.0.0.1 only, and closes its port on Ctrl+C. The probe also
 # times mlflow ui's start-up. Whole job: 54 s (job 9571403).
 #
-#   qsub -m abe -v T=/srv/scratch/$USER/iris-test-<n>,RUN=<home>/run-index/<job number>,PYTHONUNBUFFERED=1 compare.pbs
+#   qsub -m abe -v T=/srv/scratch/$USER/iris-test-<n>,PYTHONUNBUFFERED=1 compare.pbs
+#
+# Add RUN=<home>/run-index/<job number> to -v to index another run.
 #
 # T holds the copy of the tree in T/iris (docs/agents/katana-test-run.md);
 # the store goes in T/home-compare, which must not exist yet.
-: "${T:?pass T=<scratch test folder> with qsub -v}" "${RUN:?pass RUN=<run-index pointer> with qsub -v}"
+: "${T:?pass T=<scratch test folder> with qsub -v}"
+RUN="${RUN:-/srv/scratch/z3224749/iris-fixtures/home/run-index/9573671}"
+[ -f "$RUN" ] || { echo "No run-index pointer at $RUN"; exit 1; }
 ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
 export IRIS_HOME=$T/home-compare PYTHONUNBUFFERED=1 PYTHONFAULTHANDLER=1
 [ -e "$IRIS_HOME" ] && { echo "$IRIS_HOME exists: the store must be fresh"; exit 1; }
