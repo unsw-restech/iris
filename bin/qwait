@@ -17,8 +17,8 @@ status=0
 ssh_failures=0
 # query's stderr, kept out of the parsed output: ssh warnings there
 # (mux_client_request_session: ...) would otherwise read as job lines.
-err="$(mktemp)"
-trap 'rm -f "$err"' EXIT
+query_err="$(mktemp)"
+trap 'rm -f "$query_err"' EXIT
 
 # Prints "<id> <state> <exit status> <log path>" per job, or fails on an
 # unknown job. A folder Output_Path (the forms' `#PBS -o <dir>/`) means
@@ -41,12 +41,12 @@ EOF
 }
 
 while [ ${#pending[@]} -gt 0 ]; do
-    out="$(query "${pending[@]}" 2>"$err")"
+    out="$(query "${pending[@]}" 2>"$query_err")"
     rc=$?
     if [ $rc -eq 255 ] && [ $((++ssh_failures)) -lt 3 ]; then
         sleep "$INTERVAL"; continue    # ssh itself failed: retry twice
     elif [ $rc -ne 0 ]; then
-        echo "qwait: $(cat "$err")" >&2; exit 2
+        echo "qwait: $(cat "$query_err")" >&2; exit 2
     fi
     ssh_failures=0
     still=()
