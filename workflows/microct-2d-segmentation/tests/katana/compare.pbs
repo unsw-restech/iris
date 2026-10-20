@@ -10,7 +10,7 @@
 # and bin/iris-compare runs in the foreground as in a terminal while a
 # background probe checks it: the UI lists the run through its REST API,
 # listens on 127.0.0.1 only, and closes its port on Ctrl+C. The probe also
-# times mlflow ui's start-up. Whole job: 54 s (job 9571403).
+# times mlflow ui's start-up. Whole job: 82 s on the fixture (job 9573970).
 #
 #   qsub -m abe -v T=/srv/scratch/$USER/iris-test-<n>,PYTHONUNBUFFERED=1 compare.pbs
 #
