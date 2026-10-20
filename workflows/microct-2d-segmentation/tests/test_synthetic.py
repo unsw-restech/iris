@@ -505,7 +505,7 @@ class Rebuild(unittest.TestCase):
 class RecentRuns(unittest.TestCase):
     """What iris-view lists when it is given no run directory."""
 
-    def test_newest_first_from_the_run_index_skipping_runs_since_deleted(self):
+    def test_finished_runs_newest_first_from_the_run_index_once_each_skipping_runs_since_deleted(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             index = tmp / "iris" / "run-index"
@@ -517,8 +517,15 @@ class RecentRuns(unittest.TestCase):
                 (run_dir / "run.json").write_text(json.dumps(dict(run, end_time=end_time)))
                 (index / job_id).write_text(str(run_dir) + "\n")
             (index / "1005").write_text(str(tmp / "deleted" / "runs" / "1005") + "\n")
+            failed = tmp / "dataset" / "runs" / "1006"  # newest, but with no label volume to show
+            write_run_dir(failed, "bone", "1006", 0.01)
+            run = json.loads((failed / "run.json").read_text())
+            (failed / "run.json").write_text(json.dumps(dict(run, status="FAILED", end_time=50.0)))
+            (index / "1006").write_text(str(failed) + "\n")
+            (index / "1004.tmp").write_text(str(tmp / "dataset" / "runs" / "1004") + "\n")  # a pointer mid-write
             recent = recent_runs(tmp / "iris", limit=3)
             self.assertEqual([run_dir.name for run_dir, _ in recent], ["1004", "1001", "1003"])
+            self.assertEqual([run_dir.name for run_dir, _ in recent_runs(tmp / "iris")], ["1004", "1001", "1003", "1002"])
             self.assertEqual(recent[0][1]["experiment"], "bone")
             self.assertEqual(recent_runs(tmp / "nowhere"), [])
 

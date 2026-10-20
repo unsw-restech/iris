@@ -35,7 +35,7 @@ from mlflow import MlflowClient  # noqa: E402
 from mlflow.entities import Dataset, DatasetInput, Metric, Param, RunTag, ViewType  # noqa: E402
 from mlflow.store.tracking.sqlalchemy_store import SqlAlchemyStore  # noqa: E402
 
-from iris.record import iris_home, run_index  # noqa: E402
+from iris.record import indexed_runs, iris_home, run_index  # noqa: E402
 
 IMPORT_TAG = "iris_import"  # "incomplete" until every value is logged, then "complete"
 PARAMS_TAGS_PER_CALL = 100  # MLflow's caps per log_batch call
@@ -163,13 +163,6 @@ def replay(client, home, run_dir, record):
     except Exception:
         client.delete_run(run_id)
         raise
-
-
-def indexed_runs(index):
-    """(job ID, run directory) for each pointer in the run index."""
-    for pointer in sorted(index.iterdir()) if index.is_dir() else []:
-        if not pointer.name.endswith(".tmp"):
-            yield pointer.name, Path(pointer.read_text().strip())
 
 
 def dataset_runs(runs_folders):

@@ -20,7 +20,7 @@ import dask
 import dask.array as da
 import tifffile
 
-from iris.record import iris_home, run_index
+from iris.record import indexed_runs, iris_home, run_index
 from iris.volume import open_volume
 
 
@@ -45,17 +45,18 @@ def load_run(run_dir):
 
 
 def recent_runs(home, limit=10):
-    """Up to `limit` finished runs in the run index under `home`, newest
-    first, as (run directory, its run.json) pairs. A run whose run directory
-    or run.json has since gone is left out."""
+    """Up to `limit` runs in the run index under `home` that finished, so
+    have a whole label volume, newest first, as (run directory, its
+    run.json) pairs. A run whose run directory or run.json has since gone
+    is left out."""
     runs = []
-    index = run_index(home)
-    for pointer in index.iterdir() if index.is_dir() else ():
-        run_dir = Path(pointer.read_text().strip())
+    for _, run_dir in indexed_runs(run_index(home)):
         try:
-            runs.append((run_dir, json.loads((run_dir / "run.json").read_text())))
+            run = json.loads((run_dir / "run.json").read_text())
         except (OSError, ValueError):
             continue
+        if run.get("status") == "FINISHED":
+            runs.append((run_dir, run))
     runs.sort(key=lambda r: r[1].get("end_time", 0), reverse=True)
     return runs[:limit]
 
@@ -70,7 +71,7 @@ def pick_run(home):
     print("Recent runs, newest first:")
     for n, (run_dir, run) in enumerate(recent, 1):
         ended = datetime.fromtimestamp(run.get("end_time", 0)).strftime("%Y-%m-%d %H:%M")
-        print(f"{n:3}  {ended}  {run.get('status', '?'):8}  {run.get('experiment', '?')}  {run_dir}")
+        print(f"{n:3}  {ended}  {run.get('experiment', '?')}  {run_dir}")
     while True:
         try:
             answer = input(f"Run to view (1-{len(recent)}, Enter to quit): ").strip()
@@ -92,16 +93,16 @@ def intensity_range(run_dir):
         return None
 
 
-def open_viewer(run_dir, show=True):
-    """A napari viewer with the run's volume and its labels over it, on the
-    middle slice. napari.run() then hands control to its window."""
+def show(run_dir):
+    """Open napari on the run's volume with its label volume over it, until
+    its window is closed."""
     import napari  # slow to import, so only once there is a run to show
 
     raw, labels = load_run(run_dir)
-    viewer = napari.Viewer(title=f"iris-view {run_dir}", show=show)
+    viewer = napari.Viewer(title=f"iris-view {run_dir}")
     viewer.add_image(raw, name="volume", contrast_limits=intensity_range(run_dir))
     viewer.add_labels(labels, name="labels", opacity=0.5)
-    return viewer
+    napari.run()
 
 
 def main():
@@ -114,10 +115,7 @@ def main():
         sys.exit(f"No label volume at {run_dir / 'labels.tif'}: is the run still going, or did it fail?"
                  " Its log is next to it in runs/.")
     print(f"Opening {run_dir} in napari. Close its window to quit.")
-    import napari
-
-    open_viewer(run_dir)
-    napari.run()
+    show(run_dir)
 
 
 if __name__ == "__main__":

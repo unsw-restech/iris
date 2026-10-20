@@ -40,6 +40,14 @@ def run_index(home):
     return home / "run-index"
 
 
+def indexed_runs(index):
+    """(job ID, run directory) for each pointer in the run index, leaving
+    out pointers still being written."""
+    for pointer in sorted(index.iterdir()) if index.is_dir() else []:
+        if not pointer.name.endswith(".tmp"):
+            yield pointer.name, Path(pointer.read_text().strip())
+
+
 def job_id():
     """The PBS job number (9544838 of 9544838.kman...), or None outside PBS."""
     full = os.environ.get("PBS_JOBID", "")
