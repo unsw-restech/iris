@@ -1,0 +1,23 @@
+#!/bin/bash
+# Wait for GitHub Pages to serve a pushed change: poll one page of the live
+# site until it contains a marker string from the new version.
+#
+#   bin/pageswait <path> <marker>
+#   bin/pageswait workflows/microct-2d-segmentation/ 'What a run writes'
+#
+# <path> is relative to https://patricktung.github.io/iris/ ("" is the
+# catalogue). Each request carries a cache-buster. Exits 0 once the marker
+# appears, printing how long that took, or 1 after three minutes.
+
+[ $# -eq 2 ] || { echo "usage: bin/pageswait <path> <marker>" >&2; exit 2; }
+url="https://patricktung.github.io/iris/$1"
+
+for i in $(seq 18); do
+    if curl -fsS "$url?t=$(date +%s)" 2>/dev/null | grep -qF -- "$2"; then
+        echo "live after $(( (i - 1) * 10 ))s: $url"
+        exit 0
+    fi
+    sleep 10
+done
+echo "pageswait: '$2' not on $url after 3 min" >&2
+exit 1

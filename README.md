@@ -20,6 +20,7 @@ iris/
 ├── bin/
 │   ├── check                         # Every check to pass before committing
 │   ├── ciwait                        # Wait for a pushed commit's CI run (desktop)
+│   ├── pageswait                     # Wait for the live site to serve a change (desktop)
 │   ├── iris-import                   # Import new runs into your MLflow tracking store
 │   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
 │   ├── iris-rebuild                  # Rebuild a lost tracking store from run directories

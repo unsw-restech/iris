@@ -13,6 +13,10 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 - **`hello-world` is the reference schema.** A form matches its structure, field order and comments. The one deliberate difference: imaging forms fail `check:` with `oc_assert` (AGENTS.md says why).
 - **Defaults come from a real run.** Memory, walltime and epoch defaults cite the job that measured them, as `microct-2d-segmentation` does.
 
+## Pages
+
+- **The guide owns staging and viewing.** A workflow page links `../../guide/#stage` and `#view` and keeps only what is specific to its workflow (its checklist, its dataset rules). Restating the guide's steps, layout tree or Virtual Desktop size is a copy that drifts. `bin/check` catches the host, quota and WinSCP markers; the rest is judgement.
+
 ## Job code
 
 - **A record step warns, a run step fails.** Writing the run record or dataset record only warns on failure; anything the run's own result depends on stops the job.
