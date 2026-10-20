@@ -10,7 +10,7 @@ IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and i
 IRIS_github_pages\               <- parent directory, not a git repo
 ├── available-modules.md         <- what is installed on Katana
 └── iris\                        <- the git repo (github.com/PatrickTung/iris)
-    └── _archive\                <- retired forms, kept but never served
+    └── _archive\                <- retired forms, public but never served by OpenComposer
 ```
 
 Working plans go in `plan.md` at the repo root. Delete it when the work is done.
@@ -45,7 +45,7 @@ module load ruby/3.2.0 && ruby workflows/microct-2d-segmentation/tests/test_form
 
 ## Deploying
 
-Pushing `main` is an immediate public deploy to https://patricktung.github.io/iris/. Confirm with Patrick before pushing unless they've already said to. If auto mode blocks the push, give Patrick the exact `! git push origin <sha>:main` to run, then take the dev-clone pull and the live check yourself. Pages takes 40–60 seconds; verify against the live site with `bin/pageswait <path> <marker>`, run in the background.
+Pushing `main` is an immediate public deploy to https://patricktung.github.io/iris/. Confirm with Patrick before pushing unless they've already said to. If auto mode blocks the push, give Patrick the exact `! git push origin <sha>:main` to run, then take the dev-clone pull and the live check yourself. Live-check every push on one changed file outside `.github/`: Pages serves every other file, `_archive/` and dotfiles included (`.nojekyll`). Pages takes 40–60 seconds; run `bin/pageswait <path> <marker>` in the background.
 
 - **CI:** `bin/ciwait <commit>` waits for that commit's `check` run and prints the failed log. Push a change to `.github/` to a branch first. Merge `origin/main` into that branch before its run, so the green run is on the commit `main` becomes, then push that commit to `main`.
 - **Dev clone:** after pushing a change to `workflows/` or `lib/`, run `ssh katana 'cd ~/iris && git pull --ff-only'` as its own command, so the `ssh katana` allow rule matches it. That pull is the OpenComposer deploy.
