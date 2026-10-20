@@ -79,7 +79,7 @@ The workflow-author checklist. Work on a branch; the dev clone on Katana can che
 2. **Change the slug everywhere**: the folder name, `#PBS -A iris-<slug>` in the form's script header, the Experiment name default and the job name default. The folder name is also the OpenComposer URL segment.
 3. **Set the environment version** in the form's `ENV_DIR`. If the workflow needs packages the environment lacks, build version *n+1* (`envs/imaging/README.md`); never change a built version.
 4. **Set the fields and `check:` rules** in `form.yml.erb`, and the entry point under `src/`. Defaults for memory, walltime and epochs cite the timing run that measured them.
-5. **Write the page text** in `index.html`, linking the guide (`../../guide/#stage` and `../../guide/#view`) for the full staging and viewing steps. Use relative links only: root-absolute links like `href="/"` resolve outside `/iris/` and 404.
+5. **Write the page text** in `index.html`, linking the guide (`../../guide/#stage` and `../../guide/#view`) for staging and viewing rather than repeating its steps. Use relative links only: root-absolute links like `href="/"` resolve outside `/iris/` and 404.
 6. **Add the catalogue card** to `index.html`, with its modality tag and compute tag. A new modality also needs a `.card-domain.<x>` style.
 7. **Test on dev**: `bin/check` clean, then from the dev clone the form opens, `check:` rejects one wrong dataset folder, and one real run finishes, appears in MLflow after `iris-compare` and opens with its `iris-view` line. Cite the job ID.
 8. **Merge to `main` and pull** the dev clone (`git pull --ff-only`). Pushing `main` publishes the site.
@@ -96,7 +96,7 @@ The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points
 
 `v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch.
 
-The catalogue is **imaging only**. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. `hello-world` sits outside the catalogue as onboarding.
+The catalogue is **imaging only**. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**. `hello-world` sits outside the catalogue as onboarding.
 
 | Tier | Workflows | What exists |
 |---|---|---|
