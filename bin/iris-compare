@@ -4,9 +4,8 @@
 # Firefox at it (lib/iris/compare.py). Run it in a terminal in a Virtual
 # Desktop and leave the terminal open; Ctrl+C there stops MLflow.
 #
-# Runs with the imaging environment the form pins (keep it in step with the
-# form, bin/iris-import, bin/iris-rebuild and bin/iris-view), or another
-# with ENV_DIR=...
+# Runs with the imaging environment the form pins (bin/check keeps them
+# the same), or another with ENV_DIR=...
 # Unbuffered (-u), so its lines keep their order when logged or piped.
 # Keep it free of `set -u`: the module scripts reference unset variables.
 

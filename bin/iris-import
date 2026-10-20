@@ -4,10 +4,9 @@
 # Virtual Desktop or a job, not on a login node. bin/iris-compare runs it
 # before it opens MLflow.
 #
-# Runs with the imaging environment the form pins (keep it in step with the
-# form, bin/iris-compare, bin/iris-rebuild and bin/iris-view), or another
-# with ENV_DIR=... Keep it free of `set -u`: the module scripts reference
-# unset variables.
+# Runs with the imaging environment the form pins (bin/check keeps them
+# the same), or another with ENV_DIR=... Keep it free of `set -u`: the
+# module scripts reference unset variables.
 
 set -eo pipefail
 ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"

@@ -212,6 +212,11 @@ class SyntheticRun(unittest.TestCase):
         self.assertAlmostEqual(intensity["std"], float(self.vol.std()), places=6)
         self.assertEqual(sorted(intensity), ["max", "mean", "min", "std"])
 
+    def test_the_volume_reader_chunks_one_slice_per_chunk(self):
+        # Whole-block chunks made every slice read its whole block, in the job
+        # and in iris-view alike (740 MB to read one 18 MB slice, #31).
+        self.assertEqual(set(open_volume(self.dataset).data.chunks[0]), {1})
+
     def test_iris_view_loads_the_raw_volume_as_inference_read_it_and_the_labels(self):
         raw, labels = load_run(self.run_dir)
         self.assertEqual(raw.dtype, np.uint16)

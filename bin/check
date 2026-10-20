@@ -60,6 +60,16 @@ job_library() {
 }
 check "imaging forms source the job library" job_library
 
+# The bin/ wrappers default to the imaging environment the form pins, so
+# every ENV_DIR path in them and the forms is the same one.
+env_dir_pins() {
+    local pins
+    pins=$(grep -H '^ *ENV_DIR=' bin/iris-* workflows/*/form.yml.erb | tr -d '\r' |
+        sed -E 's/^([^:]*):[^=]*="?(\$\{ENV_DIR:-)?([^"}]*).*/\3  \1/')
+    [ "$(cut -d' ' -f1 <<< "$pins" | sort -u | wc -l)" -le 1 ] || echo "$pins"
+}
+check "one imaging environment across forms and bin/ wrappers" env_dir_pins
+
 # Print form lines that break a rule, by top-level section: no heredoc in
 # script: (every line there stays indented), no Ruby #{} in check: (it
 # collides with OpenComposer's own substitution).
