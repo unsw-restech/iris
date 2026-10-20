@@ -37,7 +37,8 @@ def _volume_variable(ds, path):
 
 def open_volume(dataset):
     """Read every .nc block in <dataset>/volume/, in filename order, as one
-    lazy (z, y, x) DataArray. Nothing is loaded until it is indexed."""
+    lazy (z, y, x) DataArray. Nothing is loaded until it is indexed, and each
+    z-slice is its own chunk, so reading one slice reads only that slice."""
     files = sorted(Path(dataset, "volume").glob("*.nc"))
     if not files:
         raise FileNotFoundError(f"No .nc files in {Path(dataset, 'volume')}")
@@ -45,7 +46,10 @@ def open_volume(dataset):
     for f in files:
         # decode_cf=False: no fill-value masking (netCDF's default fill for
         # `short` is a real intensity once read as unsigned) and no float casts.
-        var = _volume_variable(xr.open_dataset(f, decode_cf=False, chunks={}), f)
-        blocks.append(var.rename(dict(zip(var.dims, ("z", "y", "x")))))
+        var = _volume_variable(xr.open_dataset(f, decode_cf=False), f)
+        # Chunked per slice from the file itself: with whole-block chunks, the
+        # unsigned view below stops dask narrowing a slice read to that slice,
+        # so each slice read a whole block (740 MB to read one 18 MB slice).
+        blocks.append(var.rename(dict(zip(var.dims, ("z", "y", "x")))).chunk({"z": 1}))
     vol = xr.concat(blocks, dim="z")
     return vol.copy(data=to_intensity(vol.data))

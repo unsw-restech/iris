@@ -29,6 +29,7 @@ ENTRY = WORKFLOW / "src" / "run.py"
 sys.path.insert(0, str(LIB))
 from iris.compare import start_ui  # noqa: E402
 from iris.tracking import StoreExists, import_runs, rebuild, store_uri  # noqa: E402
+from iris.view import load_run, recent_runs  # noqa: E402
 from iris.volume import open_volume  # noqa: E402
 
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
@@ -210,6 +211,16 @@ class SyntheticRun(unittest.TestCase):
         self.assertAlmostEqual(intensity["mean"], float(self.vol.mean()), places=6)
         self.assertAlmostEqual(intensity["std"], float(self.vol.std()), places=6)
         self.assertEqual(sorted(intensity), ["max", "mean", "min", "std"])
+
+    def test_iris_view_loads_the_raw_volume_as_inference_read_it_and_the_labels(self):
+        raw, labels = load_run(self.run_dir)
+        self.assertEqual(raw.dtype, np.uint16)
+        np.testing.assert_array_equal(np.asarray(raw), self.vol)  # values above 32767 included
+        self.assertEqual(labels.shape, SHAPE)
+        self.assertEqual(labels.dtype, np.uint8)
+        expected = tifffile.imread(self.run_dir / "labels.tif")
+        np.testing.assert_array_equal(np.asarray(labels[3]), expected[3])  # one slice on its own
+        np.testing.assert_array_equal(np.asarray(labels), expected)
 
     def test_run_index_points_at_the_run_directory(self):
         pointer = self.iris_home / "run-index" / "1234"
@@ -489,6 +500,34 @@ class Rebuild(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             rebuild(store, index_home=self.tmp / "nowhere")
         self.assertFalse((store / "tracking.db").exists())
+
+
+class RecentRuns(unittest.TestCase):
+    """What iris-view lists when it is given no run directory."""
+
+    def test_finished_runs_newest_first_from_the_run_index_once_each_skipping_runs_since_deleted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            index = tmp / "iris" / "run-index"
+            index.mkdir(parents=True)
+            for job_id, end_time in (("1001", 30.0), ("1002", 10.0), ("1003", 20.0), ("1004", 40.0)):
+                run_dir = tmp / "dataset" / "runs" / job_id
+                write_run_dir(run_dir, "bone", job_id, 0.01)
+                run = json.loads((run_dir / "run.json").read_text())
+                (run_dir / "run.json").write_text(json.dumps(dict(run, end_time=end_time)))
+                (index / job_id).write_text(str(run_dir) + "\n")
+            (index / "1005").write_text(str(tmp / "deleted" / "runs" / "1005") + "\n")
+            failed = tmp / "dataset" / "runs" / "1006"  # newest, but with no label volume to show
+            write_run_dir(failed, "bone", "1006", 0.01)
+            run = json.loads((failed / "run.json").read_text())
+            (failed / "run.json").write_text(json.dumps(dict(run, status="FAILED", end_time=50.0)))
+            (index / "1006").write_text(str(failed) + "\n")
+            (index / "1004.tmp").write_text(str(tmp / "dataset" / "runs" / "1004") + "\n")  # a pointer mid-write
+            recent = recent_runs(tmp / "iris", limit=3)
+            self.assertEqual([run_dir.name for run_dir, _ in recent], ["1004", "1001", "1003"])
+            self.assertEqual([run_dir.name for run_dir, _ in recent_runs(tmp / "iris")], ["1004", "1001", "1003", "1002"])
+            self.assertEqual(recent[0][1]["experiment"], "bone")
+            self.assertEqual(recent_runs(tmp / "nowhere"), [])
 
 
 class UnwritableRunIndex(unittest.TestCase):

@@ -6,8 +6,9 @@
 # node. `bin/iris-rebuild --help` lists its options.
 #
 # Runs with the imaging environment the form pins (keep it in step with the
-# form, bin/iris-import and bin/iris-compare), or another with ENV_DIR=...
-# Keep it free of `set -u`: the module scripts reference unset variables.
+# form, bin/iris-import, bin/iris-compare and bin/iris-view), or another
+# with ENV_DIR=... Keep it free of `set -u`: the module scripts reference
+# unset variables.
 
 set -eo pipefail
 ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
