@@ -45,7 +45,7 @@ module load ruby/3.2.0 && ruby workflows/microct-2d-segmentation/tests/test_form
 
 ## Deploying
 
-Pushing `main` is an immediate public deploy to https://patricktung.github.io/iris/. Confirm with Patrick before pushing unless they've already said to. Auto mode blocks the push either way: give Patrick the exact `! git push origin <sha>:main` to run, then take the dev-clone pull and the live check yourself. Pages takes 40–60 seconds; verify against the live site.
+Pushing `main` is an immediate public deploy to https://patricktung.github.io/iris/. Confirm with Patrick before pushing unless they've already said to. If auto mode blocks the push, give Patrick the exact `! git push origin <sha>:main` to run, then take the dev-clone pull and the live check yourself. Pages takes 40–60 seconds; verify against the live site.
 
 - **CI:** `bin/ciwait <commit>` waits for that commit's `check` run and prints the failed log. Push a change to `.github/` to a branch first. Merge `origin/main` into that branch before its run, so the green run is on the commit `main` becomes, then push that commit to `main`.
 - **Dev clone:** after pushing a change to `workflows/` or `lib/`, run `ssh katana 'cd ~/iris && git pull --ff-only'`. That pull is the OpenComposer deploy.
