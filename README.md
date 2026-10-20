@@ -22,11 +22,12 @@ iris/
 │   ├── iris-import                   # Import new runs into your MLflow tracking store
 │   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
 │   ├── iris-rebuild                  # Rebuild a lost tracking store from run directories
+│   ├── iris-view                     # View a run's labels over its volume in napari (in a Virtual Desktop)
 │   └── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
-│   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild
+│   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html
