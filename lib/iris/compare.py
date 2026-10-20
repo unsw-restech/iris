@@ -23,7 +23,10 @@ from iris.record import iris_home  # noqa: E402
 from iris.tracking import artifact_root, import_runs, store_uri, summary  # noqa: E402
 
 HOST = "127.0.0.1"
-START_TIMEOUT = 120  # seconds; a guess, not yet measured in a Virtual Desktop
+# Seconds. In batch jobs, mlflow ui answered in 15 s on k180 with mlflow
+# already read once (job 9571403) and in roughly 50-60 s on k192 (job
+# 9553213); this is twice the slowest.
+START_TIMEOUT = 120
 
 
 def free_port():

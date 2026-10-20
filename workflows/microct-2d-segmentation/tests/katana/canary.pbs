@@ -1,0 +1,16 @@
+#!/bin/bash
+#PBS -N iris_canary
+#PBS -A iris-microct-2d-segmentation
+#PBS -l select=1:ncpus=1:mem=1gb
+#PBS -l walltime=0:05:00
+#PBS -j oe
+# Can a compute node read the pinned environment? `import mlflow` takes
+# about 20 s (job 9571395); exit 124 means it hung past 120 s, so stop
+# submitting and tell Patrick (docs/agents/katana-test-run.md).
+#
+#   qsub -m abe -v PYTHONUNBUFFERED=1 canary.pbs
+ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
+. /etc/profile.d/modules.sh; module load python/3.13.2
+echo "host $(hostname) $(date +%T)"
+time timeout 120 "$ENV_DIR/bin/python" -X faulthandler -c 'import mlflow; print("mlflow", mlflow.__version__)'
+echo "exit $? $(date +%T)"
