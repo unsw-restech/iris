@@ -128,6 +128,9 @@ shellcheck_all() {
 }
 check "shellcheck" shellcheck_all
 
+# The desktop helpers that wrap ssh, against a fake ssh on PATH.
+check "qwait test" bash tests/bin/test_qwait.sh
+
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
 
