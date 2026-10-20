@@ -4,6 +4,10 @@
 # each failure and exits 1 if there was any.
 #
 #   bin/check
+#   bin/check <text>    run only the checks whose name contains <text>
+#                       (the name a failure prints after FAIL:, e.g.
+#                       "card status"), for a quick loop while editing;
+#                       commit on a full run
 #
 # The synthetic-dataset test runs in the desktop CPU venv, which
 # envs/imaging/desktop.sh builds (IRIS_PYTHON names another interpreter).
@@ -11,12 +15,22 @@
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 PYTHON="${IRIS_PYTHON:-$HOME/.venvs/iris-imaging/bin/python}"
+[ $# -le 1 ] || { echo "usage: bin/check [<text>]; quote a name with spaces" >&2; exit 2; }
+only="$1"
 failed=0
+ran=0
+
+# Whether the check named $1 is selected by the <text> argument; counts
+# it in $ran if so.
+selected() {
+    [[ "$1" == *"$only"* ]] && ran=$((ran + 1))
+}
 
 # Run a check; any output is its failure.
 check() {
     local name="$1"; shift
     local out
+    selected "$name" || return 0
     out="$("$@" 2>&1)"
     if [ -n "$out" ]; then
         echo "FAIL: $name"
@@ -181,20 +195,30 @@ check "shellcheck" shellcheck_all
 
 # The desktop helpers that wrap ssh, against a fake ssh on PATH.
 check "qwait test" bash tests/bin/test_qwait.sh
+# The live-site wait, against a fake curl on PATH.
+check "pageswait test" bash tests/bin/test_pageswait.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
 
-if [ -x "$PYTHON" ]; then
-    out="$("$PYTHON" -m unittest discover -s workflows/microct-2d-segmentation/tests 2>&1)" || {
-        echo "FAIL: synthetic-dataset test"
-        echo "$out" | tail -40 | sed 's/^/  /'
+if selected "synthetic-dataset test"; then
+    if [ -x "$PYTHON" ]; then
+        out="$("$PYTHON" -m unittest discover -s workflows/microct-2d-segmentation/tests 2>&1)" || {
+            echo "FAIL: synthetic-dataset test"
+            echo "$out" | tail -40 | sed 's/^/  /'
+            failed=1
+        }
+    else
+        echo "FAIL: synthetic-dataset test: no venv at $PYTHON; build it with envs/imaging/desktop.sh"
         failed=1
-    }
-else
-    echo "FAIL: synthetic-dataset test: no venv at $PYTHON; build it with envs/imaging/desktop.sh"
-    failed=1
+    fi
 fi
 
-[ "$failed" = 0 ] && echo "All checks passed."
+if [ "$ran" = 0 ]; then
+    echo "No check name contains '$only'."
+    exit 2
+fi
+if [ "$failed" = 0 ]; then
+    if [ -z "$only" ]; then echo "All checks passed."; else echo "Checks matching '$only' passed ($ran run)."; fi
+fi
 exit "$failed"
