@@ -9,9 +9,9 @@
 # by headSha: the desktop's gh 2.4.0 has no `gh run list --commit`.
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
+git fetch -q origin || exit 2
 sha="$(git rev-parse "${1:-HEAD}")" || exit 2
 
-git fetch -q origin || exit 2
 if [ -z "$(git branch -r --contains "$sha" 2>/dev/null)" ]; then
     echo "ciwait: ${sha:0:7} is not on origin; push it first" >&2
     exit 2
