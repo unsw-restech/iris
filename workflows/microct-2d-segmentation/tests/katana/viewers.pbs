@@ -1,0 +1,89 @@
+#!/bin/bash
+#PBS -N iris_viewers
+#PBS -A iris-microct-2d-segmentation
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=0:10:00
+#PBS -j oe
+# The guide's Fiji and ParaView steps (guide/index.html, "Open the label
+# volume in Fiji" and "A region in 3D with ParaView"), headless, on a run's
+# labels.tif: the readers, file formats and properties they name. Run it
+# before a Virtual Desktop session (docs/agents/katana-test-run.md).
+#
+#   qsub -m abe -v T=/srv/scratch/$USER/iris-test-<n>,PYTHONUNBUFFERED=1 viewers.pbs
+#
+# Add RUN=<run directory> to -v for another run than the fixture's
+# (docs/agents/katana-test-run.md). The crop goes in T/viewers, which must
+# not exist yet. Prints PASS or FAIL per step; exits 1 on any FAIL. 23 s and
+# 2 GB on the fixture (job 9579880).
+: "${T:?pass T=<scratch test folder> with qsub -v}"
+RUN="${RUN:-/srv/scratch/z3224749/iris-fixtures/microct-sample/runs/9573671}"
+[ -f "$RUN/labels.tif" ] || { echo "No labels.tif in $RUN"; exit 1; }
+OUT=$T/viewers
+[ -e "$OUT" ] && { echo "$OUT exists: it must be fresh"; exit 1; }
+mkdir -p "$OUT" || exit 1
+. /etc/profile.d/modules.sh
+module load fiji/20240614-2117 paraview/6.0.0
+unset DISPLAY
+echo "host $(hostname) $(date +%T); run $RUN"
+
+# Fiji: Bio-Formats reads the slices as time points (T), as the guide says.
+# The guide's virtual stack, then its range import on 3 slices, Image > Crop
+# and Save As Tiff.
+# The Importer's dialog can't build headless (VerifyError, job 9579832), so
+# this sets its options through the API; `in` in the package name is a Groovy
+# keyword, hence Class.forName.
+cat > "$OUT/viewers.groovy" <<EOF
+import ij.IJ
+import loci.plugins.BF
+def Options = Class.forName("loci.plugins.in.ImporterOptions")
+def v = Options.newInstance()
+v.setId("$RUN/labels.tif")
+v.setVirtual(true)
+def virt = BF.openImagePlus(v)[0]
+println "virtual stack " + virt.getStack().isVirtual() + " frames " + virt.getNFrames()
+virt.close()
+def o = Options.newInstance()
+o.setId("$RUN/labels.tif")
+o.setSpecifyRanges(true)
+o.setTBegin(0, 599); o.setTEnd(0, 601); o.setTStep(0, 1)
+def imp = BF.openImagePlus(o)[0]
+println "bio-formats frames " + imp.getNFrames() + " slices " + imp.getNSlices()
+imp.setRoi(1000, 1000, 500, 500)
+IJ.run(imp, "Crop", "")
+println "crop " + imp.getWidth() + "x" + imp.getHeight() + "x" + imp.getStackSize()
+IJ.saveAs(imp, "Tiff", "$OUT/crop.tif")
+EOF
+timeout 300 ImageJ-linux64 --headless --console --run "$OUT/viewers.groovy" 2>&1 | grep -v '^\[INFO\]' | tee "$OUT/fiji.log"
+fail=0
+expect() {  # expect <log> <grep -E pattern> <step>
+    if grep -qE "$2" "$1"; then echo "PASS $3"; else echo "FAIL $3"; fail=1; fi
+}
+expect "$OUT/fiji.log" 'virtual stack true frames 1280' "Bio-Formats virtual stack over T"
+expect "$OUT/fiji.log" 'bio-formats frames 3 slices 1' "Bio-Formats range import over T"
+expect "$OUT/fiji.log" 'crop 500x500x3' "Crop and Save As"
+
+# ParaView: TIFF Series Reader with Use Custom Data Spacing, then Contour.
+SPACING=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["volume"]["voxel_spacing"]["xyz"][0])' "$RUN/dataset.json")
+[ -n "$SPACING" ] || { echo "FAIL no voxel spacing in $RUN/dataset.json"; exit 1; }
+cat > "$OUT/viewers.py" <<'EOF'
+import sys
+from paraview.simple import TIFFSeriesReader, Contour
+crop, spacing = sys.argv[1], float(sys.argv[2])
+r = TIFFSeriesReader(FileNames=[crop])
+r.UseCustomDataSpacing = 1
+r.CustomDataSpacing = [spacing] * 3
+r.UpdatePipeline()
+info = r.GetDataInformation()
+print("reader extent", info.GetExtent())
+print("spacing applied", all(abs(info.GetBounds()[2 * i + 1] - e * spacing) < 1e-6
+                             for i, e in enumerate(info.GetExtent()[1::2])))
+c = Contour(Input=r, ContourBy=["POINTS", r.PointData.keys()[0]], Isosurfaces=[2.5])
+c.UpdatePipeline()
+print("contour points", c.GetDataInformation().GetNumberOfPoints())
+EOF
+timeout 300 pvpython --force-offscreen-rendering "$OUT/viewers.py" "$OUT/crop.tif" "$SPACING" 2>&1 | tee "$OUT/paraview.log"
+expect "$OUT/paraview.log" 'reader extent \(0, 499, 0, 499, 0, 2\)' "TIFF Series Reader reads the crop as a volume"
+expect "$OUT/paraview.log" 'spacing applied True' "Use Custom Data Spacing at $SPACING"
+expect "$OUT/paraview.log" 'contour points [1-9]' "Contour at 2.5"
+echo "done $(date +%T)"
+exit $fail

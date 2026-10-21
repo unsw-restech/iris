@@ -63,7 +63,7 @@
     <p>Paste the <code>iris-compare</code> line. It adds your new runs to your tracking store, <code>/srv/scratch/zID/iris/tracking.db</code>, then opens MLflow in Firefox inside the desktop. <!-- MLflow 3.17.1 in envs/imaging/1; recheck these labels when it changes. -->On the left, switch from <strong>GenAI</strong> to <strong>Model Training</strong>, then click <strong>Runs</strong>: each run is named after its job ID, under its experiment. Select runs and click <strong>Compare</strong> to see their settings and per-class Dice and IoU side by side. Leave the terminal open while you use MLflow; Ctrl+C there stops it.</p>
     <p>Your tracking store is created the first time you run <code>iris-compare</code>. If it is ever lost, <code>iris-rebuild</code>, in the same folder as <code>iris-view</code>, rebuilds it from your run directories.</p>
 
-    <!-- Fiji and ParaView steps run as written in PatrickTung/iris#46 (2026-10-21). labels.tif is a BigTIFF: ImageJ's own TIFF Virtual Stack reads it as 0 x 0, Bio-Formats opens it. Bio-Formats reads its slices as time points, hence "T" below. -->
+    <!-- Fiji and ParaView steps run as written in PatrickTung/iris#46 (2026-10-21). labels.tif is a BigTIFF: ImageJ's own TIFF Virtual Stack reads it as 0 x 0, Bio-Formats opens it. Bio-Formats reads its slices as time points, hence "T" below. workflows/microct-2d-segmentation/tests/katana/viewers.pbs checks these readers headless. -->
     <h3 class="sub">Open the label volume in Fiji</h3>
     <ol>
       <li>In the desktop's terminal, run <code>module load fiji/20240614-2117</code>, then start Fiji with <code>ImageJ-linux64</code>.</li>

@@ -358,12 +358,14 @@ def train_and_segment(args, record, pairs, n_classes, vol, device, intensity):
         dice, iou = score(model, images[val_idx], labels[val_idx], n_classes, args.batch_size, device)
         record.log_epoch(epoch, train_loss=loss, dice=dice, iou=iou)
         print(f"epoch {epoch}/{args.epochs}  loss {loss:.4f}  dice {dice}")
+    trained = time.time()
+    print(f"Set up and trained {args.epochs} epochs in {trained - started:.0f} s")
 
     torch.save({"state_dict": model.state_dict(), "n_classes": n_classes,
                 "intensity_mean": mean, "intensity_std": std}, run_dir / "model.pt")
 
     write_label_volume(run_dir / "labels.tif", segment(model, vol, mean, std, device, intensity), vol.shape)
-    print(f"Wrote {run_dir / 'labels.tif'} {tuple(vol.shape)} in {time.time() - started:.0f} s")
+    print(f"Wrote {run_dir / 'labels.tif'} {tuple(vol.shape)} in {time.time() - trained:.0f} s")
 
 
 if __name__ == "__main__":

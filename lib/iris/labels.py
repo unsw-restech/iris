@@ -2,6 +2,11 @@
 
 Each z-slice is its own deflate-compressed page, so viewers (napari, Fiji)
 can read one slice at a time without decompressing the volume.
+
+The guide's Fiji and ParaView steps depend on this format: ImageJ's own TIFF
+reader can't open BigTIFF, so the guide uses Bio-Formats. After a format
+change, rerun workflows/microct-2d-segmentation/tests/katana/viewers.pbs and
+recheck the guide's "Open the label volume in Fiji" in guide/index.html.
 """
 
 import numpy as np
