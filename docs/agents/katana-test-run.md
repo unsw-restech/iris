@@ -45,7 +45,7 @@ The form's `#PBS -o` is a folder, so the log is `<dataset>/runs/<job number>.kma
 
 Wait with `bin/qwait <job id>…` from the desktop, run in the background. When each job finishes, it prints `Exit_status`, the real log path and the log's last lines. It exits 2 at once if a job can't be queried.
 
-Timing on a V100 for the sample: about 9 s per epoch of training and about 1370 s of inference (job 9551129), within the form's 2 h default.
+Timing on a V100 for the sample at the form's defaults (job 9577519, 50 epochs): 16 min in all, about 6 s per epoch of training and about 605 s of inference, split by the run directory's file times. The log's "Wrote labels.tif ... in N s" counts training and inference together: 900 s there. Before #31 read one slice per chunk, 5 epochs and inference took 1370 s (job 9551129), nearly all of it inference. Both fit the form's 2 h default.
 
 ## 4. Import and inspect
 
