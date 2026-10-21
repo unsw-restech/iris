@@ -9,10 +9,12 @@ in the desktop CPU venv (envs/imaging/desktop.sh):
 
 import json
 import os
+import signal
 import socket
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from datetime import datetime
 from pathlib import Path
@@ -95,6 +97,12 @@ def two_class_labels():
 def run_entry(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au", **overrides):
     """Run the entry point as a job would, with PBS's variables set and the
     IRIS home (run index and tracking store) pointed at `iris_home`."""
+    cmd, env = entry_command(dataset, run_dir, iris_home, job_id, **overrides)
+    return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=600)
+
+
+def entry_command(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au", **overrides):
+    """The command line and environment run_entry() runs the entry point with."""
     args = {"epochs": 1, "patch_size": 32, "lr": 0.001, "val_percent": 20, "batch_size": 4, "seed": ""}
     args.update(overrides)
     cmd = [
@@ -108,7 +116,7 @@ def run_entry(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au
     ]
     env = dict(os.environ, PYTHONPATH=str(LIB), CUDA_VISIBLE_DEVICES="",
                IRIS_HOME=str(iris_home), PBS_JOBID=job_id, PBS_QUEUE="cpuq")
-    return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=600)
+    return cmd, env
 
 
 class SyntheticRun(unittest.TestCase):
@@ -317,8 +325,7 @@ class Import(unittest.TestCase):
             (home / "run-index").mkdir(parents=True)
             (home / "run-index" / "777").write_text(str(bare) + "\n")
             self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
-            client = mlflow.MlflowClient(store_uri(home))
-            [run] = client.search_runs([client.get_experiment_by_name("bare").experiment_id])
+            _, run = only_run(home, "bare")
             self.assertEqual(run.inputs.dataset_inputs, [])
 
     def test_importing_again_adds_no_run(self):
@@ -505,6 +512,104 @@ class Rebuild(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             rebuild(store, index_home=self.tmp / "nowhere")
         self.assertFalse((store / "tracking.db").exists())
+
+
+def only_run(iris_home, experiment="microct-2d-segmentation"):
+    """A client on `iris_home`'s tracking store and the one run in `experiment`."""
+    client = mlflow.MlflowClient(store_uri(iris_home))
+    [run] = client.search_runs([client.get_experiment_by_name(experiment).experiment_id])
+    return client, run
+
+
+def logged_histories(run_dir):
+    """{metric: [(epoch, value)]} as the run logged them in metrics.json,
+    named as the importer names them."""
+    epochs = json.loads((run_dir / "metrics.json").read_text())["epochs"]
+    logged = {"train_loss": [(e["epoch"], e["train_loss"]) for e in epochs]}
+    for name in ("dice", "iou"):
+        for cls_ in ("1", "2"):
+            logged[f"{name}/{cls_}"] = [(e["epoch"], e[name][cls_]) for e in epochs if e[name][cls_] is not None]
+    return logged
+
+
+def imported_histories(client, run, names):
+    """{metric: [(step, value)]} for each of `names` as the tracking store holds them."""
+    return {name: [(m.step, m.value) for m in client.get_metric_history(run.info.run_id, name)] for name in names}
+
+
+def wait_for_first_epoch(job, metrics, timeout=300):
+    """Return once `metrics` holds an epoch; fail if `job` ends or time runs out first."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if job.poll() is not None:
+            raise AssertionError(f"the run ended before its first epoch: {job.stderr.read()}")
+        if metrics.exists() and json.loads(metrics.read_text())["epochs"]:
+            return
+        time.sleep(0.1)
+    raise AssertionError(f"no epoch in {metrics} after {timeout} s")
+
+
+class FailedRun(unittest.TestCase):
+    """A run that fails after training reaches MLflow as FAILED."""
+
+    def test_reaches_mlflow_with_its_params_and_metrics_so_far(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "dataset"
+            write_dataset(dataset, make_volume(), two_class_labels())
+            run_dir = dataset / "runs" / "1234"
+            (run_dir / "labels.tif").mkdir(parents=True)  # segmentation can't write the label volume
+            iris_home = Path(tmp) / "iris"
+            result = run_entry(dataset, run_dir, iris_home, epochs=2, seed="7")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("labels.tif", result.stderr)
+            self.assertTrue((run_dir / "model.pt").exists())  # it failed after training
+            self.assertEqual(json.loads((run_dir / "run.json").read_text())["status"], "FAILED")
+            self.assertEqual((iris_home / "run-index" / "1234").read_text(), str(run_dir.resolve()) + "\n")
+
+            self.assertEqual(import_runs(iris_home), {"imported": 1, "pending": 0})
+            client, run = only_run(iris_home)
+            self.assertEqual(run.info.run_name, "1234")
+            self.assertEqual(run.info.status, "FAILED")
+            self.assertEqual(run.data.params["seed"], "7")
+            self.assertEqual(run.data.params["epochs"], "2")
+            self.assertEqual(run.data.params["patch_size"], "32")
+            logged = logged_histories(run_dir)
+            self.assertEqual([epoch for epoch, _ in logged["train_loss"]], [1, 2])
+            self.assertEqual(imported_histories(client, run, logged), logged)
+
+
+class KilledRun(unittest.TestCase):
+    """A run sent SIGTERM mid-training, as walltime or qdel does, reaches
+    MLflow as KILLED with the epochs it got through."""
+
+    def test_reaches_mlflow_with_the_epochs_it_completed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "dataset"
+            write_dataset(dataset, make_volume(), two_class_labels())
+            run_dir = dataset / "runs" / "1234"
+            iris_home = Path(tmp) / "iris"
+            cmd, env = entry_command(dataset, run_dir, iris_home, epochs=10000)
+            job = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            try:
+                wait_for_first_epoch(job, run_dir / "metrics.json")
+                job.send_signal(signal.SIGTERM)
+                _, stderr = job.communicate(timeout=120)
+            finally:
+                job.kill()
+            self.assertEqual(job.returncode, 143, stderr)
+            self.assertEqual(json.loads((run_dir / "run.json").read_text())["status"], "KILLED")
+            completed = [e["epoch"] for e in json.loads((run_dir / "metrics.json").read_text())["epochs"]]
+            self.assertGreaterEqual(len(completed), 1)
+            self.assertLess(len(completed), 10000)
+            self.assertFalse((run_dir / "labels.tif").exists())
+
+            self.assertEqual(import_runs(iris_home), {"imported": 1, "pending": 0})
+            client, run = only_run(iris_home)
+            self.assertEqual(run.info.run_name, "1234")
+            self.assertEqual(run.info.status, "KILLED")
+            self.assertEqual(run.data.params["epochs"], "10000")
+            logged = logged_histories(run_dir)
+            self.assertEqual(imported_histories(client, run, logged), logged)
 
 
 class RecentRuns(unittest.TestCase):
