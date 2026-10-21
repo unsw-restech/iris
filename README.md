@@ -97,15 +97,14 @@ The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points
 
 `v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch.
 
-The catalogue is **imaging only**. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**. `hello-world` sits outside the catalogue as onboarding.
+The catalogue is **imaging only**. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**, which has no workflows at present. `hello-world` sits outside the catalogue as onboarding.
 
 | Tier | Workflows | What exists |
 |---|---|---|
-| **Run and verified** | `hello-world` (onboarding), `mnist-classification` (Teaching) | Page, form, job script, executed end to end |
-| **Run, browser run pending** | `microct-2d-segmentation` (microCT) | Page, form, job code. Its form's script ran on a V100 from the dev clone (job 9544838); a run submitted from the browser is #46 |
+| **Run and verified** | `hello-world` (onboarding), `mnist-classification` (Teaching), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
 
-The `hello-world` and `mnist-classification` forms moved into the repo on 2026-10-16 and have not yet run from a clone; their runs above were from the old out-of-repo copies.
+The `hello-world` and `mnist-classification` forms moved into the repo on 2026-10-16 and have not yet run from a clone; their runs above were from the old out-of-repo copies. `microct-2d-segmentation` ran from the browser through the dev clone (job 9577519, #46).
 
 IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`.
 
