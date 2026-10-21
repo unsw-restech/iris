@@ -133,7 +133,8 @@ card_links() {
 }
 check "broken card links" card_links
 
-# A card's status label follows its workflow's row in the README tier table.
+# A card's status label follows its workflow's row in the README tier table,
+# whose row titles are the tier names in label[] below.
 card_status() {
     local tiers
     tiers=$(tr -d '\r' < README.md | awk -F'|' '/^\| \*\*/ {
@@ -149,6 +150,15 @@ card_status() {
             for (i = 1; i <= n; i++) {
                 s = rows[i]; sub(/ .*/, "", s)
                 t = rows[i]; sub(/^[^ ]* /, "", t)
+                if (!(t in label)) {
+                    if (!(t in told)) {
+                        names = ""
+                        for (k in label) names = names (names == "" ? "" : "; ") k
+                        print "README.md: tier \"" t "\" is not one of: " names
+                    }
+                    told[t] = 1
+                    continue
+                }
                 want[s] = label[t]
             }
         }

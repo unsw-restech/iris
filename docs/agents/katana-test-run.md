@@ -45,13 +45,17 @@ The form's `#PBS -o` is a folder, so the log is `<dataset>/runs/<job number>.kma
 
 Wait with `bin/qwait <job id>…` from the desktop, run in the background. When each job finishes, it prints `Exit_status`, the real log path and the log's last lines. It exits 2 at once if a job can't be queried.
 
-Timing on a V100 for the sample at the form's defaults (job 9577519, 50 epochs): 16 min in all, about 6 s per epoch of training and about 605 s of inference, split by the run directory's file times. The log's "Wrote labels.tif ... in N s" counts training and inference together: 900 s there. Before #31 read one slice per chunk, 5 epochs and inference took 1370 s (job 9551129), nearly all of it inference. Both fit the form's 2 h default.
+Timing on a V100 for the sample at the form's defaults (job 9577519, 50 epochs): 16 min in all, about 6 s per epoch of training and about 605 s of inference, split by the run directory's file times. Logs now print the two as "Set up and trained ... in N s" and "Wrote labels.tif ... in N s"; in older logs, 9577519's included, the "Wrote" line counts both. Before #31 read one slice per chunk, 5 epochs and inference took 1370 s (job 9551129), nearly all of it inference. Both fit the form's 2 h default.
 
 ## 4. Import and inspect
 
-A second job runs `bin/iris-import` twice against the same `IRIS_HOME`, expecting `Imported 1`, then `Imported 0`. It then prints what the ticket asks about, through `MlflowClient(store_uri(Path(IRIS_HOME)))` in the pinned environment `/srv/scratch/katana_ai/iris/envs/imaging/1`, after `module load python/3.13.2`. 1 CPU, 4 GB and 15 min are plenty: the #36 import took 45 s.
+A second job runs `bin/iris-import` twice against the same `IRIS_HOME`, expecting `Imported 1`, then `Imported 0`. It then prints what the ticket asks about, through `MlflowClient(store_uri(Path(IRIS_HOME)))` in the pinned environment `/srv/scratch/katana_ai/iris/envs/imaging/1`, after `module load python/3.13.2`. Read `tracking.db` directly with that Python too: Katana's system `python3` has SQLite 3.26.0, which can't parse the `spans` table's generated column (it needs 3.31; the environment has 3.39.4, checked 2026-10-21) and fails with "malformed database schema (spans)". 1 CPU, 4 GB and 15 min are plenty: the #36 import took 45 s.
 
-Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`, and each one's header gives its `qsub` line. Copy them into the test folder and submit from there. They are `canary.pbs`, `job_lib.pbs` (`test_job_lib`, which needs Katana's modules) and `compare.pbs` (`iris-compare` end to end, against a run-index pointer, by default the fixture's).
+Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`, and each one's header gives its `qsub` line. Copy them into the test folder and submit from there. They are `canary.pbs`, `job_lib.pbs` (`test_job_lib`, which needs Katana's modules), `compare.pbs` (`iris-compare` end to end, against a run-index pointer, by default the fixture's) and `viewers.pbs` (the guide's Fiji and ParaView steps, headless, on a run directory, by default the fixture's).
+
+### Before a Virtual Desktop session
+
+Submit `viewers.pbs` first, and fix the guide wherever it fails. It runs the guide's readers and properties without a window: Bio-Formats on `labels.tif`, the range import and crop, then ParaView's TIFF Series Reader with custom spacing and a contour. A desktop session then tests only what a script can't: menu labels, speed and how it looks.
 
 ### The fixture run
 
@@ -60,7 +64,7 @@ Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`,
 - `microct-sample/` is the dataset the form was given. Its `volume` and `train` are links to the sample's, and the run is in its `runs/9573671/`, with the `.OU` log beside it.
 - `home/` was the run's `IRIS_HOME`, so its pointer is `home/run-index/9573671`. Copy the pointer into your own test home, as `compare.pbs` does. Don't import into `home/` or write in the fixture.
 
-The fixture goes stale if the run record's format changes, and breaks if the sample dataset moves, since its links point there. To make a new one, in a fresh `iris-fixtures/`, make `microct-sample/` with its `runs/` folder and links named `volume` and `train` to the sample's. Render as in step 2 with `dataset=/srv/scratch/z3224749/iris-fixtures/microct-sample`, and submit as in step 3 with `IRIS_HOME=/srv/scratch/z3224749/iris-fixtures/home`. Then update the job number here and in `compare.pbs`.
+The fixture goes stale if the run record's format changes, and breaks if the sample dataset moves, since its links point there. To make a new one, in a fresh `iris-fixtures/`, make `microct-sample/` with its `runs/` folder and links named `volume` and `train` to the sample's. Render as in step 2 with `dataset=/srv/scratch/z3224749/iris-fixtures/microct-sample`, and submit as in step 3 with `IRIS_HOME=/srv/scratch/z3224749/iris-fixtures/home`. Then update the job number here and in `compare.pbs` and `viewers.pbs`.
 
 ## 5. Report, then clean up
 
