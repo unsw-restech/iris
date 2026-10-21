@@ -69,7 +69,7 @@
 
   <details>
     <summary>What each form field does</summary>
-    <!-- Memory and walltime defaults: timing run 9544838 (V100, 23 min, 6 GB), PatrickTung/iris#29. 12 h on any node: the form's walltime help and PatrickTung/iris#24. -->
+    <!-- Memory and walltime defaults: timing run 9544838 (6 GB), PatrickTung/iris#29; dev acceptance run 9577519 (V100, 16 min, 50 epochs), PatrickTung/iris#46, after which the 2 h default stays (Patrick, 2026-10-21). 12 h on any node: the form's walltime help and PatrickTung/iris#24. -->
     <table class="param-table">
       <thead><tr><th>Field</th><th>Default</th><th>What it does</th></tr></thead>
       <tbody>
@@ -82,7 +82,7 @@
         <tr><td>GPUs</td><td><code>1</code></td><td>Any GPU type on Katana. 0 runs on CPU, for a small test only.</td></tr>
         <tr><td>CPU cores</td><td><code>8</code></td><td>Used to read the volume and prepare patches.</td></tr>
         <tr><td>Memory</td><td><code>16 GB</code></td><td>A 2520 × 2520 × 1280 volume used 6 GB. Larger slices may need more.</td></tr>
-        <tr><td>Walltime</td><td><code>2 h</code></td><td>A 16 GB volume took 23 minutes on a V100. Up to 12 hours runs on any node.</td></tr>
+        <tr><td>Walltime</td><td><code>2 h</code></td><td>A 16 GB volume took 16 minutes on a V100. Up to 12 hours runs on any node.</td></tr>
         <tr><td colspan="3"><strong>Under advanced options</strong></td></tr>
         <tr><td>Batch size</td><td><code>16</code></td><td>Patches per training step. Lower it if the GPU runs out of memory.</td></tr>
         <tr><td>Random seed</td><td>blank</td><td>Blank picks a new validation split each run and records its seed. Set it to repeat a split.</td></tr>
