@@ -57,29 +57,32 @@
 
     <h3 class="sub">View a run: iris-view</h3>
     <p>Paste the <code>iris-view</code> line from the job output. napari opens with your volume and the run's label volume over it at half opacity. Scroll through the slices with the slider under the image. Only the slices you look at are read, so a 16 GB volume fits in the desktop. Close the napari window to quit.</p>
-    <p>Run <code>iris-view</code> with no run directory to pick from your 10 most recent finished runs.</p>
+    <p>Run <code>iris-view</code> with no run directory to list your 10 most recent finished runs, then type the number beside the one to open.</p>
 
     <h3 class="sub">Compare runs: iris-compare</h3>
-    <p>Paste the <code>iris-compare</code> line. It adds your new runs to your tracking store, <code>/srv/scratch/zID/iris/tracking.db</code>, then opens MLflow in Firefox inside the desktop. Each experiment is listed on the left, with each run named after its job ID. Select runs and click <strong>Compare</strong> to see their settings and per-class Dice and IoU side by side. Leave the terminal open while you use MLflow; Ctrl+C there stops it.</p>
+    <p>Paste the <code>iris-compare</code> line. It adds your new runs to your tracking store, <code>/srv/scratch/zID/iris/tracking.db</code>, then opens MLflow in Firefox inside the desktop. <!-- MLflow 3.17.1 in envs/imaging/1; recheck these labels when it changes. -->On the left, switch from <strong>GenAI</strong> to <strong>Model Training</strong>, then click <strong>Runs</strong>: each run is named after its job ID, under its experiment. Select runs and click <strong>Compare</strong> to see their settings and per-class Dice and IoU side by side. Leave the terminal open while you use MLflow; Ctrl+C there stops it.</p>
     <p>Your tracking store is created the first time you run <code>iris-compare</code>. If it is ever lost, <code>iris-rebuild</code>, in the same folder as <code>iris-view</code>, rebuilds it from your run directories.</p>
 
-    <!-- Fiji and ParaView steps drafted from PR #45's description; the modules put ImageJ-linux64 and paraview on PATH (module show, 2026-10-20). They are run as written in PatrickTung/iris#46. -->
+    <!-- Fiji and ParaView steps run as written in PatrickTung/iris#46 (2026-10-21). labels.tif is a BigTIFF: ImageJ's own TIFF Virtual Stack reads it as 0 x 0, Bio-Formats opens it. Bio-Formats reads its slices as time points, hence "T" below. -->
     <h3 class="sub">Open the label volume in Fiji</h3>
     <ol>
       <li>In the desktop's terminal, run <code>module load fiji/20240614-2117</code>, then start Fiji with <code>ImageJ-linux64</code>.</li>
-      <li>Choose File › Import › TIFF Virtual Stack…, and pick <code>labels.tif</code> in the run directory. Slices are read as you scroll.</li>
-      <li>Choose Image › Lookup Tables › glasbey, so classes 1, 2, 3 show as distinct colours rather than near-black.</li>
+      <li>Choose File › Import › Bio-Formats, and pick <code>labels.tif</code> in the run directory. In the options, set <strong>View stack with</strong> to <strong>Hyperstack</strong> and tick <strong>Use virtual stack</strong>. Slices are read as you scroll, so stepping through them is slow but works.</li>
+      <li>The image opens black: classes 1, 2, 3 sit at the bottom of a 0–255 grey scale. Choose Image › Adjust › Brightness/Contrast…, click <strong>Set</strong> and set the maximum to your number of classes. It stays set as you scroll.</li>
     </ol>
+    <p>To look around the labels over your volume, <code>iris-view</code> is quicker. Use Fiji to cut out a region for ParaView.</p>
 
     <h3 class="sub">A region in 3D with ParaView</h3>
     <p>A whole label volume is too large to render in 3D in the desktop: a 16 GB volume's labels take 8 GB once read. Crop a region in Fiji first.</p>
     <ol>
-      <li>In Fiji, draw a rectangle around the region.</li>
-      <li>Choose Image › Duplicate…, tick <strong>Duplicate stack</strong> and set a slice range, such as 600–800. Only those slices are read.</li>
-      <li>Choose File › Save As › Tiff…, as <code>crop.tif</code>. A 200 × 500 × 500 crop is 50 MB.</li>
-      <li>In the terminal, run <code>module load paraview/6.0.0</code>, then <code>paraview</code>. Choose File › Open, pick <code>crop.tif</code>, then click Apply.</li>
-      <li>Set the spacing to the voxel size in the run's <code>dataset.json</code>, so the region isn't squashed.</li>
-      <li>Choose Filters › Contour at 1.5 and 2.5 to show class boundaries, or set Representation to Volume.</li>
+      <li>Import <code>labels.tif</code> with Bio-Formats as above, this time with <strong>Use virtual stack</strong> unticked and <strong>Specify range for each series</strong> ticked. Set the <strong>T</strong> range to the slices you want, such as 600–800: Bio-Formats lists the slices as time points. Only those slices are read.</li>
+      <li>Draw a rectangle around the region, then choose Image › Crop.</li>
+      <li>Choose File › Save As › Tiff…, and save it as <code>crop.tif</code> in the run directory. Fiji offers your home folder first. A 200 × 500 × 500 crop is 50 MB.</li>
+      <li>Close Fiji and anything else you have open: ParaView can hang while Fiji is still running. In a new terminal, run <code>module load paraview/6.0.0</code>, then <code>paraview</code>.</li>
+      <li>Choose File › Open and pick <code>crop.tif</code>. ParaView asks which reader to use: choose <strong>TIFF Series Reader</strong>, not GDAL Raster Reader.</li>
+      <li>In the Properties panel, tick <strong>Use Custom Data Spacing</strong> and enter the voxel size in the run's <code>dataset.json</code> in all three <strong>Custom Data Spacing</strong> boxes, so the region isn't squashed. Click <strong>Apply</strong>. Nothing shows until you do, and then only the region's outline.</li>
+      <li>To show the boundary between two classes, choose Filters › Common › Contour. It starts with one value, halfway through the labels in your region; set it halfway between the two classes, such as 2.5 between classes 2 and 3, and click <strong>Apply</strong>.</li>
+      <li>Or select <code>crop.tif</code> in the Pipeline Browser and set its <strong>Representation</strong> to <strong>Volume</strong>. Dragging to rotate stays smooth; after you let go, ParaView takes a few seconds to redraw at full detail.</li>
     </ol>
 
     <h3 class="sub">Copy a run directory home</h3>
