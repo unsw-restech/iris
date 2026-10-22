@@ -2,7 +2,7 @@
 
 `AGENTS.md` is the source of truth for agent instructions. Edit this file.
 
-IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and it stays that way. `README.md` covers structure, previewing, adding a workflow and the **tier table** of which workflows actually run. Read the tier table before telling anyone a workflow "works".
+IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and it stays that way. `README.md` is for researchers. `CONTRIBUTING.md` covers structure, previewing, adding a workflow and the **tier table** of which workflows actually run. Read the tier table before telling anyone a workflow "works".
 
 ## Layout
 

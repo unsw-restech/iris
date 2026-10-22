@@ -8,6 +8,10 @@ IRIS is the UNSW ResTech AI Imaging Gateway: a catalogue from which researchers 
 One imaging analysis a researcher can launch from IRIS, made up of a catalogue page, a form and the code the job runs.
 _Avoid_: Pipeline, app, job
 
+**Researcher**:
+Someone who runs IRIS workflows on their own data from their own Katana account.
+_Avoid_: User, end user
+
 **Workflow author**:
 A ResTech member who adds or changes a workflow, working on a branch and testing it on the dev clone before it reaches `main`. Distinct from the researcher, who runs workflows.
 _Avoid_: Contributor, developer

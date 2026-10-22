@@ -116,13 +116,13 @@
     <summary>Something went wrong</summary>
     <ul>
       <li><strong>The form won't submit.</strong> Its warning names the rule your dataset folder broke, and your values are kept. Fix the folder and submit again. A stray <code>.DS_Store</code> or <code>Thumbs.db</code> in one of the <code>train/</code> folders counts as a file-name mismatch: delete it.</li>
-      <li><strong>The job stopped at once with "the IRIS imaging environment is missing".</strong> Nothing is wrong with your data. Email restech@unsw.edu.au with the job ID.</li>
+      <li><strong>The job stopped at once with "the IRIS imaging environment is missing".</strong> Nothing is wrong with your data. Email patrick.tung@unsw.edu.au with the job ID.</li>
       <li><strong>The job stopped before training with an <code>ERROR:</code> line about your dataset.</strong> It names the file and what's wrong: a training image at a different size or bit depth from the volume, a label slice that doesn't match its image, label values that aren't whole numbers from 0, more than 255 classes, or labels that are all 0.</li>
       <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. Load parameters keeps your other settings.</li>
       <li><strong>The job ran out of GPU memory.</strong> Lower the batch size under advanced options, or the patch size.</li>
       <li><strong><code>iris-view</code> says there is no label volume.</strong> The run hasn't finished, or it failed: read the end of its <code>runs/&lt;job ID&gt;.OU</code>.</li>
       <li><strong>The job output doesn't end with the <code>iris-view</code> line.</strong> The job stopped at its first error, which is the last thing in the output. The same two lines are printed near the start of the output, before training, so the run directory they name may be incomplete.</li>
-      <li><strong>Anything else.</strong> Email restech@unsw.edu.au with the job ID and the end of the job output.</li>
+      <li><strong>Anything else.</strong> Email patrick.tung@unsw.edu.au with the job ID and the end of the job output.</li>
     </ul>
   </details>
 </div>
@@ -131,7 +131,7 @@
   <span>
     <a href="../../#workflows">← Back to catalogue</a> ·
     <a href="https://github.com/PatrickTung/iris" target="_blank">GitHub</a> ·
-    <a href="mailto:restech@unsw.edu.au">restech@unsw.edu.au</a>
+    <a href="mailto:patrick.tung@unsw.edu.au">patrick.tung@unsw.edu.au</a>
   </span>
 </footer>
 </body>

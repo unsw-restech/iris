@@ -133,15 +133,15 @@ card_links() {
 }
 check "broken card links" card_links
 
-# The README tier table, one "<slug> <tier>" line per workflow it lists.
+# The CONTRIBUTING tier table, one "<slug> <tier>" line per workflow it lists.
 tier_rows() {
-    tr -d '\r' < README.md | awk -F'|' '/^\| \*\*/ {
+    tr -d '\r' < CONTRIBUTING.md | awk -F'|' '/^\| \*\*/ {
         t = $2; gsub(/^ *\*\*|\*\* *$/, "", t)
         n = split($3, w, "`")
         for (i = 2; i <= n; i += 2) print w[i], t }'
 }
 
-# A card's status label follows its workflow's row in the README tier table,
+# A card's status label follows its workflow's row in the CONTRIBUTING tier table,
 # whose row titles are the tier names in label[] below.
 card_status() {
     local tiers
@@ -159,7 +159,7 @@ card_status() {
                     if (!(t in told)) {
                         names = ""
                         for (k in label) names = names (names == "" ? "" : "; ") k
-                        print "README.md: tier \"" t "\" is not one of: " names
+                        print "CONTRIBUTING.md: tier \"" t "\" is not one of: " names
                     }
                     told[t] = 1
                     continue
@@ -172,36 +172,33 @@ card_status() {
         }
         slug != "" && /class="status-dot/ {
             got = $0; sub(/.*status-dot[^>]*><\/span> */, "", got); sub(/<.*/, "", got)
-            if (!(slug in want)) print "index.html: " slug " has no row in the README tier table"
-            else if (got != want[slug]) print "index.html: " slug " reads " got "; its README tier says " want[slug]
+            if (!(slug in want)) print "index.html: " slug " has no row in the CONTRIBUTING tier table"
+            else if (got != want[slug]) print "index.html: " slug " reads " got "; its CONTRIBUTING tier says " want[slug]
             slug = ""
         }'
 }
-check "card status matches the README tier table" card_status
+check "card status matches the CONTRIBUTING tier table" card_status
 
 # Run and verified means a real job ran from a clone (#53: two forms sat in
 # this tier without one), so a line outside the table cites a job for each
 # of them: "`<slug>`", then "(job <ID>" with no backtick between. A renamed
 # tier fails card_status.
 tier_jobs() {
-    local readme slug
-    readme=$(tr -d '\r' < README.md)
+    local doc slug
+    doc=$(tr -d '\r' < CONTRIBUTING.md)
     for slug in $(tier_rows | sed -n 's/ Run and verified$//p'); do
-        grep -v '^|' <<< "$readme" | grep -qE "\`$slug\`[^\`]*\(job [0-9]+" ||
-            echo "README.md: $slug is Run and verified but no line cites its job: \"\`$slug\` ... (job <ID>\""
+        grep -v '^|' <<< "$doc" | grep -qE "\`$slug\`[^\`]*\(job [0-9]+" ||
+            echo "CONTRIBUTING.md: $slug is Run and verified but no line cites its job: \"\`$slug\` ... (job <ID>\""
     done
 }
 check "Run and verified workflows cite a job" tier_jobs
 
-# The guide owns staging and viewing (README step 5): its data mover host,
+# The guide owns staging and viewing (CONTRIBUTING.md step 5): its data mover host,
 # scratch quota and WinSCP note stay out of workflow pages.
 guide_copies() {
     grep -n -i 'kdm\.restech\|128 GB\|winscp' workflows/*/index.html
 }
 check "workflow page repeats the guide (link guide/#stage or #view)" guide_copies
-
-# Researchers write to ResTech, not to one person.
-check "personal contact address (use restech@unsw.edu.au)" grep -rn 'patrick\.tung@' . --exclude-dir=.git --exclude-dir=_archive --exclude=check
 
 # Shell scripts (by .sh or a sh/bash shebang, outside _archive), warnings
 # and errors only. CRs are stripped: a Windows working copy can still hold

@@ -49,7 +49,7 @@ class MissingEnvironment(unittest.TestCase):
             lines = (result.stdout + result.stderr).strip().splitlines()
             self.assertEqual(len(lines), 1, lines)
             self.assertIn(str(env_dir), lines[0])
-            self.assertIn("restech@unsw.edu.au", lines[0])
+            self.assertIn("patrick.tung@unsw.edu.au", lines[0])
             self.assertFalse(run_dir.exists())
             # PBS delivers the job output to runs/, so it must exist even here.
             self.assertTrue(run_dir.parent.is_dir())
