@@ -133,14 +133,19 @@ card_links() {
 }
 check "broken card links" card_links
 
+# The README tier table, one "<slug> <tier>" line per workflow it lists.
+tier_rows() {
+    tr -d '\r' < README.md | awk -F'|' '/^\| \*\*/ {
+        t = $2; gsub(/^ *\*\*|\*\* *$/, "", t)
+        n = split($3, w, "`")
+        for (i = 2; i <= n; i += 2) print w[i], t }'
+}
+
 # A card's status label follows its workflow's row in the README tier table,
 # whose row titles are the tier names in label[] below.
 card_status() {
     local tiers
-    tiers=$(tr -d '\r' < README.md | awk -F'|' '/^\| \*\*/ {
-        t = $2; gsub(/^ *\*\*|\*\* *$/, "", t)
-        n = split($3, w, "`")
-        for (i = 2; i <= n; i += 2) print w[i], t }')
+    tiers=$(tier_rows)
     tr -d '\r' < index.html | awk -v tiers="$tiers" '
         BEGIN {
             label["Run and verified"] = "Active"
@@ -173,6 +178,20 @@ card_status() {
         }'
 }
 check "card status matches the README tier table" card_status
+
+# Run and verified means a real job ran from a clone (#53: two forms sat in
+# this tier without one), so a line outside the table cites a job for each
+# of them: "`<slug>`", then "(job <ID>" with no backtick between. A renamed
+# tier fails card_status.
+tier_jobs() {
+    local readme slug
+    readme=$(tr -d '\r' < README.md)
+    for slug in $(tier_rows | sed -n 's/ Run and verified$//p'); do
+        grep -v '^|' <<< "$readme" | grep -qE "\`$slug\`[^\`]*\(job [0-9]+" ||
+            echo "README.md: $slug is Run and verified but no line cites its job: \"\`$slug\` ... (job <ID>\""
+    done
+}
+check "Run and verified workflows cite a job" tier_jobs
 
 # The guide owns staging and viewing (README step 5): its data mover host,
 # scratch quota and WinSCP note stay out of workflow pages.

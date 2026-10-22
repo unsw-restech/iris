@@ -55,7 +55,7 @@ Pushing `main` is an immediate public deploy to https://patricktung.github.io/ir
 ## Deliberate, leave as is
 
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
-- **Katana links point at `/pun/dev/`** while pre-launch. Switching to `/pun/sys/` is a known launch task; its clone goes in `/srv/scratch/katana_ai/iris/` (Patrick, 2026-10-19), since the dev clone's home folder is unreadable to researchers.
+- **Katana links point at `/pun/dev/`** while pre-launch: `https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/<slug>`. Switching to `/pun/sys/` is a known launch task; its clone goes in `/srv/scratch/katana_ai/iris/` (Patrick, 2026-10-19), since the dev clone's home folder is unreadable to researchers.
 - **Planned cards still link to their pages**, keeping the dimmed `.planned` style with no hover lift.
 - **No version tags** on cards or workflow pages: nothing versions a workflow, and each run's `commit.txt` records the code it ran (Patrick, 2026-10-22).
 
