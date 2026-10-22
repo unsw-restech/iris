@@ -71,7 +71,7 @@
     }
 
     .meta-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
+      display: grid; grid-template-columns: repeat(2, 1fr);
       gap: 1px; background: var(--border);
       border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
       margin-bottom: 48px;
@@ -118,7 +118,6 @@
     @media (max-width: 768px) {
       nav { padding: 0 20px; }
       .page { padding: 90px 20px 60px; }
-      .meta-grid { grid-template-columns: 1fr 1fr; }
       footer { flex-direction: column; gap: 12px; padding: 24px 20px; }
     }
   </style>
@@ -149,10 +148,6 @@
   <p class="note">Opens Katana OnDemand — you will be prompted to log in with your zID.</p>
 
   <div class="meta-grid">
-    <div class="meta-cell">
-      <div class="meta-label">Version</div>
-      <div class="meta-val">v1.0.0</div>
-    </div>
     <div class="meta-cell">
       <div class="meta-label">Walltime</div>
       <div class="meta-val">&lt; 5 min</div>

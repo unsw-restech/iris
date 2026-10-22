@@ -37,12 +37,6 @@ iris/
     │   ├── src/hello_world.sh
     │   ├── katana/iris_hello_world.pbs
     │   └── local/run_local.sh, run_local.ps1
-    ├── mnist-classification/         # PyTorch module example
-    │   ├── index.html
-    │   ├── form.yml.erb, manifest.yml  # OpenComposer form
-    │   ├── katana/iris_mnist_classification.pbs, prepare.sh
-    │   ├── src/train_mnist.py
-    │   └── local/run_local.sh, run_local.ps1
     ├── microct-2d-segmentation/      # Reference workflow: copy it to start a new one
     │   ├── index.html
     │   ├── form.yml.erb, manifest.yml  # OpenComposer form
@@ -54,9 +48,7 @@ iris/
 
 Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the workflow detail pages and the guide share `assets/iris.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
 
-`hello-world` and `mnist-classification` are the two workflows that ship runnable scripts. `mnist-classification` is the reference for how IRIS provides an environment on Katana: **use a module**. It runs `module purge && module load pytorch/1.13.1` — nothing is installed, nothing large is downloaded, and the module name is a single editable variable at the top of the PBS script.
-
-`torch` is its only dependency. MNIST is parsed straight from the IDX files with the standard library rather than via `torchvision`, which keeps the module sufficient on its own and reduces the download to the 11 MB dataset. Run `katana/prepare.sh` on a login node first — it fetches that dataset where the network is reliable, leaving the job able to run offline.
+IRIS jobs use Katana **modules first**. Imaging jobs source `lib/iris-job.sh`, which loads Katana's `python/3.13.2` module and tops it up with the pinned imaging venv from `envs/imaging/`, so nothing is installed when a run starts.
 
 Keep `.nojekyll` in place. Without it, Pages runs Jekyll and would silently drop any future directory beginning with an underscore.
 
@@ -101,12 +93,12 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 
 | Tier | Workflows | What exists |
 |---|---|---|
-| **Run and verified** | `hello-world` (onboarding), `mnist-classification` (Teaching), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
+| **Run and verified** | `hello-world` (onboarding), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
 
-The `hello-world` and `mnist-classification` forms moved into the repo on 2026-10-16 and have not yet run from a clone; their runs above were from the old out-of-repo copies. `microct-2d-segmentation` ran from the browser through the dev clone (job 9577519, #46).
+`hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
 
-IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`.
+IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`. `mnist-classification` was removed the same way on 2026-10-22 (#53): its form is in `_archive/`, the rest under the `pre-mnist-removal` tag.
 
 ## Contact
 

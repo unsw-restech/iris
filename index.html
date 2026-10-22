@@ -29,7 +29,6 @@
       --amber:     #e8a84a;
       /* Modality accents — one per modality tag in the catalogue. */
       --pink:      #e07ab0;
-      --violet:    #8f86e8;
     }
 
     html { scroll-behavior: smooth; }
@@ -295,14 +294,8 @@
       text-transform: uppercase; letter-spacing: 1px;
     }
     .card-domain.microct   { background: rgba(200,169,110,0.12); color: var(--gold); }
-    .card-domain.teaching  { background: rgba(143,134,232,0.12); color: var(--violet); }
     .card-domain.microscopy{ background: rgba(78,203,141,0.1); color: var(--green); }
     .card-domain.pathology { background: rgba(224,122,176,0.1); color: var(--pink); }
-
-    .card-version {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px; color: var(--muted);
-    }
 
     .card-name {
       font-family: 'Syne', sans-serif;
@@ -477,22 +470,6 @@
       <div class="card-desc">Label a few slices of a microCT volume, and a 2D U-Net trained on them segments the whole volume. Every run is recorded so you can compare settings.</div>
       <div class="card-compute">
         <span class="compute-tag">Katana GPU · IRIS imaging env</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>restech@unsw.edu.au</span>
-      </div>
-    </a>
-
-    <a href="workflows/mnist-classification/" class="workflow-card">
-      <div class="card-top">
-        <span class="card-domain teaching">Teaching</span>
-        <span class="card-version">v1.1.0</span>
-      </div>
-      <div class="card-name">Image classification (CNN)</div>
-      <div class="card-desc">Train a convolutional classifier on MNIST using Katana's PyTorch module. A worked GPU example — nothing to install, no input data required.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana GPU · PyTorch module</span>
       </div>
       <div class="card-meta">
         <span><span class="status-dot"></span> Active</span>
