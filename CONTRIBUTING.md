@@ -12,6 +12,8 @@ iris/
 ├── README.md                         # For researchers: what IRIS is and how a run goes
 ├── CONTRIBUTING.md                   # For workflow authors: this file, with the tier table bin/check reads
 ├── GLOSSARY.md                       # The domain's terms
+├── LICENSE                           # Apache-2.0, for the code and the site
+├── CITATION.cff                      # How to cite IRIS; GitHub's "Cite this repository"
 ├── assets/
 │   └── iris.css                      # Shared styles for workflow detail pages and the guide
 ├── guide/index.html                  # "Using IRIS on Katana": staging and viewing, shared by imaging workflows
