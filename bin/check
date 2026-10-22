@@ -136,49 +136,63 @@ resolve_link() {
     else target="$base/$path"
     fi
     if [ ! -f "$target" ]; then echo "$from: $link: no such file"
-    elif [ -n "$frag" ] && ! grep -q "id=\"$frag\"" "$target"; then echo "$from: $link: no id=\"$frag\""
+    elif [ -n "$frag" ] && ! grep -qF " id=\"$frag\"" "$target"; then echo "$from: $link: no id=\"$frag\""
     fi
 }
 
-# Every local link resolves, anchor included: hrefs in the site's pages,
-# and the README's relative links and patricktung.github.io/iris/ URLs.
+# resolve_link each link read from stdin, found in $1, relative to $2.
+resolve_each() {
+    local link
+    tr -d '\r' | sort -u | while IFS= read -r link; do resolve_link "$1" "$link" "$2"; done
+}
+
+# Every local link resolves, anchor included: relative hrefs in the site's
+# pages, the README's relative links, and patricktung.github.io/iris/ URLs
+# in any tracked file outside the desktop tools and their tests.
 local_links() {
-    local f link url
+    local f url
     for f in index.html guide/index.html workflows/*/index.html; do
-        grep -oE 'href="[^"]*"' "$f" | sed 's/^href="//; s/"$//' |
-            grep -vE '^(https?|mailto):' | sort -u |
-            while IFS= read -r link; do resolve_link "$f" "$link" "$(dirname "$f")"; done
+        grep -oE 'href="[^"]*"' "$f" | sed 's/^href="//; s/"$//' | grep -vE '^(https?|mailto):' |
+            resolve_each "$f" "$(dirname "$f")"
     done
-    grep -oE '\]\([^)]+\)' README.md | sed 's/^](//; s/)$//' | grep -vE '^https?:' | sort -u |
-        while IFS= read -r link; do resolve_link README.md "$link" .; done
-    grep -oE 'https://patricktung\.github\.io/iris/[^) ]*' README.md | sort -u |
-        while IFS= read -r url; do resolve_link README.md "${url#https://patricktung.github.io/iris/}" .; done
+    grep -oE '\]\([^)]+\)' README.md | sed 's/^](//; s/)$//' | grep -vE '^https?:' | resolve_each README.md .
+    git grep -lE 'patricktung\.github\.io/iris/' -- ':(exclude)_archive' ':(exclude)bin' ':(exclude)tests' | while IFS= read -r f; do
+        tr -d '\r' < "$f" | grep -oE 'https://patricktung\.github\.io/iris/[^]) "<>`]*' |
+            while IFS= read -r url; do echo "./${url#https://patricktung.github.io/iris/}"; done |
+            resolve_each "$f" .
+    done
 }
 check "broken local links" local_links
 
 # The README's repo map names paths a researcher can open; <workflow>
 # stands for any workflow folder.
 readme_paths() {
-    local p
+    local p first
     tr -d '\r' < README.md | grep '^| `' | cut -d'|' -f2 | grep -oE '`[^`]+`' | tr -d '`' |
         while IFS= read -r p; do
-            compgen -G "${p//<workflow>/*}" > /dev/null || echo "README.md: $p does not exist"
+            first=$(compgen -G "${p//<workflow>/*}" | head -n1)
+            [ -n "$first" ] && [ -e "$first" ] || echo "README.md: $p does not exist"
         done
 }
 check "README repo map names real paths" readme_paths
 
-# Pre-launch, the Run buttons open the dev OnDemand and the README says
-# IRIS is not open yet. Launch switches both (CONTRIBUTING.md, Status).
-launch_state() {
-    local notice=""
+# Pre-launch, every Run button opens the dev OnDemand (/pun/dev/) and the
+# README says IRIS is not open yet. Launch moves every button to /pun/sys/
+# and removes the notice (CONTRIBUTING.md, Status).
+prelaunch_notice() {
+    local dev sys notice=""
+    dev=$(git grep -l 'pun/dev/OpenComposer' -- '*.html' ':(exclude)_archive')
+    sys=$(git grep -l 'pun/sys/OpenComposer' -- '*.html' ':(exclude)_archive')
     grep -q 'not open to researchers yet' README.md && notice=1
-    if grep -q 'pun/dev/OpenComposer' workflows/*/index.html; then
-        [ -n "$notice" ] || echo "README.md: Run buttons still use /pun/dev/, but the pre-launch notice (\"not open to researchers yet\") is gone"
-    elif [ -n "$notice" ]; then
-        echo "README.md: no Run button uses /pun/dev/ any more; remove the pre-launch notice"
+    if [ -n "$dev" ] && [ -n "$sys" ]; then
+        echo "Run buttons are split: /pun/dev/ in" $dev "and /pun/sys/ in" $sys
+    elif [ -n "$dev" ] && [ -z "$notice" ]; then
+        echo "README.md: the pre-launch notice (\"not open to researchers yet\") is gone, but Run buttons in" $dev "still use /pun/dev/"
+    elif [ -n "$sys" ] && [ -n "$notice" ]; then
+        echo "README.md: Run buttons in" $sys "use /pun/sys/; remove the pre-launch notice"
     fi
 }
-check "README pre-launch notice matches the Run buttons" launch_state
+check "README pre-launch notice matches the Run buttons" prelaunch_notice
 
 # The CONTRIBUTING tier table, one "<slug> <tier>" line per workflow it lists.
 tier_rows() {
@@ -250,7 +264,7 @@ check "workflow page repeats the guide (link guide/#stage or #view)" guide_copie
 # IRIS questions go to Patrick, not a shared inbox (Patrick, 2026-10-22).
 # Only what needs a Katana administrator, such as accounts, goes to
 # restech.support@unsw.edu.au.
-check "IRIS contact is patrick.tung@unsw.edu.au" grep -rnE '(restech|imaging)@unsw\.edu\.au' . --exclude-dir=.git --exclude-dir=_archive --exclude=check
+check "IRIS contact is patrick.tung@unsw.edu.au" git grep -niE '(restech|imaging)@unsw\.edu\.au' -- ':(exclude)_archive'
 
 # Shell scripts (by .sh or a sh/bash shebang, outside _archive), warnings
 # and errors only. CRs are stripped: a Windows working copy can still hold
