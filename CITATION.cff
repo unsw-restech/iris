@@ -1,0 +1,28 @@
+# GitHub turns this into the repo's "Cite this repository" button;
+# README.md's "Citing IRIS" is the full instruction.
+cff-version: 1.2.0
+message: >-
+  If you publish results from an IRIS run, cite IRIS as below, name the
+  workflow and the commit in the run's commit.txt, and acknowledge Katana.
+title: "IRIS: the UNSW ResTech AI Imaging Gateway"
+type: software
+authors:
+  - name: UNSW Research Technology Services
+url: "https://patricktung.github.io/iris/"
+repository-code: "https://github.com/PatrickTung/iris"
+license: Apache-2.0
+identifiers:
+  - type: url
+    value: "https://workflowhub.eu/projects/472"
+    description: UNSW ResTech's project on WorkflowHub
+references:
+  # Katana's DataCite record for its DOI, as published.
+  - type: generic
+    title: Katana
+    authors:
+      - name: "PVC (Research Infrastructure), UNSW Sydney"
+    publisher:
+      name: "UNSW, Sydney"
+    year: 2010
+    doi: 10.26190/669x-a286
+    url: "https://researchdata.edu.au/katana/1733007"

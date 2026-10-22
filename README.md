@@ -37,7 +37,26 @@ Every run writes `commit.txt` into its run directory: the exact commit of this r
 
 Building or changing a workflow? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Citing IRIS
+
+If you publish results from an IRIS run:
+
+1. **Cite IRIS**, naming the workflow and the commit in the run's `commit.txt`:
+
+   > UNSW Research Technology Services. *IRIS: the UNSW ResTech AI Imaging Gateway*, workflow `<workflow>`, commit `<commit>`. https://github.com/PatrickTung/iris
+
+   [CITATION.cff](CITATION.cff) holds the same details, and GitHub's **Cite this repository** button turns them into APA or BibTeX. Citable DOIs through [WorkflowHub](https://workflowhub.eu/projects/472) are planned; until then, the commit is what identifies the code you ran.
+2. **Acknowledge Katana** with [ResTech's wording](https://docs.restech.unsw.edu.au/help_support/faq/#acknowledging-katana):
+
+   > This research includes computations using the computational cluster Katana supported by Research Technology Services at UNSW Sydney.
+
+   and cite Katana's DOI, https://doi.org/10.26190/669x-a286.
+
+## Licence
+
+Copyright 2026 Patrick Tung. IRIS, its code and this website alike, is licensed under the [Apache License 2.0](LICENSE).
+
 ## Contact
 
-- **IRIS**: its workflows, a failed run, or reusing its code: patrick.tung@unsw.edu.au
+- **IRIS**: its workflows or a failed run: patrick.tung@unsw.edu.au
 - **Katana itself**: accounts, access, scratch quotas and anything else that needs a Katana administrator go to ResTech support, restech.support@unsw.edu.au, as the [ResTech FAQ](https://docs.restech.unsw.edu.au/help_support/faq/) explains.
