@@ -103,6 +103,8 @@ form:
   working_dir:
     widget: path
     label: "Output directory"
+    value: /srv/scratch/<%= ENV['USER'] %>/iris-hello-world
+    required: true
     show_files: false
     favorites:
       - /srv/scratch/<%= ENV['USER'] %>
@@ -128,15 +130,20 @@ script: |
 
   cd $PBS_O_WORKDIR
 
+  set -e
   CODE="<%= code %>"
   [ -n "$CODE" ] || { echo "ERROR: the form could not locate its IRIS clone."; exit 1; }
   OUTDIR="#{working_dir}"
   mkdir -p "$OUTDIR"
-  git -C "$CODE" rev-parse HEAD > "$OUTDIR/commit.txt"
+  git -C "$CODE" rev-parse HEAD > "$OUTDIR/commit.txt" || echo "WARNING: could not record the IRIS commit in $OUTDIR/commit.txt" >&2
 
   bash "$CODE/src/hello_world.sh" "$OUTDIR" "#{ncpus}" "#{mem}" "#{ngpus}"
 
 check: |
+  if @working_dir.to_s.strip.empty?
+    halt 500, "Choose an output directory."
+  end
+
   if @time_1.to_i == 0 && @time_2.to_i == 0
     halt 500, "Walltime cannot be zero."
   end
