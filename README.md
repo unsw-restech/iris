@@ -96,7 +96,7 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 | **Run and verified** | `hello-world` (onboarding), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
 
-`hello-world` ran from the browser through the dev clone (job HELLO_JOB, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
+`hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
 
 IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`. `mnist-classification` was removed the same way on 2026-10-22 (#53): its form is in `_archive/`, the rest under the `pre-mnist-removal` tag.
 
