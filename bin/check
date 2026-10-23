@@ -43,7 +43,7 @@ check() {
 # (../../ from a workflow page).
 check "root-absolute links" grep -rn 'href="/' . --include=*.html
 check "dead placeholder cards" grep -n 'href="#"' index.html
-check "wrong repo URL" grep -rn 'unsw-restech' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
+check "pre-transfer repo URL" grep -rn 'github\.com/PatrickTung/iris\|https://patricktung\.github\.io/iris' . --exclude-dir=.git --exclude-dir=_archive --exclude=AGENTS.md --exclude=check
 check "stale account or old repo" grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
 check "wrong WorkflowHub project; ours is 472" grep -rn 'workflowhub.eu/projects/24' . --include=*.html
 
@@ -147,7 +147,7 @@ resolve_each() {
 }
 
 # Every local link resolves, anchor included: relative hrefs in the site's
-# pages, the README's relative links, and patricktung.github.io/iris/ URLs
+# pages, the README's relative links, and docs.restech.unsw.edu.au/iris/ URLs
 # in any tracked file outside the desktop tools and their tests.
 local_links() {
     local f url
@@ -156,9 +156,9 @@ local_links() {
             resolve_each "$f" "$(dirname "$f")"
     done
     grep -oE '\]\([^)]+\)' README.md | sed 's/^](//; s/)$//' | grep -vE '^https?:' | resolve_each README.md .
-    git grep -lE 'patricktung\.github\.io/iris/' -- ':(exclude)_archive' ':(exclude)bin' ':(exclude)tests' | while IFS= read -r f; do
-        tr -d '\r' < "$f" | grep -oE 'https://patricktung\.github\.io/iris/[^]) "<>`]*' |
-            while IFS= read -r url; do echo "./${url#https://patricktung.github.io/iris/}"; done |
+    git grep -lE 'docs\.restech\.unsw\.edu\.au/iris/' -- ':(exclude)_archive' ':(exclude)bin' ':(exclude)tests' | while IFS= read -r f; do
+        tr -d '\r' < "$f" | grep -oE 'https://docs\.restech\.unsw\.edu\.au/iris/[^]) "<>`]*' |
+            while IFS= read -r url; do echo "./${url#https://docs.restech.unsw.edu.au/iris/}"; done |
             resolve_each "$f" .
     done
 }

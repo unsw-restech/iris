@@ -6,7 +6,7 @@
 #  file without a BOM as ANSI, and a non-ASCII byte can decode to
 #  a quote character that breaks the parse.
 #
-#  Docs: https://patricktung.github.io/iris/workflows/hello-world/
+#  Docs: https://docs.restech.unsw.edu.au/iris/workflows/hello-world/
 # ===============================================================
 
 $OUTDIR = "$HOME\iris-hello-world"

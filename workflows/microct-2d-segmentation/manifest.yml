@@ -15,4 +15,4 @@ description: |
   IRIS commit that ran). The job output, `runs/<job ID>.OU`, ends with the
   `iris-view` line that opens the result in a Virtual Desktop.
 
-  Documentation: https://patricktung.github.io/iris/workflows/microct-2d-segmentation/
+  Documentation: https://docs.restech.unsw.edu.au/iris/workflows/microct-2d-segmentation/

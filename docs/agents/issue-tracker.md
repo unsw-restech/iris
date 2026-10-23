@@ -12,7 +12,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close with a comment**: `gh issue close <number> --comment "..."`, adding `--reason "not planned"` or `--reason duplicate` when it wasn't completed.
 
-The repo is `PatrickTung/iris`. `gh` infers it when run inside the clone (`iris\`); from the parent `IRIS_github_pages\` directory, which is not a git repo, pass `-R PatrickTung/iris`.
+The repo is `unsw-restech/iris`. `gh` infers it when run inside the clone (`iris\`); from the parent `IRIS_github_pages\` directory, which is not a git repo, pass `-R unsw-restech/iris`.
 
 ## Pull requests as a triage surface
 

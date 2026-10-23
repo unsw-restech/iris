@@ -8,8 +8,8 @@ title: "IRIS: the UNSW ResTech AI Imaging Gateway"
 type: software
 authors:
   - name: UNSW Research Technology Services
-url: "https://patricktung.github.io/iris/"
-repository-code: "https://github.com/PatrickTung/iris"
+url: "https://docs.restech.unsw.edu.au/iris/"
+repository-code: "https://github.com/unsw-restech/iris"
 license: Apache-2.0
 identifiers:
   - type: url

@@ -47,7 +47,7 @@ expect() {
 }
 
 expect 0 "live after 0s" 1 page/ "new marker"
-expect 0 "live after 20s: https://patricktung.github.io/iris/page/" 3 page/ "new marker"
+expect 0 "live after 20s: https://docs.restech.unsw.edu.au/iris/page/" 3 page/ "new marker"
 [ "$(cat "$fake/calls")" = 3 ] || echo "pageswait: polled $(cat "$fake/calls") times, expected 3"
 expect 1 "'new marker' not on" "" page/ "new marker"
 [ "$(cat "$fake/calls")" = 18 ] || echo "pageswait: polled $(cat "$fake/calls") times before giving up, expected 18"

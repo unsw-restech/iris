@@ -4,7 +4,7 @@
 #  Runs the same hello world workflow locally using Docker.
 #  Requires: Docker Desktop (Windows/Mac) or Docker Engine (Linux)
 #
-#  Docs: https://patricktung.github.io/iris/workflows/hello-world/
+#  Docs: https://docs.restech.unsw.edu.au/iris/workflows/hello-world/
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail

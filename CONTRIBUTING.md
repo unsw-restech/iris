@@ -101,5 +101,5 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 
 `hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
 
-IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`. `mnist-classification` was removed the same way on 2026-10-22 (#53): its form is in `_archive/`, the rest under the `pre-mnist-removal` tag.
+IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The repo moved from `PatrickTung/iris` to `unsw-restech/iris` on 2026-10-23; GitHub redirects the old repo URL, but the old `patricktung.github.io/iris/` site address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`. `mnist-classification` was removed the same way on 2026-10-22 (#53): its form is in `_archive/`, the rest under the `pre-mnist-removal` tag.
 

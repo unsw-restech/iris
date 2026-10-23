@@ -2,11 +2,11 @@
 
 IRIS is a catalogue of imaging analysis workflows that UNSW researchers launch on Katana, UNSW's computing cluster, from their browser. Each workflow has a page saying what it does and what data it needs, and a **Run on Katana** button that opens a form: fill it in, submit, and the job runs on Katana with your data in your own scratch space.
 
-**Website**: https://patricktung.github.io/iris/
+**Website**: https://docs.restech.unsw.edu.au/iris/
 
 > **IRIS is not open to researchers yet.** Its workflows are still being tested, and their Run buttons lead to a test instance you can't use. If you'd like to use IRIS, or try it before launch, email patrick.tung@unsw.edu.au.
 
-IRIS used to be called ARES. The old `patricktung.github.io/ares/` address no longer works.
+IRIS used to be called ARES. The old `patricktung.github.io/ares/` address no longer works, and neither does `patricktung.github.io/iris/`, its address before the repo moved to `unsw-restech` on 2026-10-23.
 
 ## Before you start
 
@@ -16,11 +16,11 @@ IRIS used to be called ARES. The old `patricktung.github.io/ares/` address no lo
 
 ## How a run goes
 
-1. **Stage** a dataset: lay out its folder and copy it into your scratch. The [guide](https://patricktung.github.io/iris/guide/#stage) shows how. Do this once per dataset.
-2. **Launch** a workflow from the [catalogue](https://patricktung.github.io/iris/): click **Run on Katana** on its page, check the form and submit.
-3. **View and compare** your runs with `iris-view` and `iris-compare`, as the [guide](https://patricktung.github.io/iris/guide/#view) shows. When a job finishes, its output gives you both commands ready to paste.
+1. **Stage** a dataset: lay out its folder and copy it into your scratch. The [guide](https://docs.restech.unsw.edu.au/iris/guide/#stage) shows how. Do this once per dataset.
+2. **Launch** a workflow from the [catalogue](https://docs.restech.unsw.edu.au/iris/): click **Run on Katana** on its page, check the form and submit.
+3. **View and compare** your runs with `iris-view` and `iris-compare`, as the [guide](https://docs.restech.unsw.edu.au/iris/guide/#view) shows. When a job finishes, its output gives you both commands ready to paste.
 
-New to Katana? Run [Hello World](https://patricktung.github.io/iris/workflows/hello-world/) first. It needs no data and checks that your access works.
+New to Katana? Run [Hello World](https://docs.restech.unsw.edu.au/iris/workflows/hello-world/) first. It needs no data and checks that your access works.
 
 ## What's in this repo
 
@@ -43,7 +43,7 @@ If you publish results from an IRIS run:
 
 1. **Cite IRIS**, naming the workflow and the commit in the run's `commit.txt`:
 
-   > UNSW Research Technology Services. *IRIS: the UNSW ResTech AI Imaging Gateway*, workflow `<workflow>`, commit `<commit>`. https://github.com/PatrickTung/iris
+   > UNSW Research Technology Services. *IRIS: the UNSW ResTech AI Imaging Gateway*, workflow `<workflow>`, commit `<commit>`. https://github.com/unsw-restech/iris
 
    [CITATION.cff](CITATION.cff) holds the same details, and GitHub's **Cite this repository** button turns them into APA or BibTeX. Citable DOIs through [WorkflowHub](https://workflowhub.eu/projects/472) are planned; until then, the commit is what identifies the code you ran.
 2. **Acknowledge Katana** with [ResTech's wording](https://docs.restech.unsw.edu.au/help_support/faq/#acknowledging-katana):

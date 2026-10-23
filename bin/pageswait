@@ -5,12 +5,12 @@
 #   bin/pageswait <path> <marker>
 #   bin/pageswait workflows/microct-2d-segmentation/ 'What a run writes'
 #
-# <path> is relative to https://patricktung.github.io/iris/ ("" is the
+# <path> is relative to https://docs.restech.unsw.edu.au/iris/ ("" is the
 # catalogue). Each request carries a cache-buster. Exits 0 once the marker
 # appears, printing how long that took, or 1 after three minutes.
 
 [ $# -eq 2 ] || { echo "usage: bin/pageswait <path> <marker>" >&2; exit 2; }
-url="https://patricktung.github.io/iris/$1"
+url="https://docs.restech.unsw.edu.au/iris/$1"
 
 for i in $(seq 18); do
     if curl -fsS "$url?t=$(date +%s)" 2>/dev/null | grep -qF -- "$2"; then
