@@ -54,7 +54,7 @@ If you publish results from an IRIS run:
 
 ## Licence
 
-Copyright 2026 Patrick Tung. IRIS, its code and this website alike, is licensed under the [Apache License 2.0](LICENSE).
+Copyright 2026 UNSW Sydney. IRIS, its code and this website alike, is licensed under the [Apache License 2.0](LICENSE).
 
 ## Contact
 
