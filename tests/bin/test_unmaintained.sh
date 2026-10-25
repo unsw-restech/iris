@@ -13,10 +13,13 @@ cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 # workflows: live-seg, in service, and old-seg, wholly demoted to
 # Unmaintained. Each flag leaves one step of the demotion undone.
 make_tree() {
-    local tree="$scratch/$1" flag card="" run="" form=archive
+    local tree="$scratch/$1" flag card="" run="" form=archive row='`old-seg` (microCT)'
+    local banner='  <div class="unmaintained-banner"><strong>Unmaintained.</strong> This workflow cannot be run.</div>'
     shift
     for flag in "$@"; do
         case "$flag" in
+            tier-row) row=None ;;
+            banner) banner='  <h1 class="wf-title">Old seg</h1>' ;;
             card) card='    <a href="workflows/old-seg/" class="workflow-card">Old seg</a>' ;;
             run-button) run='  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/old-seg" class="run-btn" target="_blank">Run on Katana</a>' ;;
             form-in-place) form=workflows ;;
@@ -26,18 +29,17 @@ make_tree() {
     cp bin/check "$tree/bin/check"
     printf '%s\n' '| Tier | Workflows | What exists |' '|---|---|---|' \
         '| **Run and verified** | `live-seg` (microCT) | Page, form, job script |' \
-        '| **Unmaintained** | `old-seg` (microCT) | Page only, with the banner |' > "$tree/CONTRIBUTING.md"
+        "| **Unmaintained** | $row | Page only, with the banner |" > "$tree/CONTRIBUTING.md"
     printf '%s\n' '<div class="grid">' \
         '    <a href="workflows/live-seg/" class="workflow-card">Live seg</a>' \
         "$card" '</div>' > "$tree/index.html"
-    printf '%s\n' '<div class="page">' \
-        '  <div class="unmaintained-banner"><strong>Unmaintained.</strong> This workflow cannot be run.</div>' \
-        "$run" '</div>' > "$tree/workflows/old-seg/index.html"
+    printf '%s\n' '<div class="page">' "$banner" "$run" '</div>' > "$tree/workflows/old-seg/index.html"
     printf '%s\n' '<div class="page">' \
         '  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/live-seg" class="run-btn">Run on Katana</a>' \
         '</div>' > "$tree/workflows/live-seg/index.html"
     echo 'title: Old seg' > "$tree/$form/old-seg/form.yml.erb"
     echo 'title: Live seg' > "$tree/workflows/live-seg/form.yml.erb"
+    [[ " $* " != *" page "* ]] || rm "$tree/workflows/old-seg/index.html"
 }
 
 # demotion <pass|fail> <name> [<flag>...]: the check over a tree built
@@ -53,3 +55,7 @@ demotion pass demoted
 demotion fail run-button run-button
 demotion fail card card
 demotion fail form-in-place form-in-place
+demotion fail tier-row tier-row
+demotion fail banner banner
+demotion fail banner-and-run-button banner run-button
+demotion fail page page
