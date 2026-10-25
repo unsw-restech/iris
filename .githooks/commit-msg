@@ -1,0 +1,16 @@
+#!/bin/bash
+# Refuses a commit whose message carries AI attribution, using the
+# patterns bin/check applies to main's history (.githooks/attribution-patterns).
+# bin/check can only see a message once it is committed; this catches it
+# first. Turn it on once per clone: git config core.hooksPath .githooks
+
+patterns="$(dirname "$0")/attribution-patterns"
+# git runs this before cleanup: drop a commit -v diff below the scissors
+# line, then comments, as git will.
+hits="$(sed '/^# -\{24\} >8 -\{24\}$/,$d' "$1" | git stripspace --strip-comments |
+    grep -i -E -f "$patterns")"
+if [ -n "$hits" ]; then
+    echo "commit-msg: AI attribution in the message (.githooks/attribution-patterns):" >&2
+    echo "$hits" | sed 's/^/  /' >&2
+    exit 1
+fi
