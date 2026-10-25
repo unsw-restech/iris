@@ -46,6 +46,16 @@ check "dead placeholder cards" grep -n 'href="#"' index.html
 check "pre-transfer repo URL" grep -rn 'github\.com/PatrickTung/iris\|https://patricktung\.github\.io/iris' . --exclude-dir=.git --exclude-dir=_archive --exclude=AGENTS.md --exclude=check
 check "stale account or old repo" grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
 check "wrong WorkflowHub project; ours is 472" grep -rn 'workflowhub.eu/projects/24' . --include=*.html
+# Commit messages carry no AI attribution: a Co-Authored-By trailer makes
+# the agent a GitHub contributor, and removing one means rewriting history.
+# Checked from the tip of the 2026-10-23 rewrite (the old history is the
+# pre-rewrite tag); older commits still carry the agent-Session links. Needs a
+# full clone, so CI checks out full history.
+ai_attribution() {
+    git log --oneline -i -E --grep='^co-authored-by:.*(claude|anthropic)' \
+        --grep='^claude-session:' --grep='generated with \[?claude code' 37f80196b8e1edabcc9ccd26456b7de9955cb033..HEAD
+}
+check "AI attribution in commit messages" ai_attribution
 
 # Non-ASCII breaks PowerShell 5.1. Checked with perl, not grep: grep -P
 # exits 2 in Git Bash, which reads as clean; [^ -~] flags every line of a

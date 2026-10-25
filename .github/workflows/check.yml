@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # bin/check reads every commit message
       - uses: astral-sh/setup-uv@v10.3.0  # no major tags since v8
       - run: uv python install 3.13.2
       - id: venv
