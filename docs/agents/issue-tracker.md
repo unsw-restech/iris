@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations. `jq` isn't installed on the desktop: filter with `gh ... --jq`, since a pipe into `jq` fails and leaves an empty result that reads as zero matches.
 
 ## Conventions
 
