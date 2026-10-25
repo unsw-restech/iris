@@ -46,14 +46,17 @@ check "dead placeholder cards" grep -n 'href="#"' index.html
 check "pre-transfer repo URL" grep -rn 'github\.com/PatrickTung/iris\|https://patricktung\.github\.io/iris' . --exclude-dir=.git --exclude-dir=_archive --exclude=AGENTS.md --exclude=check
 check "stale account or old repo" grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
 check "wrong WorkflowHub project; ours is 472" grep -rn 'workflowhub.eu/projects/24' . --include=*.html
-# Commit messages carry no AI attribution: a Co-Authored-By trailer makes
-# the agent a GitHub contributor, and removing one means rewriting history.
-# Checked over all of main's history, which was rewritten clean on
-# 2026-10-23 and 2026-10-25 (the old histories are the pre-rewrite and
-# pre-rewrite-2 tags). Needs a full clone, so CI checks out full history.
+# Commit messages carry no AI attribution from any tool: a Co-authored-by
+# trailer makes an AI tool's account a GitHub contributor, and removing one
+# means rewriting history. Also fails on any *-Session: trailer and any
+# line starting "Generated with" (after any emoji or bullet; prose quoting
+# the phrase passes). Checked over all of main's history, which has been
+# rewritten clean (the old histories are in a private backup). Needs a full
+# clone, so CI checks out full history. IRIS_CHECK_REPO points it at
+# another repo, as tests/bin/test_attribution.sh does.
 ai_attribution() {
-    git log --oneline -i -E --grep='^co-authored-by:.*(claude|anthropic)' \
-        --grep='^claude-session:' --grep='generated with \[?claude code' HEAD
+    git -C "${IRIS_CHECK_REPO:-.}" log --oneline -i -E --grep='^co-authored-by:' \
+        --grep='^[a-z0-9-]*-session:' --grep='^[^a-z0-9]*generated with' HEAD
 }
 check "AI attribution in commit messages" ai_attribution
 
@@ -299,6 +302,8 @@ check "shellcheck" shellcheck_all
 check "qwait test" bash tests/bin/test_qwait.sh
 # The live-site wait, against a fake curl on PATH.
 check "pageswait test" bash tests/bin/test_pageswait.sh
+# The AI-attribution check, against throwaway histories.
+check "attribution test" bash tests/bin/test_attribution.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
