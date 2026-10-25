@@ -11,20 +11,20 @@ trap 'rm -rf "$scratch"' EXIT
 
 # A fresh repo in $scratch/<name> with one clean commit, then one commit
 # whose message is $2, if given.
-history() {
+make_history() {
     local repo="$scratch/$1"
     git init -q "$repo"
-    git -C "$repo" -c user.name=Test -c user.email=test@example.com \
-        commit -q --allow-empty -m "Add the first page"
-    [ -z "$2" ] || git -C "$repo" -c user.name=Test -c user.email=test@example.com \
-        commit -q --allow-empty -m "$2"
+    git -C "$repo" config user.name Test
+    git -C "$repo" config user.email test@example.com
+    git -C "$repo" commit -q --allow-empty -m "Add the first page"
+    [ -z "$2" ] || git -C "$repo" commit -q --allow-empty -m "$2"
 }
 
 # expect <pass|fail> <name> [<message>]: the check over a history built
 # from <message>.
 expect() {
     local want="$1" name="$2" out rc
-    history "$name" "$3"
+    make_history "$name" "$3"
     out="$(IRIS_CHECK_REPO="$scratch/$name" bin/check "AI attribution" 2>&1)"
     rc=$?
     if [ "$want" = pass ] && [ "$rc" != 0 ]; then
@@ -47,6 +47,9 @@ line in any commit."
 expect fail co-author "Fix a typo
 
 Co-authored-by: Some Agent <agent@example.com>"
+expect fail co-author-human "Fix a typo
+
+Co-authored-by: Jane Researcher <jane@example.com>"
 expect fail co-author-lowercase "Fix a typo
 
 co-authored-by: Another Bot <bot@example.com>"
