@@ -340,19 +340,18 @@ check "workflow owner on the page and in CODEOWNERS" workflow_owner
 # block (id="cite"), a WorkflowHub workflow DOI with a YYYY-MM-DD date and
 # a <code> commit. Any other DOI on the page fails, so Katana's stays in the
 # README. "No citable version yet" goes when the first DOI is pasted in.
-# IRIS_CHECK_PAGES points it at another folder of <slug>/index.html, as
-# tests/bin/test_citable_versions.sh does.
+# tests/bin/test_citable_versions.sh runs it on fixture trees.
 citable_versions() {
     local f
-    for f in "${IRIS_CHECK_PAGES:-workflows}"/*/index.html; do
+    for f in workflows/*/index.html; do
         tr -d '\r' < "$f" | awk -v f="$f" '
             / id="cite"/ { cite = 1 }
             cite && /<\/details>/ { cite = 0 }
             cite && /(^|[^A-Za-z0-9])v[0-9]+([^A-Za-z0-9]|$)|[Vv]ersion [0-9]/ {
                 print f ":" NR ": a version label; list it by DOI, date and commit only" }
-            cite && /No citable version yet/ { none = NR }
+            cite && /No citable version yet/ { none_line = NR }
             /10\.[0-9][0-9][0-9][0-9]+\// {
-                dois = NR
+                has_doi = 1
                 line = $0
                 while (match(line, /10\.[0-9][0-9][0-9][0-9]+\/[^ "<>]+/)) {
                     doi = substr(line, RSTART, RLENGTH); line = substr(line, RSTART + RLENGTH)
@@ -362,7 +361,7 @@ citable_versions() {
                 if ($0 !~ /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/) print f ":" NR ": a DOI with no YYYY-MM-DD date"
                 if ($0 !~ /<code>[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]+<\/code>/) print f ":" NR ": a DOI with no <code> commit"
             }
-            END { if (none && dois) print f ":" none ": \"No citable version yet\" beside a listed DOI" }'
+            END { if (none_line && has_doi) print f ":" none_line ": \"No citable version yet\" beside a listed DOI" }'
     done
 }
 check "citable versions on workflow pages" citable_versions
