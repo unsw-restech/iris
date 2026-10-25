@@ -306,6 +306,35 @@ guide_copies() {
 }
 check "workflow page repeats the guide (link guide/#stage or #view)" guide_copies
 
+# Every catalogue workflow with a form names its workflow owner on its
+# page, under the description, as <p class="wf-owner"> linking their GitHub
+# profile, and .github/CODEOWNERS has a "/workflows/<slug>/ @<login>" line
+# so that owner reviews changes to its folder. hello-world is onboarding,
+# and Planned workflows have no form. Every /workflows/ line names a folder
+# with a form.
+workflow_owner() {
+    local f d owners p login
+    owners=$(tr -d '\r' 2>/dev/null < .github/CODEOWNERS)
+    grep -oE '^/workflows/[^ ]*' <<< "$owners" | while IFS= read -r p; do
+        [[ "$p" =~ ^/workflows/[a-z0-9-]+/$ ]] && [ -f ".${p}form.yml.erb" ] ||
+            echo ".github/CODEOWNERS: $p is not a workflow folder with a form (/workflows/<slug>/)"
+    done
+    for f in workflows/*/form.yml.erb; do
+        d=$(dirname "$f")
+        [ "$d" = workflows/hello-world ] && continue
+        login=$(tr -d '\r' 2>/dev/null < "$d/index.html" |
+            sed -nE 's|.*<p class="wf-owner">Workflow owner: <a href="https://github\.com/([A-Za-z0-9-]+)".*|\1|p' | head -n1)
+        if [ -z "$login" ]; then
+            echo "$d/index.html: no workflow owner (<p class=\"wf-owner\">Workflow owner: <a href=\"https://github.com/<login>\" ...)"
+        elif ! grep -qE "^/$d/ +@" <<< "$owners"; then
+            echo ".github/CODEOWNERS: no \"/$d/ @$login\" line"
+        elif ! grep -E "^/$d/ " <<< "$owners" | grep -qE " @$login( |$)"; then
+            echo ".github/CODEOWNERS: /$d/ does not name @$login, the owner on its page"
+        fi
+    done
+}
+check "workflow owner on the page and in CODEOWNERS" workflow_owner
+
 # IRIS questions go to Patrick, not a shared inbox (Patrick, 2026-10-22).
 # Only what needs a Katana administrator, such as accounts, goes to
 # restech.support@unsw.edu.au.
@@ -340,6 +369,8 @@ check "attribution test" bash tests/bin/test_attribution.sh
 check "unmaintained-workflow test" bash tests/bin/test_unmaintained.sh
 # The pre-launch pairing, against copies of the site.
 check "pre-launch pairing test" bash tests/bin/test_prelaunch.sh
+# The workflow-owner check, against throwaway repo trees.
+check "workflow owner test" bash tests/bin/test_workflow_owner.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'

@@ -1,0 +1,3 @@
+# Each catalogue workflow's folder is reviewed by its workflow owner, the
+# one named on its page. bin/check ("workflow owner") keeps the two in step.
+/workflows/microct-2d-segmentation/ @PatrickTung
