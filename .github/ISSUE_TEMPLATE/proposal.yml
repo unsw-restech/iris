@@ -1,7 +1,7 @@
 # A workflow author's proposal to add a workflow to IRIS, filed before they
 # build it. The maintainer approves with a comment and the approved label, or
-# declines by closing with wontfix. The criteria below are the contribute
-# page's; keep the two in step.
+# declines by closing with wontfix, against the criteria on the contribute
+# page, which the form links rather than copies.
 name: Propose a workflow
 description: Ask to add an imaging workflow to IRIS, before you build it.
 title: "Proposal: "
@@ -14,16 +14,7 @@ body:
 
         Anyone with a Katana account can propose a workflow. If it's approved, you build it on a fork, open a pull request, and become its workflow owner: named on its page and credited on its WorkflowHub DOI. The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) explains the whole process.
 
-        The maintainer approves a workflow that:
-
-        - fits a modality (a new modality needs the maintainer's OK here)
-        - runs in the shared imaging environment, with any new packages requested in your pull request
-        - reads one dataset in the standard layout
-        - writes a run directory through the shared library
-        - makes no network calls or downloads at run time
-        - is Apache-2.0 compatible
-
-        You'll get a yes or no on this issue before you start building.
+        Check your workflow meets the [approval criteria](https://docs.restech.unsw.edu.au/iris/contribute/#criteria) first: the maintainer approves or declines against them. You'll get a yes or no on this issue before you start building.
   - type: dropdown
     id: modality
     attributes:
