@@ -39,13 +39,17 @@ Building or changing a workflow? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Citing IRIS
 
-If you publish results from an IRIS run:
+If you publish results from an IRIS run, find the commit in the run's `commit.txt`, then:
 
-1. **Cite IRIS**, naming the workflow and the commit in the run's `commit.txt`:
+1. **Cite the workflow's citable version.** Each workflow page lists its citable versions under **Cite this workflow**, newest first, each a WorkflowHub DOI with its date and commit (for example, [microCT 2D Segmentation's](https://docs.restech.unsw.edu.au/iris/workflows/microct-2d-segmentation/#cite)). Cite the latest one at or before your commit, which WorkflowHub turns into a citation naming the workflow's authors, and give your commit beside it:
+
+   > *<the citation for the DOI>*, run at IRIS commit `<commit>`.
+
+   **Until the workflow has a citable version** at or before your commit, cite IRIS instead, naming the workflow and the commit:
 
    > UNSW Research Technology Services. *IRIS: the UNSW ResTech AI Imaging Gateway*, workflow `<workflow>`, commit `<commit>`. https://github.com/unsw-restech/iris
 
-   [CITATION.cff](CITATION.cff) holds the same details, and GitHub's **Cite this repository** button turns them into APA or BibTeX. Citable DOIs through [WorkflowHub](https://workflowhub.eu/projects/472) are planned; until then, the commit is what identifies the code you ran.
+   [CITATION.cff](CITATION.cff) holds IRIS's details, and GitHub's **Cite this repository** button turns them into APA or BibTeX. Either way, the commit is what identifies the code you ran.
 2. **Acknowledge Katana** with [ResTech's wording](https://docs.restech.unsw.edu.au/help_support/faq/#acknowledging-katana):
 
    > This research includes computations using the computational cluster Katana supported by Research Technology Services at UNSW Sydney.

@@ -277,6 +277,38 @@ guide_copies() {
 }
 check "workflow page repeats the guide (link guide/#stage or #view)" guide_copies
 
+# A workflow page lists its citable versions by DOI, date and commit, never
+# as a version number (ADR-0002): one line each in its "Cite this workflow"
+# block (id="cite"), a WorkflowHub workflow DOI with a YYYY-MM-DD date and
+# a <code> commit. Any other DOI on the page fails, so Katana's stays in the
+# README. "No citable version yet" goes when the first DOI is pasted in.
+# IRIS_CHECK_PAGES points it at another folder of <slug>/index.html, as
+# tests/bin/test_citable_versions.sh does.
+citable_versions() {
+    local f
+    for f in "${IRIS_CHECK_PAGES:-workflows}"/*/index.html; do
+        tr -d '\r' < "$f" | awk -v f="$f" '
+            / id="cite"/ { cite = 1 }
+            cite && /<\/details>/ { cite = 0 }
+            cite && /(^|[^A-Za-z0-9])v[0-9]+([^A-Za-z0-9]|$)|[Vv]ersion [0-9]/ {
+                print f ":" NR ": a version label; list it by DOI, date and commit only" }
+            cite && /No citable version yet/ { none = NR }
+            /10\.[0-9][0-9][0-9][0-9]+\// {
+                dois = NR
+                line = $0
+                while (match(line, /10\.[0-9][0-9][0-9][0-9]+\/[^ "<>]+/)) {
+                    doi = substr(line, RSTART, RLENGTH); line = substr(line, RSTART + RLENGTH)
+                    if (doi !~ /^10\.48546\/workflowhub\.workflow\.[0-9]+\.[0-9]+$/)
+                        print f ":" NR ": " doi " is not a WorkflowHub workflow DOI (10.48546/workflowhub.workflow.<id>.<n>)"
+                }
+                if ($0 !~ /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/) print f ":" NR ": a DOI with no YYYY-MM-DD date"
+                if ($0 !~ /<code>[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]+<\/code>/) print f ":" NR ": a DOI with no <code> commit"
+            }
+            END { if (none && dois) print f ":" none ": \"No citable version yet\" beside a listed DOI" }'
+    done
+}
+check "citable versions on workflow pages" citable_versions
+
 # IRIS questions go to Patrick, not a shared inbox (Patrick, 2026-10-22).
 # Only what needs a Katana administrator, such as accounts, goes to
 # restech.support@unsw.edu.au.
@@ -307,6 +339,8 @@ check "qwait test" bash tests/bin/test_qwait.sh
 check "pageswait test" bash tests/bin/test_pageswait.sh
 # The AI-attribution check, against throwaway histories.
 check "attribution test" bash tests/bin/test_attribution.sh
+# The citable-versions check, against throwaway workflow pages.
+check "citable versions test" bash tests/bin/test_citable_versions.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
