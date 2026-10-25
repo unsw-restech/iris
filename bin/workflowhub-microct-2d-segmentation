@@ -221,7 +221,7 @@ TEAM_ID=472
 TEAM_NAME="UNSW ResTech"
 TEAM_URL=https://workflowhub.eu/projects/$TEAM_ID
 OWNER="Patrick Tung"
-OWNER_ORCID=""   # TODO: not in the repo, so the first stage asks for it
+OWNER_ORCID=0000-0002-2741-3177   # empty it in a copy, and the first stage asks
 ORG_CREATOR="UNSW Research Technology Services"
 PAGE_URL=https://docs.restech.unsw.edu.au/iris/workflows/$SLUG/
 TAGS="microCT, segmentation, U-Net, deep learning, imaging, HPC"
@@ -269,13 +269,13 @@ step "On the $TEAM_NAME team page, check you're listed under its people."
 note "Registering into a team needs membership of it."
 pause "Signed in and listed? Press Enter."
 printf '\n'
-# TODO(workflow owner's ORCID): not recorded anywhere in the repo
-# (CITATION.cff names no person), and Patrick hasn't confirmed pre-filling
-# it, so the wizard asks for it. Once confirmed, set OWNER_ORCID above and
-# drop this prompt.
-printf '  %s%sOWNER ORCID NEEDED%s\n' "$BOLD" "$YELLOW" "$RESET"
-say "Your ORCID iD goes in the creators list, and the repo doesn't record it."
-say "Find it at https://orcid.org/my-orcid or on your WorkflowHub profile."
+# The workflow owner's ORCID iD goes in the creators list; asked for only
+# when OWNER_ORCID above is empty or malformed.
+if ! [[ "${OWNER_ORCID:-}" =~ ^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$ ]]; then
+  printf '  %s%sOWNER ORCID NEEDED%s\n' "$BOLD" "$YELLOW" "$RESET"
+  say "Your ORCID iD goes in the creators list."
+  say "Find it at https://orcid.org/my-orcid or on your WorkflowHub profile."
+fi
 until [[ "${OWNER_ORCID:-}" =~ ^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$ ]]; do
   [[ -n "${OWNER_ORCID:-}" ]] && warn "that isn't an ORCID iD like 0000-0002-1825-0097"
   ask OWNER_ORCID ">>> ENTER YOUR ORCID iD (0000-0000-0000-0000):"
