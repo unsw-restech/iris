@@ -1,6 +1,17 @@
 # For workflow authors
 
-How IRIS is built, previewed, extended and deployed. Researchers running workflows want the [README](README.md) instead.
+This file is for workflow authors: anyone with a Katana account who adds or changes a workflow, whether you work in ResTech or not. It covers how IRIS is built, previewed, extended and deployed, and takes a new workflow from an approved proposal to its DOI. Researchers running workflows want the [README](README.md) instead.
+
+## From proposal to DOI
+
+You need no write access to the repo. The flow, with who does each step:
+
+1. **Propose** (you): file a proposal through the proposal issue form on [GitHub Issues](https://github.com/unsw-restech/iris/issues/new/choose), before building anything. Proposals open at launch.
+2. **Approve** (maintainer): the maintainer approves it with a comment and the `approved` label, or declines it by closing it as `wontfix`.
+3. **Build on a fork** (you): fork `unsw-restech/iris`, make a branch on your fork, and follow [Adding a new workflow](#adding-a-new-workflow) below. Run `bin/check`, and `qsub` the job from your own clone on Katana.
+4. **Open a PR** (you) from your fork's branch into `main`, citing the approved proposal's number and your `qsub` run's job ID, and filling in the PR template's checklist.
+5. **Review, browser run and merge** (maintainer): the maintainer reviews the PR, builds a new environment version if it asked for packages, does the browser run from the dev clone and merges.
+6. **Register and mint** (you, now the workflow owner): register the workflow on WorkflowHub and mint its first citable version ([below](#registering-on-workflowhub)).
 
 ## Structure
 
@@ -71,18 +82,51 @@ Opening `index.html` directly over `file://` will not reproduce the real base pa
 
 ## Adding a new workflow
 
-The workflow-author checklist. Work on a branch; the dev clone on Katana can check out any branch.
+The workflow-author checklist. Work on a branch of your fork, cloned on Katana as well as wherever you edit; the maintainer's dev clone fetches your PR's branch for the browser run.
 
 1. **Copy the reference folder**, `workflows/microct-2d-segmentation/`, to `workflows/<slug>/`. To build a Planned workflow, extend its existing folder instead, so its URL never changes.
 2. **Change the slug everywhere**: the folder name, `#PBS -A iris-<slug>` in the form's script header, the Experiment name default and the job name default. The folder name is also the OpenComposer URL segment.
-3. **Set the environment version** in the form's `ENV_DIR`. If the workflow needs packages the environment lacks, build version *n+1* (`envs/imaging/README.md`); never change a built version.
-4. **Set the fields and `check:` rules** in `form.yml.erb`, and the entry point under `src/`. Defaults for memory, walltime and epochs cite the timing run that measured them.
-5. **Write the page text** in `index.html`, linking the guide (`../../guide/#stage` and `../../guide/#view`) for staging and viewing rather than repeating its steps. Use relative links only: root-absolute links like `href="/"` resolve outside `/iris/` and 404.
-6. **Add the catalogue card** to `index.html`, with its modality tag and compute tag. A new modality also needs a `.card-domain.<x>` style.
-7. **Test on dev**: `bin/check` clean, then from the dev clone the form opens, `check:` rejects one wrong dataset folder, and one real run finishes, appears in MLflow after `iris-compare` and opens with its `iris-view` line. Cite the job ID.
-8. **Merge to `main` and pull** the dev clone (`git pull --ff-only`). Pushing `main` publishes the site.
+3. **Set the environment version** in the form's `ENV_DIR`. If the workflow needs packages the environment lacks, request them ([Requesting packages](#requesting-packages)); never change a built version.
+4. **Set the fields and `check:` rules** in `form.yml.erb`, and the entry point under `src/`. Add a synthetic-dataset test under `tests/`, as the reference workflow's `tests/test_synthetic.py` does, so `bin/check` runs your workflow end to end on made-up data. Defaults for memory, walltime and epochs cite the timing run that measured them.
+5. **Write the page text** in `index.html`, linking the guide (`../../guide/#stage` and `../../guide/#view`) for staging and viewing rather than repeating its steps. Name yourself as the workflow owner on the page, and add a `CODEOWNERS` line for the folder. Use relative links only: root-absolute links like `href="/"` resolve outside `/iris/` and 404.
+6. **Add the catalogue card** to `index.html`, with its modality tag and compute tag, and the workflow's row in the tier table (see [Status](#status)): **Run, browser run pending**, so the card reads Testing until the maintainer's browser run. A new modality also needs a `.card-domain.<x>` style, and the maintainer's OK in the proposal.
+7. **Test from your own clone** (you): `bin/check` clean, then a `qsub` run of the job script from your clone on Katana. The job script is the form's `script:` block: copy it into a `.pbs` file, fill in each `#{...}` with a value, and set `CODE` to your clone's `workflows/<slug>`. Run it on a real dataset in the standard layout, pass `-m abe` so PBS emails you, and check the run directory it writes. Cite the job ID in the PR.
+8. **Browser run on dev** (maintainer): from the dev clone, on your PR's branch, the form opens, `check:` rejects one wrong dataset folder, and one real run finishes, appears in MLflow after `iris-compare` and opens with its `iris-view` line. The maintainer cites that job ID and moves the workflow to **Run and verified**.
+9. **Merge to `main` and pull** the dev clone (maintainer, `git pull --ff-only`). Pushing `main` publishes the site.
 
 If the workflow ships a `local/run_local.ps1`, **keep it ASCII-only**. These files have no BOM, and Windows PowerShell 5.1 reads a BOM-less UTF-8 file as ANSI — an em dash or box-drawing character decodes into a byte PowerShell treats as a string delimiter, and the script fails to parse before it runs a single line. Use `-` and `=` in banners. The `.sh` files are unaffected.
+
+### Requesting packages
+
+Only the maintainer builds environments. If your workflow needs packages the shared imaging environment lacks, add them to `envs/imaging/requirements.in` in your PR and list them in its description. The maintainer builds version *n+1* from it (`envs/imaging/README.md`), commits its lock, and your form's `ENV_DIR` points at *n+1* before merge. Until then, test against a venv of your own built from that `requirements.in`, and say so in the PR.
+
+## The workflow owner
+
+Once your PR merges, you are the workflow's **workflow owner**: named on its page and in `CODEOWNERS` for its folder. Your duties:
+
+- **Answer issues about your workflow**, on GitHub Issues, and fix it when it breaks.
+- **Review PRs that change its folder**; `CODEOWNERS` asks you to.
+- **Keep it working**: moving it to a new environment version when its old one goes, and keeping its page accurate.
+- **Register it on WorkflowHub and mint its citable versions**, as below.
+
+If your workflow breaks and you don't answer about it for six months, it becomes an unmaintained workflow: it leaves the catalogue and can no longer be run, though its page stays. Anyone can adopt it through a proposal (see [Status](#status)). To hand a workflow over, open a PR that names the new owner on its page and in `CODEOWNERS`.
+
+## Registering on WorkflowHub
+
+Each catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step:
+
+1. **Create an account** on [WorkflowHub](https://workflowhub.eu/) and link your ORCID to it.
+2. **Ask to join Team 472**, [UNSW ResTech](https://workflowhub.eu/projects/472), from its page. The maintainer approves, and keeps edit rights over every entry in the team, so leave the team able to manage your entry.
+3. **Register the workflow** in Team 472 by importing from git: repository `https://github.com/unsw-restech/iris`, branch `main`, main workflow file the workflow's entry point (`workflows/<slug>/src/run.py` for the reference workflow), workflow type `Other`.
+4. **Fill in the metadata**: the title and description from the workflow's page, licence Apache-2.0, and as creators yourself, your co-authors (with ORCIDs where they have them) and UNSW Research Technology Services.
+5. **Freeze** the version, **publish** it, then **mint** its DOI. Neither publishing nor minting can be undone. Note the date and the commit of `main` it was frozen at.
+6. **Open a PR** adding the citable version to the workflow's page: its DOI, its date and its commit, never a version number.
+
+**When to mint:** the first citable version straight after your workflow merges; after that, only when its code or defaults change in a way that changes results, not on every merge. A citable version's commit may include unrelated changes to other workflows; that is harmless, since each run's `commit.txt` pins exactly what ran.
+
+## Licence
+
+IRIS is Apache-2.0 ([LICENSE](LICENSE)), and so is everything you add to it: inbound = outbound, under the licence's own section 5. There is no separate licence agreement (CLA) to sign. Opening a PR confirms that you can license its contents this way, and anything you bring in from elsewhere must be Apache-2.0 compatible.
 
 ## Deployment
 
@@ -100,6 +144,7 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 |---|---|---|
 | **Run and verified** | `hello-world` (onboarding), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
+| **Unmaintained** | None | Page only, with the `unmaintained-banner` saying it can't be run, so its citable versions and cited commits still lead somewhere. No card, no Run button, form moved to `_archive/<slug>/`. A workflow lands here when it breaks and its workflow owner hasn't answered for six months. To adopt one, file a proposal; once it's approved, open a PR that fixes the workflow and cites a `qsub` run's job ID. It returns as the same folder and WorkflowHub entry |
 
 `hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
 
