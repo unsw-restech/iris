@@ -138,7 +138,7 @@ The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points
 
 ## Status
 
-`v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch, and remove the README's pre-launch notice; `bin/check` fails if only one is done.
+`v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch, and remove every pre-launch notice: the README's, and the line saying proposals open at launch on the contribute page, in step 1 of [From proposal to DOI](#from-proposal-to-doi) and in the proposal form. `bin/check` fails if only some are done.
 
 The catalogue is **imaging only**. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**, which has no workflows at present. `hello-world` sits outside the catalogue as onboarding.
 

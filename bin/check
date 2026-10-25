@@ -193,9 +193,9 @@ readme_paths() {
 check "README repo map names real paths" readme_paths
 
 # Pre-launch, every Run button opens the dev OnDemand (/pun/dev/), the
-# README says IRIS is not open yet and the contribute page says proposals
-# open at launch. Launch moves every button to /pun/sys/ and removes both
-# notices (CONTRIBUTING.md, Status).
+# README says IRIS is not open yet, and the contribute page, CONTRIBUTING
+# and the proposal form say proposals open at launch. Launch moves every
+# button to /pun/sys/ and removes every notice (CONTRIBUTING.md, Status).
 prelaunch_notice() {
     local dev sys file text
     dev=$(git grep -l 'pun/dev/OpenComposer' -- '*.html' ':(exclude)_archive')
@@ -213,6 +213,8 @@ prelaunch_notice() {
     done <<'NOTICES'
 README.md|not open to researchers yet
 contribute/index.html|Proposals open at launch
+CONTRIBUTING.md|Proposals open at launch
+.github/ISSUE_TEMPLATE/proposal.yml|Proposals open at launch
 NOTICES
 }
 check "pre-launch notices match the Run buttons" prelaunch_notice
