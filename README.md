@@ -37,6 +37,10 @@ Every run writes `commit.txt` into its run directory: the exact commit of this r
 
 Building or changing a workflow? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Contribute a workflow
+
+Anyone with a Katana account can offer an imaging workflow of their own to IRIS. You are named on its page as its workflow owner and get a DOI for it that credits you and your co-authors. The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) covers what gets accepted and the steps from proposal to DOI.
+
 ## Citing IRIS
 
 If you publish results from an IRIS run:
