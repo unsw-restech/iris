@@ -99,6 +99,7 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 |---|---|---|
 | **Run and verified** | `hello-world` (onboarding), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
+| **Unmaintained** | None | Page only, with the `unmaintained-banner` saying it can't be run, so its citable versions and cited commits still lead somewhere. No card, no Run button, form moved to `_archive/<slug>/`. A workflow lands here when it breaks and its workflow owner hasn't answered for six months. To adopt one, file a proposal; once it's approved, open a PR that fixes the workflow and cites a `qsub` run's job ID. It returns as the same folder and WorkflowHub entry |
 
 `hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
 
