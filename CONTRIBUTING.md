@@ -42,7 +42,8 @@ iris/
 │   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
 │   ├── iris-rebuild                  # Rebuild a lost tracking store from run directories
 │   ├── iris-view                     # View a run's labels over its volume in napari (in a Virtual Desktop)
-│   └── qwait                         # Wait for Katana jobs and show how they ended (desktop)
+│   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
+│   └── workflowhub-microct-2d-segmentation  # Walkthrough registering it on WorkflowHub; copy it for another workflow (desktop)
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
