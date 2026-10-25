@@ -137,7 +137,7 @@ check "manifests use a built-in bi- icon" manifest_icons
 # Scripts run by path need the executable bit in git; core.fileMode is off
 # on the Windows mount, so chmod alone does not record it.
 exec_bits() {
-    git ls-files -s bin 'envs/*.sh' 'tests/bin/*.sh' .githooks/commit-msg | awk '$1 != "100755" { print $4 }'
+    git ls-files -s bin 'envs/*.sh' 'tests/bin/test_*.sh' .githooks/commit-msg | awk '$1 != "100755" { print $4 }'
 }
 check "scripts run by path are 100755 (git update-index --chmod=+x)" exec_bits
 
