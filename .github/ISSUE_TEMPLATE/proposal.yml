@@ -1,0 +1,84 @@
+# A workflow author's proposal to add a workflow to IRIS, filed before they
+# build it. The maintainer approves with a comment and the approved label, or
+# declines by closing with wontfix. The criteria below are the contribute
+# page's; keep the two in step.
+name: Propose a workflow
+description: Ask to add an imaging workflow to IRIS, before you build it.
+title: "Proposal: "
+labels: [proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Proposals open at launch.** Until IRIS opens to researchers, please don't file one yet.
+
+        Anyone with a Katana account can propose a workflow. If it's approved, you build it on a fork, open a pull request, and become its workflow owner: named on its page and credited on its WorkflowHub DOI. The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) explains the whole process.
+
+        The maintainer approves a workflow that:
+
+        - fits a modality (a new modality needs the maintainer's OK here)
+        - runs in the shared imaging environment, with any new packages requested in your pull request
+        - reads one dataset in the standard layout
+        - writes a run directory through the shared library
+        - makes no network calls or downloads at run time
+        - is Apache-2.0 compatible
+
+        You'll get a yes or no on this issue before you start building.
+  - type: dropdown
+    id: modality
+    attributes:
+      label: Modality
+      description: The imaging technique the workflow serves. Choose "New modality" to ask the maintainer to add one, and name it below.
+      options:
+        - microCT
+        - Microscopy
+        - Pathology
+        - New modality (needs the maintainer's OK)
+    validations:
+      required: true
+  - type: input
+    id: new-modality
+    attributes:
+      label: New modality
+      description: Only if you chose "New modality" above.
+  - type: textarea
+    id: what-it-does
+    attributes:
+      label: What the workflow does
+      description: What a researcher gives it, what it runs, and what they get back in the run directory.
+    validations:
+      required: true
+  - type: textarea
+    id: dataset-layout
+    attributes:
+      label: Input dataset layout
+      description: The folder layout the workflow reads, and how it differs from the standard layout in the [guide](https://docs.restech.unsw.edu.au/iris/guide/#stage), if at all.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: packages
+    attributes:
+      label: Packages beyond the shared imaging environment
+      description: Packages and versions the workflow needs that `envs/imaging/requirements.in` doesn't have. Write "None" if it needs nothing new.
+    validations:
+      required: true
+  - type: textarea
+    id: compute
+    attributes:
+      label: Compute needs
+      description: CPU or GPU, memory and walltime for a typical dataset, and how you measured them.
+      placeholder: |
+        GPU (any model), 8 CPUs, 64 GB, 4 hours, from a run on a 16 GB volume
+    validations:
+      required: true
+  - type: textarea
+    id: owner
+    attributes:
+      label: Workflow owner and co-authors
+      description: The proposed workflow owner (name, zID, GitHub username), then any co-authors to credit on its DOI. Give ORCIDs if you have them.
+      placeholder: |
+        Owner: Jane Citizen, z1234567, @janecitizen, https://orcid.org/0000-0000-0000-0000
+        Co-authors: ...
+    validations:
+      required: true
