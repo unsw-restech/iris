@@ -193,8 +193,9 @@ finish() {
 
 # Registers microct-2d-segmentation on WorkflowHub, the worked example of
 # spec #58 (ADR-0002: one entry per catalogue workflow, imported from main,
-# type Other, citable versions frozen from main). The maintainer runs it on
-# the desktop; it needs no credentials, only a browser signed in to
+# type Other, citable versions frozen from main). The workflow owner runs
+# it on the desktop (for this workflow, Patrick, who is also the
+# maintainer); it needs no credentials, only a browser signed in to
 # WorkflowHub as a member of Team 472. It stops for a yes before Publish
 # and before Generate a DOI, and ends with the comment for #76.
 #
@@ -203,7 +204,11 @@ finish() {
 # Answers are kept in $IRIS_WIZARD_ENV (default below, outside the repo),
 # so a re-run offers them back: press Enter through the stages already done.
 # A workflow owner registering another workflow copies this script and
-# changes the values in the block below.
+# changes the values in the block below, setting TICKET empty.
+#
+# It sits in bin/ with the other desktop tools, so Pages serves it like
+# every file; that's harmless, since it holds no credentials and writes
+# its answers outside the repo.
 
 SLUG=microct-2d-segmentation
 TITLE="microCT 2D Segmentation (U-Net)"
@@ -215,11 +220,13 @@ LICENCE=Apache-2.0
 TEAM_ID=472
 TEAM_NAME="UNSW ResTech"
 TEAM_URL=https://workflowhub.eu/projects/$TEAM_ID
-MAINTAINER="Patrick Tung"
-MAINTAINER_ORCID=""   # TODO: not in the repo, so the first stage asks for it
+OWNER="Patrick Tung"
+OWNER_ORCID=""   # TODO: not in the repo, so the first stage asks for it
 ORG_CREATOR="UNSW Research Technology Services"
 PAGE_URL=https://docs.restech.unsw.edu.au/iris/workflows/$SLUG/
 TAGS="microCT, segmentation, U-Net, deep learning, imaging, HPC"
+# The issue the last stage reports on: #76 checks, for spec #58, that a
+# frozen snapshot records its commit. Empty skips that stage.
 TICKET=76
 # The workflow page's lead paragraph, then the manifest's description, in
 # the glossary's terms.
@@ -240,7 +247,7 @@ paste_block() {
   printf '\n  %s%s:%s\n%s----%s\n%s\n%s----%s\n' "$BOLD" "$1" "$RESET" "$DIM" "$RESET" "$2" "$DIM" "$RESET"
 }
 
-# stop_here "why" ends the run cleanly at a gate the maintainer declined.
+# stop_here "why" ends the run cleanly at a gate the workflow owner declined.
 stop_here() {
   printf '\n'
   warn "$1"
@@ -248,7 +255,7 @@ stop_here() {
   exit 0
 }
 
-TOTAL_STAGES=8
+if [[ -n "$TICKET" ]]; then TOTAL_STAGES=8; else TOTAL_STAGES=7; fi
 
 banner "Register $SLUG on WorkflowHub"
 
@@ -262,18 +269,19 @@ step "On the $TEAM_NAME team page, check you're listed under its people."
 note "Registering into a team needs membership of it."
 pause "Signed in and listed? Press Enter."
 printf '\n'
-# TODO(maintainer's ORCID): not recorded anywhere in the repo (CITATION.cff
-# names no person), so the wizard asks for it. Once it's in the repo, set
-# MAINTAINER_ORCID above and drop this prompt.
-printf '  %s%sMAINTAINER ORCID NEEDED%s\n' "$BOLD" "$YELLOW" "$RESET"
+# TODO(workflow owner's ORCID): not recorded anywhere in the repo
+# (CITATION.cff names no person), and Patrick hasn't confirmed pre-filling
+# it, so the wizard asks for it. Once confirmed, set OWNER_ORCID above and
+# drop this prompt.
+printf '  %s%sOWNER ORCID NEEDED%s\n' "$BOLD" "$YELLOW" "$RESET"
 say "Your ORCID iD goes in the creators list, and the repo doesn't record it."
 say "Find it at https://orcid.org/my-orcid or on your WorkflowHub profile."
-until [[ "${MAINTAINER_ORCID:-}" =~ ^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$ ]]; do
-  [[ -n "${MAINTAINER_ORCID:-}" ]] && warn "that isn't an ORCID iD like 0000-0002-1825-0097"
-  ask MAINTAINER_ORCID ">>> ENTER YOUR ORCID iD (0000-0000-0000-0000):"
-  MAINTAINER_ORCID="${MAINTAINER_ORCID#https://orcid.org/}"
+until [[ "${OWNER_ORCID:-}" =~ ^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$ ]]; do
+  [[ -n "${OWNER_ORCID:-}" ]] && warn "that isn't an ORCID iD like 0000-0002-1825-0097"
+  ask OWNER_ORCID ">>> ENTER YOUR ORCID iD (0000-0000-0000-0000):"
+  OWNER_ORCID="${OWNER_ORCID#https://orcid.org/}"
 done
-write_env MAINTAINER_ORCID "$MAINTAINER_ORCID"
+write_env OWNER_ORCID "$OWNER_ORCID"
 
 # ──────────────────────────────────────────────────────────────────────────
 stage "Import the repo from git"
@@ -317,7 +325,7 @@ step "Sharing: give $TEAM_NAME manage rights, so the maintainer can fix any team
 note "Leave public access as offered; the Publish stage makes it public."
 paste_block "Tags" "$TAGS"
 step "Creators, in this order:"
-say "  1. $MAINTAINER, ORCID $MAINTAINER_ORCID: pick your WorkflowHub profile, and"
+say "  1. $OWNER, ORCID $OWNER_ORCID: pick your WorkflowHub profile, and"
 say "     check it shows that ORCID (add it to your profile if not)."
 say "  2. $ORG_CREATOR: if there's no organisation creator, put it in the"
 say "     free-text other-creators field."
@@ -356,11 +364,11 @@ pause "Published? Press Enter."
 # ──────────────────────────────────────────────────────────────────────────
 stage "Generate a DOI"
 printf '  %s%sOne-way door.%s\n' "$BOLD" "$RED" "$RESET"
-say "A DOI is permanent: DataCite keeps it, and this version's metadata, for good."
-step "In the Citation panel, generate a DOI for the frozen version."
+say "A DOI is permanent: DataCite keeps it, and this snapshot's metadata, for good."
+step "In the Citation panel, generate a DOI for the frozen snapshot."
 step "It reminds you to review the metadata, then asks you to confirm."
 printf '\n'
-confirm "Generate the DOI for this frozen version now? It can't be undone" ||
+confirm "Generate the DOI for this frozen snapshot now? It can't be undone" ||
   stop_here "Stopped before Generate a DOI."
 printf '\n'
 until [[ "${WH_DOI:-}" =~ ^10\.48546/workflowhub\.workflow\.[0-9]+\.[0-9]+$ ]]; do
@@ -372,11 +380,13 @@ write_env WH_DOI "$WH_DOI"
 open_url "https://doi.org/$WH_DOI"
 note "It should resolve to the entry; a new DOI can take a few minutes."
 
+if [[ -z "$TICKET" ]]; then finish; exit 0; fi
+
 # ──────────────────────────────────────────────────────────────────────────
 stage "Report on #$TICKET"
-say "The spec rests on one assumption: that a frozen version records its commit."
+say "The spec rests on one assumption: that a frozen snapshot records its commit."
 until [[ "${WH_COMMIT_SHOWN:-}" =~ ^(yes|no)$ ]]; do
-  ask WH_COMMIT_SHOWN "Does the frozen version show the commit it came from? (yes/no):"
+  ask WH_COMMIT_SHOWN "Does the frozen snapshot show the commit it came from? (yes/no):"
   WH_COMMIT_SHOWN="${WH_COMMIT_SHOWN,,}"
 done
 write_env WH_COMMIT_SHOWN "$WH_COMMIT_SHOWN"
@@ -395,7 +405,7 @@ COMMENT="Registered with \`bin/workflowhub-$SLUG\`.
 
 - DOI: https://doi.org/$WH_DOI
 - Entry: $WH_ENTRY_URL
-- Frozen version shows its commit: $shown"
+- Frozen snapshot shows its commit: $shown"
 paste_block "Comment for #$TICKET" "$COMMENT"
 printf '\n'
 if confirm "Post this on #$TICKET with gh?"; then

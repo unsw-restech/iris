@@ -1,6 +1,6 @@
 # For workflow authors
 
-This file is for workflow authors: anyone with a Katana account who adds or changes a workflow, whether you work in ResTech or not. It covers how IRIS is built, previewed, extended and deployed, and takes a new workflow from an approved proposal to its DOI. Researchers running workflows want the [README](README.md) instead.
+This file is for workflow authors: anyone with a Katana account who adds or changes a workflow, whether you work in ResTech or not. It covers how IRIS is built, previewed, extended and deployed, and takes a new workflow from an approved proposal to its DOI. Researchers running workflows want the [README](README.md) instead. Deciding whether to propose a workflow? The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) says who can, what you get and what gets accepted; this file is the technical checklist behind it.
 
 ## From proposal to DOI
 
@@ -115,13 +115,13 @@ If your workflow breaks and you don't answer about it for six months, it becomes
 
 ## Registering on WorkflowHub
 
-Each catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step:
+Each catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step. `bin/workflowhub-microct-2d-segmentation` is the worked example: run on the desktop, it walks through steps 3 to 5 for the reference workflow, with every value filled in. Copy it for your workflow and change the values at the top of its stages.
 
 1. **Create an account** on [WorkflowHub](https://workflowhub.eu/) and link your ORCID to it.
 2. **Ask to join Team 472**, [UNSW ResTech](https://workflowhub.eu/projects/472), from its page. The maintainer approves, and keeps edit rights over every entry in the team, so leave the team able to manage your entry.
 3. **Register the workflow** in Team 472 by importing from git: repository `https://github.com/unsw-restech/iris`, branch `main`, main workflow file the workflow's entry point (`workflows/<slug>/src/run.py` for the reference workflow), workflow type `Other`.
 4. **Fill in the metadata**: the title and description from the workflow's page, licence Apache-2.0, and as creators yourself, your co-authors (with ORCIDs where they have them) and UNSW Research Technology Services.
-5. **Freeze** the version, **publish** it, then **mint** its DOI. Neither publishing nor minting can be undone. Note the date and the commit of `main` it was frozen at.
+5. **Freeze** the entry's snapshot of `main` (WorkflowHub's Freeze button), **publish** it, then **mint** its DOI, which makes it a citable version. Neither publishing nor minting can be undone. Note the date and the commit of `main` it was frozen at.
 6. **Open a PR** adding the citable version to the workflow's page: its DOI, its date and its commit, never a version number.
 
 **When to mint:** the first citable version straight after your workflow merges; after that, only when its code or defaults change in a way that changes results, not on every merge. A citable version's commit may include unrelated changes to other workflows; that is harmless, since each run's `commit.txt` pins exactly what ran.
@@ -138,7 +138,7 @@ The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points
 
 ## Status
 
-`v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch, and remove the README's pre-launch notice; `bin/check` fails if only one is done.
+`v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch, and remove every pre-launch notice: the README's, and the line saying proposals open at launch on the contribute page, in step 1 of [From proposal to DOI](#from-proposal-to-doi) and in the proposal form. `bin/check` fails if only some are done.
 
 The catalogue is **imaging only**. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**, which has no workflows at present. `hello-world` sits outside the catalogue as onboarding.
 
@@ -146,7 +146,7 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 |---|---|---|
 | **Run and verified** | `hello-world` (onboarding), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
 | **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
-| **Unmaintained** | None | Page only, with the `unmaintained-banner` saying it can't be run, so its citable versions and cited commits still lead somewhere. No card, no Run button, form moved to `_archive/<slug>/`. A workflow lands here when it breaks and its workflow owner hasn't answered for six months. To adopt one, file a proposal; once it's approved, open a PR that fixes the workflow and cites a `qsub` run's job ID. It returns as the same folder and WorkflowHub entry |
+| **Unmaintained** | None | Page only, with the `unmaintained-banner` saying it can't be run, so its citable versions and cited commits still lead somewhere. No card, no Run button, form moved to `_archive/<slug>/`, and its `CODEOWNERS` line removed, since it has no workflow owner. A workflow lands here when it breaks and its workflow owner hasn't answered for six months. To adopt one, file a proposal; once it's approved, open a PR that fixes the workflow, cites a `qsub` run's job ID and names you as its workflow owner on its page and in `CODEOWNERS`. It returns as the same folder and WorkflowHub entry |
 
 `hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
 

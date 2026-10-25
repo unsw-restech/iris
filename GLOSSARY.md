@@ -40,6 +40,10 @@ _Avoid_: Coming soon, inactive
 A workflow taken out of service because its owner stopped answering. It leaves the catalogue and can no longer be run, but its page stays so its citable versions and cited commits still lead somewhere.
 _Avoid_: Retired, deprecated, archived
 
+**Adoption**:
+A workflow author's taking on an unmaintained workflow: their proposal to adopt it is approved, their PR fixes it and cites a `qsub` run, and they become its workflow owner. It returns as the same folder and WorkflowHub entry. Handing a working workflow from one owner to another is not adoption.
+_Avoid_: Revival, rescue, takeover
+
 **Modality**:
 The imaging technique a workflow serves, such as microCT, microscopy or pathology, shown as a tag on its catalogue card.
 _Avoid_: Domain, category

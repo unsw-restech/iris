@@ -137,7 +137,7 @@ check "manifests use a built-in bi- icon" manifest_icons
 # Scripts run by path need the executable bit in git; core.fileMode is off
 # on the Windows mount, so chmod alone does not record it.
 exec_bits() {
-    git ls-files -s bin 'envs/*.sh' .githooks/commit-msg | awk '$1 != "100755" { print $4 }'
+    git ls-files -s bin 'envs/*.sh' 'tests/bin/test_*.sh' .githooks/commit-msg | awk '$1 != "100755" { print $4 }'
 }
 check "scripts run by path are 100755 (git update-index --chmod=+x)" exec_bits
 
@@ -193,9 +193,9 @@ readme_paths() {
 check "README repo map names real paths" readme_paths
 
 # Pre-launch, every Run button opens the dev OnDemand (/pun/dev/), the
-# README says IRIS is not open yet and the contribute page says proposals
-# open at launch. Launch moves every button to /pun/sys/ and removes both
-# notices (CONTRIBUTING.md, Status).
+# README says IRIS is not open yet, and the contribute page, CONTRIBUTING
+# and the proposal form say proposals open at launch. Launch moves every
+# button to /pun/sys/ and removes every notice (CONTRIBUTING.md, Status).
 prelaunch_notice() {
     local dev sys file text
     dev=$(git grep -l 'pun/dev/OpenComposer' -- '*.html' ':(exclude)_archive')
@@ -213,6 +213,8 @@ prelaunch_notice() {
     done <<'NOTICES'
 README.md|not open to researchers yet
 contribute/index.html|Proposals open at launch
+CONTRIBUTING.md|Proposals open at launch
+.github/ISSUE_TEMPLATE/proposal.yml|Proposals open at launch
 NOTICES
 }
 check "pre-launch notices match the Run buttons" prelaunch_notice
@@ -278,26 +280,39 @@ tier_jobs() {
 }
 check "Run and verified workflows cite a job" tier_jobs
 
-# An unmaintained workflow (CONTRIBUTING.md, tier table) is marked by the
-# unmaintained-banner on its page, which stays so its citable versions and
-# cited commits still lead somewhere. Demoting one takes the Run button off
-# the page, the card off the catalogue and the form into _archive/<slug>/,
-# so OpenComposer stops serving it; this fails until all three are done.
+# An unmaintained workflow sits in the Unmaintained row of the CONTRIBUTING
+# tier table, and its page, which stays so its citable versions and cited
+# commits still lead somewhere, carries the unmaintained-banner. Demoting
+# one takes the Run button off the page, the card off the catalogue, the
+# form into _archive/<slug>/, so OpenComposer stops serving it, and its
+# line out of CODEOWNERS, since it has no workflow owner; this fails
+# until every step is done, whichever of the row or the banner came first.
 # tests/bin/test_unmaintained.sh runs it on fixture trees.
 unmaintained() {
-    local page slug
-    for page in workflows/*/index.html; do
-        grep -q 'class="unmaintained-banner"' "$page" || continue
-        slug=$(basename "$(dirname "$page")")
+    local page slug rows banners
+    rows=$(tier_rows | sed -n 's/ Unmaintained$//p')
+    banners=$(grep -l 'class="unmaintained-banner"' workflows/*/index.html | xargs -r -n1 dirname | xargs -r -n1 basename)
+    for slug in $(sort -u <<< "$rows"$'\n'"$banners"); do
+        page="workflows/$slug/index.html"
+        if [ ! -f "$page" ]; then
+            echo "$page: $slug is Unmaintained, but its page is gone; it stays, with the unmaintained-banner"
+            continue
+        fi
+        grep -qx "$slug" <<< "$rows" ||
+            echo "$page: has the unmaintained-banner, but the CONTRIBUTING tier table doesn't list $slug as Unmaintained"
+        grep -qx "$slug" <<< "$banners" ||
+            echo "$page: $slug is Unmaintained in the CONTRIBUTING tier table, but its page has no unmaintained-banner"
         grep -qE 'class="run-btn|/pun/(dev|sys)/OpenComposer/' "$page" &&
             echo "$page: Unmaintained, but has a Run button"
         grep -qE "href=\"workflows/$slug/\"[^>]*class=\"workflow-card" index.html &&
             echo "index.html: $slug is Unmaintained, but has a catalogue card"
         [ -e "workflows/$slug/form.yml.erb" ] &&
             echo "workflows/$slug/form.yml.erb: $slug is Unmaintained; move its form to _archive/$slug/"
+        tr -d '\r' 2>/dev/null < .github/CODEOWNERS | grep -qE "^/workflows/$slug/ " &&
+            echo ".github/CODEOWNERS: $slug is Unmaintained; remove its /workflows/$slug/ line"
     done
 }
-check "unmaintained workflows have no Run button, card or live form" unmaintained
+check "unmaintained workflows have no Run button, card, live form or CODEOWNERS line" unmaintained
 
 # The guide owns staging and viewing (CONTRIBUTING.md step 5): its data mover host,
 # scratch quota and WinSCP note stay out of workflow pages.
@@ -340,19 +355,18 @@ check "workflow owner on the page and in CODEOWNERS" workflow_owner
 # block (id="cite"), a WorkflowHub workflow DOI with a YYYY-MM-DD date and
 # a <code> commit. Any other DOI on the page fails, so Katana's stays in the
 # README. "No citable version yet" goes when the first DOI is pasted in.
-# IRIS_CHECK_PAGES points it at another folder of <slug>/index.html, as
-# tests/bin/test_citable_versions.sh does.
+# tests/bin/test_citable_versions.sh runs it on fixture trees.
 citable_versions() {
     local f
-    for f in "${IRIS_CHECK_PAGES:-workflows}"/*/index.html; do
+    for f in workflows/*/index.html; do
         tr -d '\r' < "$f" | awk -v f="$f" '
             / id="cite"/ { cite = 1 }
             cite && /<\/details>/ { cite = 0 }
             cite && /(^|[^A-Za-z0-9])v[0-9]+([^A-Za-z0-9]|$)|[Vv]ersion [0-9]/ {
                 print f ":" NR ": a version label; list it by DOI, date and commit only" }
-            cite && /No citable version yet/ { none = NR }
+            cite && /No citable version yet/ { none_line = NR }
             /10\.[0-9][0-9][0-9][0-9]+\// {
-                dois = NR
+                has_doi = 1
                 line = $0
                 while (match(line, /10\.[0-9][0-9][0-9][0-9]+\/[^ "<>]+/)) {
                     doi = substr(line, RSTART, RLENGTH); line = substr(line, RSTART + RLENGTH)
@@ -362,7 +376,7 @@ citable_versions() {
                 if ($0 !~ /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/) print f ":" NR ": a DOI with no YYYY-MM-DD date"
                 if ($0 !~ /<code>[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]+<\/code>/) print f ":" NR ": a DOI with no <code> commit"
             }
-            END { if (none && dois) print f ":" none ": \"No citable version yet\" beside a listed DOI" }'
+            END { if (none_line && has_doi) print f ":" none_line ": \"No citable version yet\" beside a listed DOI" }'
     done
 }
 check "citable versions on workflow pages" citable_versions
