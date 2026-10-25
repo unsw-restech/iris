@@ -283,8 +283,9 @@ check "Run and verified workflows cite a job" tier_jobs
 # An unmaintained workflow sits in the Unmaintained row of the CONTRIBUTING
 # tier table, and its page, which stays so its citable versions and cited
 # commits still lead somewhere, carries the unmaintained-banner. Demoting
-# one takes the Run button off the page, the card off the catalogue and the
-# form into _archive/<slug>/, so OpenComposer stops serving it; this fails
+# one takes the Run button off the page, the card off the catalogue, the
+# form into _archive/<slug>/, so OpenComposer stops serving it, and its
+# line out of CODEOWNERS, since it has no workflow owner; this fails
 # until every step is done, whichever of the row or the banner came first.
 # tests/bin/test_unmaintained.sh runs it on fixture trees.
 unmaintained() {
@@ -307,9 +308,11 @@ unmaintained() {
             echo "index.html: $slug is Unmaintained, but has a catalogue card"
         [ -e "workflows/$slug/form.yml.erb" ] &&
             echo "workflows/$slug/form.yml.erb: $slug is Unmaintained; move its form to _archive/$slug/"
+        tr -d '\r' 2>/dev/null < .github/CODEOWNERS | grep -qE "^/workflows/$slug/ " &&
+            echo ".github/CODEOWNERS: $slug is Unmaintained; remove its /workflows/$slug/ line"
     done
 }
-check "unmaintained workflows have no Run button, card or live form" unmaintained
+check "unmaintained workflows have no Run button, card, live form or CODEOWNERS line" unmaintained
 
 # The guide owns staging and viewing (CONTRIBUTING.md step 5): its data mover host,
 # scratch quota and WinSCP note stay out of workflow pages.
