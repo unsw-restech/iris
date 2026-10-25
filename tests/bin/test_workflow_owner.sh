@@ -7,6 +7,8 @@
 #   tests/bin/test_workflow_owner.sh
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
 # A tree in $scratch/<name> holding bin/check and a catalogue that passes:
@@ -32,7 +34,7 @@ owner_line() {
 # owners <pass|fail> <name>: the check over $scratch/<name>, which the
 # caller has built and changed.
 owners() {
-    expect "$1" "$2" "workflow owner on the page"
+    expect "$1" "$scratch/$2" "workflow owner on the page"
 }
 
 make_tree clean

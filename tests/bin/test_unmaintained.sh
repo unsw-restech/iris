@@ -7,6 +7,8 @@
 #   tests/bin/test_unmaintained.sh
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
 # make_tree <name> [<flag>...]: a site in $scratch/<name> with two
@@ -50,7 +52,7 @@ demotion() {
     local want="$1" name="$2"
     shift 2
     make_tree "$name" "$@"
-    expect "$want" "$name" "unmaintained workflows have"
+    expect "$want" "$scratch/$name" "unmaintained workflows have"
 }
 
 demotion pass demoted

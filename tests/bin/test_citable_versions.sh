@@ -6,6 +6,8 @@
 #   tests/bin/test_citable_versions.sh
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
 # page <pass|fail> <name> <cite block lines>: the check over a tree in
@@ -17,7 +19,7 @@ page() {
     printf '%s\n' '<div class="page">' '  <h1 class="wf-title">Some workflow</h1>' \
         '  <details id="cite">' '    <summary>Cite this workflow</summary>' \
         "$3" '  </details>' '</div>' > "$tree/workflows/some-workflow/index.html"
-    expect "$1" "$2" "citable versions on"
+    expect "$1" "$scratch/$2" "citable versions on"
 }
 
 doi='<a href="https://doi.org/10.48546/workflowhub.workflow.1234.1">10.48546/workflowhub.workflow.1234.1</a>'

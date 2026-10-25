@@ -8,6 +8,8 @@
 #   tests/bin/test_prelaunch.sh
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
 # Each pre-launch notice, as <file>|<text>.
@@ -42,7 +44,7 @@ drop_notice() {
 
 # pairing <pass|fail> <name>: the pairing check over $scratch/<name>.
 pairing() {
-    expect "$1" "$2" "notices match the Run buttons"
+    expect "$1" "$scratch/$2" "notices match the Run buttons"
 }
 
 copy_site pre-launch
