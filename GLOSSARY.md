@@ -13,8 +13,20 @@ Someone who runs IRIS workflows on their own data from their own Katana account.
 _Avoid_: User, end user
 
 **Workflow author**:
-A ResTech member who adds or changes a workflow, working on a branch and testing it on the dev clone before it reaches `main`. Distinct from the researcher, who runs workflows.
+Anyone with a Katana account who adds or changes a workflow, whether a ResTech member or a researcher. Distinct from the researcher who only runs workflows.
 _Avoid_: Contributor, developer
+
+**Maintainer**:
+The ResTech member who approves proposals, reviews and merges workflows, and builds environments.
+_Avoid_: Admin, owner, reviewer
+
+**Workflow owner**:
+The workflow author answerable for keeping one workflow working, named on its page. A workflow whose owner stops answering is taken out of service.
+_Avoid_: Maintainer, contributor
+
+**Proposal**:
+A workflow author's request to add a workflow, made before building it, which the maintainer approves or declines.
+_Avoid_: Request, submission, application
 
 **Catalogue**:
 The set of workflows listed on the IRIS landing page. Onboarding pages such as `hello-world` are not part of it.
@@ -23,6 +35,10 @@ _Avoid_: Gallery, grid, registry
 **Planned workflow**:
 A catalogue entry with a page but no form and no Run button, listed to show what is coming.
 _Avoid_: Coming soon, inactive
+
+**Unmaintained workflow**:
+A workflow taken out of service because its owner stopped answering. It leaves the catalogue and can no longer be run, but its page stays so its citable versions and cited commits still lead somewhere.
+_Avoid_: Retired, deprecated, archived
 
 **Modality**:
 The imaging technique a workflow serves, such as microCT, microscopy or pathology, shown as a tag on its catalogue card.
@@ -39,6 +55,10 @@ _Avoid_: App, template
 **Two-click launch**:
 The path from catalogue to running job: one click on the workflow's IRIS page, one click to submit its form.
 _Avoid_: One-click run
+
+**Citable version**:
+A frozen WorkflowHub snapshot of one workflow at one commit of `main`, with its own DOI. Researchers cite it alongside the commit their run recorded. It is not a version number: nothing versions a workflow.
+_Avoid_: Release, workflow version
 
 **Run**:
 One submission of a form, producing one job on Katana and one set of outputs.
