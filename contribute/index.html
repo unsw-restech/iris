@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contribute a workflow — IRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/iris.css">
+</head>
+<body>
+<nav>
+  <a href="../" class="nav-logo">
+    <div class="nav-logo-mark">I</div>
+    <span class="nav-logo-text">IRIS</span>
+  </a>
+  <a href="../#workflows" class="nav-back">← Back to catalogue</a>
+</nav>
+<div class="page">
+  <div class="breadcrumb"><a href="../">IRIS</a> / Contribute a workflow</div>
+  <h1 class="wf-title">Contribute a workflow</h1>
+  <p class="wf-desc">Built an imaging analysis of your own? Offer it to IRIS, and other researchers can launch it on Katana in two clicks. You stay its workflow owner, named on its page, and you get a DOI for it that credits you and your co-authors.</p>
+
+  <!-- Launch removes this notice with the README's and moves the Run buttons to /pun/sys/; bin/check fails if only some are done. -->
+  <div class="ready" id="launch">
+    <div class="ready-title">Not yet</div>
+    <p class="prose">Proposals open at launch. IRIS is still being tested, so hold your proposal until then; the steps below are how it will go. To talk about a workflow before launch, email <a href="mailto:patrick.tung@unsw.edu.au">patrick.tung@unsw.edu.au</a>.</p>
+  </div>
+
+  <h2 id="who">Who can contribute</h2>
+  <div class="prose">
+    <p>Anyone with a Katana account. You don't need to work at ResTech, and you don't need write access to the IRIS repo: you build on your own fork. Anyone who adds or changes a workflow is a workflow author.</p>
+  </div>
+
+  <h2 id="what-you-get">What you get</h2>
+  <div class="prose">
+    <ul>
+      <li><strong>Your name on the workflow's page</strong>, as its workflow owner, so researchers know whose work it is and who to ask.</li>
+      <li><strong>A DOI</strong> for each citable version of the workflow, through <a href="https://workflowhub.eu/projects/472" target="_blank">WorkflowHub</a>, listing you and your co-authors (with ORCIDs) beside UNSW Research Technology Services. Researchers who publish results from it cite that DOI.</li>
+      <li><strong>No paperwork</strong>: your workflow is licensed Apache-2.0, like the rest of IRIS, with no separate agreement to sign.</li>
+    </ul>
+  </div>
+
+  <h2 id="criteria">What gets accepted</h2>
+  <div class="prose">
+    <p>The maintainer checks a proposal against these criteria, and checks the workflow against them again at review. Check your workflow fits before you propose it. A workflow:</p>
+    <ul>
+      <li><strong>fits a modality</strong>, such as microCT, microscopy or pathology. A new modality needs the maintainer's OK in the proposal.</li>
+      <li><strong>runs in the shared imaging environment.</strong> If it needs packages the environment lacks, request them in your pull request, and the maintainer builds the next version of the environment.</li>
+      <li><strong>reads one dataset</strong> in the standard layout the <a href="../guide/#stage">guide</a> shows.</li>
+      <li><strong>writes a run directory</strong> through IRIS's shared library, so every run is recorded and can be compared.</li>
+      <li><strong>makes no network calls or downloads</strong> at run time.</li>
+      <li><strong>is Apache-2.0 compatible</strong>, its code and everything it depends on.</li>
+    </ul>
+  </div>
+
+  <h2 id="steps">From proposal to DOI</h2>
+  <ol class="steps">
+    <li><span><strong>Propose it.</strong> File a proposal through the IRIS issue form: the modality, what the workflow does, its input dataset layout, the packages it needs beyond the environment, its compute needs, and who will own it, with any co-authors.</span></li>
+    <li><span><strong>Get a yes or no.</strong> The maintainer approves the proposal, or declines it against the criteria above. Don't start building before it is approved.</span></li>
+    <li><span><strong>Build it on a fork.</strong> Copy the reference workflow and follow the checklist in CONTRIBUTING, including a test of your own on a synthetic dataset.</span></li>
+    <li><span><strong>Run it with <code>qsub</code></strong> on Katana from your own clone, and note the job ID.</span></li>
+    <li><span><strong>Open a pull request</strong> citing the approved proposal and that job ID. The repo's checks must pass on it.</span></li>
+    <li><span><strong>The maintainer's browser run.</strong> The maintainer runs the workflow from the IRIS development instance, builds a new environment version if you asked for packages, and reviews the pull request.</span></li>
+    <li><span><strong>Merge.</strong> Your workflow joins the catalogue, with you named as its workflow owner.</span></li>
+    <li><span><strong>Mint its DOI.</strong> Join the UNSW ResTech team on WorkflowHub (Team 472), register the workflow there and mint its first citable version.</span></li>
+  </ol>
+  <div class="prose">
+    <p>The technical details of each step are in <a href="https://github.com/unsw-restech/iris/blob/main/CONTRIBUTING.md" target="_blank">CONTRIBUTING</a>.</p>
+  </div>
+
+  <h2 id="owner">Being a workflow owner</h2>
+  <div class="prose">
+    <p>Owning a workflow means answering for it:</p>
+    <ul>
+      <li>Fix it when it breaks, and answer questions from researchers who run it.</li>
+      <li>Review changes to it: you are asked to review every pull request that touches its folder.</li>
+      <li>Mint a new citable version when a change to its code or defaults changes its results, and not otherwise.</li>
+    </ul>
+  </div>
+
+  <h2 id="unmaintained">If an owner stops answering</h2>
+  <div class="prose">
+    <p>If a workflow breaks and its owner doesn't answer for six months, it becomes an unmaintained workflow. It leaves the catalogue and can no longer be run, but its page stays, so its DOIs and the commits researchers cited still lead somewhere.</p>
+    <p><strong>Anyone can adopt it</strong> through a proposal. The adopter fixes it, proves it with a <code>qsub</code> run, and becomes its workflow owner. It comes back under the same page and the same WorkflowHub entry.</p>
+  </div>
+</div>
+<footer>
+  <span>IRIS · UNSW ResTech</span>
+  <span>
+    <a href="../#workflows">← Back to catalogue</a> ·
+    <a href="https://github.com/unsw-restech/iris" target="_blank">GitHub</a> ·
+    <a href="mailto:patrick.tung@unsw.edu.au">patrick.tung@unsw.edu.au</a>
+  </span>
+</footer>
+</body>
+</html>

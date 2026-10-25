@@ -167,7 +167,7 @@ resolve_each() {
 # in any tracked file outside the desktop tools and their tests.
 local_links() {
     local f url
-    for f in index.html guide/index.html workflows/*/index.html; do
+    for f in index.html guide/index.html contribute/index.html workflows/*/index.html; do
         grep -oE 'href="[^"]*"' "$f" | sed 's/^href="//; s/"$//' | grep -vE '^(https?|mailto):' |
             resolve_each "$f" "$(dirname "$f")"
     done
@@ -192,23 +192,30 @@ readme_paths() {
 }
 check "README repo map names real paths" readme_paths
 
-# Pre-launch, every Run button opens the dev OnDemand (/pun/dev/) and the
-# README says IRIS is not open yet. Launch moves every button to /pun/sys/
-# and removes the notice (CONTRIBUTING.md, Status).
+# Pre-launch, every Run button opens the dev OnDemand (/pun/dev/), the
+# README says IRIS is not open yet and the contribute page says proposals
+# open at launch. Launch moves every button to /pun/sys/ and removes both
+# notices (CONTRIBUTING.md, Status).
 prelaunch_notice() {
-    local dev sys notice=""
+    local dev sys file text
     dev=$(git grep -l 'pun/dev/OpenComposer' -- '*.html' ':(exclude)_archive')
     sys=$(git grep -l 'pun/sys/OpenComposer' -- '*.html' ':(exclude)_archive')
-    grep -q 'not open to researchers yet' README.md && notice=1
     if [ -n "$dev" ] && [ -n "$sys" ]; then
         echo "Run buttons are split: /pun/dev/ in" $dev "and /pun/sys/ in" $sys
-    elif [ -n "$dev" ] && [ -z "$notice" ]; then
-        echo "README.md: the pre-launch notice (\"not open to researchers yet\") is gone, but Run buttons in" $dev "still use /pun/dev/"
-    elif [ -n "$sys" ] && [ -n "$notice" ]; then
-        echo "README.md: Run buttons in" $sys "use /pun/sys/; remove the pre-launch notice"
+        return
     fi
+    while IFS='|' read -r file text; do
+        if [ -n "$dev" ] && ! grep -q "$text" "$file"; then
+            echo "$file: the pre-launch notice (\"$text\") is gone, but Run buttons in" $dev "still use /pun/dev/"
+        elif [ -n "$sys" ] && grep -q "$text" "$file"; then
+            echo "$file: Run buttons in" $sys "use /pun/sys/; remove the pre-launch notice (\"$text\")"
+        fi
+    done <<'NOTICES'
+README.md|not open to researchers yet
+contribute/index.html|Proposals open at launch
+NOTICES
 }
-check "README pre-launch notice matches the Run buttons" prelaunch_notice
+check "pre-launch notices match the Run buttons" prelaunch_notice
 
 # The CONTRIBUTING tier table, one "<slug> <tier>" line per workflow it lists.
 tier_rows() {
@@ -331,6 +338,8 @@ check "pageswait test" bash tests/bin/test_pageswait.sh
 check "attribution test" bash tests/bin/test_attribution.sh
 # The unmaintained-workflow check, against throwaway site trees.
 check "unmaintained-workflow test" bash tests/bin/test_unmaintained.sh
+# The pre-launch pairing, against copies of the site.
+check "pre-launch pairing test" bash tests/bin/test_prelaunch.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
