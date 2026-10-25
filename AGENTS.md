@@ -58,7 +58,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
 - **Katana links point at `/pun/dev/`** while pre-launch: `https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/<slug>`. Switching to `/pun/sys/` is a known launch task; its clone is `/srv/scratch/katana_ai/iris/code/` (Patrick, 2026-10-23), beside `envs/` and `wheelhouse/` rather than over them, since the dev clone's home folder is unreadable to researchers. The system OpenComposer's `apps_dir` is `/srv/scratch/katana_ai/iris/code/workflows`. For the pilot, ResTech set `other::---` on `/srv/scratch/katana_ai`, so only members of `katana_ai_ro` (test users) can reach IRIS; it opens to everyone once it runs securely (Patrick, 2026-10-23).
 - **Planned cards still link to their pages**, keeping the dimmed `.planned` style with no hover lift.
-- **No version tags** on cards or workflow pages: nothing versions a workflow, and each run's `commit.txt` records the code it ran (Patrick, 2026-10-22).
+- **No version tags** on cards: nothing versions a workflow, and each run's `commit.txt` records the code it ran (Patrick, 2026-10-22). A workflow page lists its citable versions by DOI, date and commit, never as a version number (ADR-0002).
 
 **Adding a modality** takes a `.card-domain.<x>` rule in `index.html` and `<span class="card-domain <x>">` as the modality tag on the card. There is no filter bar.
 
