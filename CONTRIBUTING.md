@@ -1,6 +1,6 @@
 # For workflow authors
 
-This file is for workflow authors: anyone with a Katana account who adds or changes a workflow, whether you work in ResTech or not. It covers how IRIS is built, previewed, extended and deployed, and takes a new workflow from an approved proposal to its DOI. Researchers running workflows want the [README](README.md) instead.
+This file is for workflow authors: anyone with a Katana account who adds or changes a workflow, whether you work in ResTech or not. It covers how IRIS is built, previewed, extended and deployed, and takes a new workflow from an approved proposal to its DOI. Researchers running workflows want the [README](README.md) instead. Deciding whether to propose a workflow? The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) says who can, what you get and what gets accepted; this file is the technical checklist behind it.
 
 ## From proposal to DOI
 
@@ -115,13 +115,13 @@ If your workflow breaks and you don't answer about it for six months, it becomes
 
 ## Registering on WorkflowHub
 
-Each catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step:
+Each catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step. `bin/workflowhub-microct-2d-segmentation` is the worked example: run on the desktop, it walks through steps 3 to 5 for the reference workflow, with every value filled in. Copy it for your workflow and change the values at the top of its stages.
 
 1. **Create an account** on [WorkflowHub](https://workflowhub.eu/) and link your ORCID to it.
 2. **Ask to join Team 472**, [UNSW ResTech](https://workflowhub.eu/projects/472), from its page. The maintainer approves, and keeps edit rights over every entry in the team, so leave the team able to manage your entry.
 3. **Register the workflow** in Team 472 by importing from git: repository `https://github.com/unsw-restech/iris`, branch `main`, main workflow file the workflow's entry point (`workflows/<slug>/src/run.py` for the reference workflow), workflow type `Other`.
 4. **Fill in the metadata**: the title and description from the workflow's page, licence Apache-2.0, and as creators yourself, your co-authors (with ORCIDs where they have them) and UNSW Research Technology Services.
-5. **Freeze** the version, **publish** it, then **mint** its DOI. Neither publishing nor minting can be undone. Note the date and the commit of `main` it was frozen at.
+5. **Freeze** the entry's snapshot of `main` (WorkflowHub's Freeze button), **publish** it, then **mint** its DOI, which makes it a citable version. Neither publishing nor minting can be undone. Note the date and the commit of `main` it was frozen at.
 6. **Open a PR** adding the citable version to the workflow's page: its DOI, its date and its commit, never a version number.
 
 **When to mint:** the first citable version straight after your workflow merges; after that, only when its code or defaults change in a way that changes results, not on every merge. A citable version's commit may include unrelated changes to other workflows; that is harmless, since each run's `commit.txt` pins exactly what ran.
