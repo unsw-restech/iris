@@ -55,14 +55,15 @@
     <!-- Katana scratch collection: unsw-restech/iris#18. It opens in the signed-in user's own scratch (confirmed by Patrick, unsw-restech/iris#90). -->
     <p><a href="https://app.globus.org/file-manager?destination_id=ee4d18e3-a68d-447a-8acc-8b97771239d4" class="run-btn" target="_blank">Send your dataset folder</a></p>
     <p>Globus opens with your Katana scratch on one side. On the other side, choose your computer by the name you gave it, select your dataset folder, and press <strong>Start</strong>.</p>
+    <!-- Open in Globus button in OnDemand Files (confirmed by Patrick, unsw-restech/iris#90). -->
     <p><strong>Already in Katana OnDemand?</strong> Click <strong>Files</strong> in the top menu, open your scratch folder, and click <strong>Open in Globus</strong>.</p>
-    <p>To add or replace a few training pairs later, upload them under <strong>Files</strong> in the top menu of Katana OnDemand.</p>
+    <p>To add or replace a few training pairs later, copy them in under <strong>Files</strong> in the top menu of Katana OnDemand. Files suits a few training pairs only; send volumes with Globus.</p>
 
     <h3 class="sub">Make it repeat (instrument PCs)</h3>
-    <p>Optional. If an instrument PC keeps producing scans, Globus can send new ones to your scratch on a schedule. Before pressing <strong>Start</strong>, open <strong>Transfer &amp; Timer Options</strong>, choose to sync so only new or changed files are copied, and set how often it repeats.</p>
+    <p>Optional. If an instrument PC keeps producing volumes, Globus can send new ones to your scratch on a schedule. Before pressing <strong>Start</strong>, open <strong>Transfer &amp; Timer Options</strong>, choose to sync so only new or changed files are copied, and set how often it repeats.</p>
     <ul>
       <li>If Globus emails you that your repeat is paused, sign in to Globus and press <strong>Resume</strong>. It pauses when it needs you to sign in again.</li>
-      <li>A repeat that fills your 128 GB scratch makes later runs fail. Watch how much it copies.</li>
+      <li><!-- Quota: unsw-restech/iris#11. -->A repeat that fills your 128 GB scratch makes later runs fail. Watch how much it copies.</li>
     </ul>
 
     <h3 class="sub">In a terminal instead</h3>
@@ -123,7 +124,8 @@
       <li>On the other side, choose your computer and the folder to copy into.</li>
       <li>Press <strong>Start</strong>.</li>
     </ol>
-    <p><strong>In a terminal instead:</strong> use the same rsync with its source and destination swapped, run from your computer. For example, one run directory:</p>
+    <h3 class="sub">In a terminal instead</h3>
+    <p>Use the same rsync as for staging, with its source and destination swapped, run from your computer. For example, one run directory:</p>
     <pre class="code-block">rsync -av --progress zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/runs/1234567/ my-dataset/runs/1234567/</pre>
     <p>Or use WinSCP to the same host and folder.</p>
   </div>
