@@ -95,9 +95,58 @@ class FormTest < Minitest::Test
     assert_includes script, %(--experiment "microct-2d-segmentation" \\\n)
   end
 
-  def test_experiment_help_names_the_clones_iris_compare
-    clone = File.expand_path("../../..", __dir__)
-    assert_includes @form["form"]["experiment"]["help"], " #{clone}/bin/iris-compare "
+  SYSTEM_APPS_DIR = "/srv/scratch/katana_ai/iris/code/workflows"
+  CLONE = File.expand_path("../../..", __dir__)
+
+  # The job script split at the training command: what the job prints
+  # before training, and what it prints after.
+  def before_and_after_training(form)
+    script = FormHelper.script(form, FormHelper.defaults(form, dataset: @ds))
+    script.split(%(\npython "$CODE/src/run.py"), 2)
+  end
+
+  def test_from_the_system_clone_the_job_prints_the_module_lines
+    before, after = before_and_after_training(FormHelper.render(SYSTEM_APPS_DIR))
+    [before, after].each do |part|
+      assert_includes part, %(\necho "module load iris"\necho "iris-view $RUN_DIR"\n)
+      assert_includes part, %(\necho "iris-compare"\n)
+      refute_includes part, "/bin/iris-"
+    end
+    assert_match(/\necho "module load iris"\necho "iris-view \$RUN_DIR"\n.*\necho "iris-compare"\n\z/m, after)
+  end
+
+  def test_from_the_system_clone_experiment_help_names_the_module
+    help = FormHelper.render(SYSTEM_APPS_DIR + "/")["form"]["experiment"]["help"]
+    assert_includes help, "module load iris"
+    assert_includes help, " iris-compare "
+    refute_includes help, "/bin/iris-"
+  end
+
+  def test_from_another_clone_the_job_prints_the_clones_full_paths
+    before, after = before_and_after_training(@form)
+    [before, after].each do |part|
+      assert_includes part, %(\necho "#{CLONE}/bin/iris-view $RUN_DIR"\n)
+      assert_includes part, %(\necho "#{CLONE}/bin/iris-compare"\n)
+      refute_includes part, "module load iris"
+    end
+    assert_match(/\necho "#{Regexp.escape(CLONE)}\/bin\/iris-compare"\n\z/, after)
+  end
+
+  def test_from_another_clone_experiment_help_names_the_clones_iris_compare
+    help = @form["form"]["experiment"]["help"]
+    assert_includes help, " #{CLONE}/bin/iris-compare "
+    refute_includes help, "module load iris"
+  end
+
+  def test_both_clones_run_their_own_code_and_never_load_the_module
+    { SYSTEM_APPS_DIR => "#{SYSTEM_APPS_DIR}/microct-2d-segmentation", File.dirname(FormHelper::WORKFLOW) => FormHelper::WORKFLOW }.each do |apps_dir, code|
+      form = FormHelper.render(apps_dir)
+      script = FormHelper.script(form, FormHelper.defaults(form, dataset: @ds))
+      assert_includes script, %(\nCODE="#{code}"\n)
+      assert_includes script, %(\nsource "$CODE/../../lib/iris-job.sh"\n)
+      assert_includes script, %(\npython "$CODE/src/run.py" \\\n)
+      refute_match(/^\s*module load iris/, script)
+    end
   end
 
   def test_a_named_experiment_reaches_the_entry_point
