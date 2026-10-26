@@ -4,13 +4,15 @@
 # run the system clone, so any git change there reaches every katana_ai_ro
 # member at once.
 #
-#   bin/syspull                 list the commits and files a pull would bring
+#   bin/syspull                 list the commits and every file a pull would bring
 #   bin/syspull --apply <sha>   fast-forward the clone to <sha>, on origin/main
 #
 # The listing ends with the --apply line for origin/main's tip. Quote the
 # listing in the go-ahead request, naming the clone's path; --apply then
-# deploys that commit even if main has moved since. Over `ssh katana`.
+# deploys that commit even if main has moved since, and refuses a clone that
+# isn't on main or holds uncommitted edits. Over `ssh katana`.
 
+# The system clone (Patrick, 2026-10-23; see AGENTS.md).
 sys=/srv/scratch/katana_ai/iris/code
 usage() { echo "usage: bin/syspull [--apply <sha>]" >&2; exit 2; }
 
@@ -18,21 +20,28 @@ if [ $# -eq 0 ]; then
     # shellcheck disable=SC2016  # expanded on Katana
     ssh katana 'cd '"$sys"' && git fetch -q origin || exit
         echo "System clone '"$sys"': $(git rev-parse --abbrev-ref HEAD) at $(git log -1 --format="%h %s")"
+        [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || echo "Not on main: --apply will refuse it."
         dirty=$(git status --porcelain --untracked-files=no)
-        [ -z "$dirty" ] || printf "Uncommitted changes, which a pull may refuse:\n%s\n" "$dirty"
+        [ -z "$dirty" ] || printf "Uncommitted changes, which --apply refuses:\n%s\n" "$dirty"
+        own=$(git log --oneline origin/main..HEAD)
+        [ -z "$own" ] || printf "Commits of its own, not on main, which a fast-forward refuses:\n%s\n" "$own"
         n=$(git rev-list --count HEAD..origin/main)
         if [ "$n" = 0 ]; then echo "Up to date with origin/main: nothing to deploy."; exit; fi
         echo
         echo "$n commits would deploy to the pilot:"
         git log --oneline HEAD..origin/main
         echo
-        git diff --stat HEAD origin/main | tail -n 40
+        git diff --stat=200 --stat-graph-width=20 HEAD...origin/main
         echo
         echo "To deploy them: bin/syspull --apply $(git rev-parse --short origin/main)"'
 elif [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
-    ssh katana "cd $sys && git fetch -q origin &&
-        git merge-base --is-ancestor $2 origin/main && git merge --ff-only $2 &&
-        git log -1 --oneline"
+    # shellcheck disable=SC2016  # $(...) expanded on Katana
+    ssh katana 'cd '"$sys"' && git fetch -q origin || exit
+        refuse() { echo "syspull: $*; nothing deployed." >&2; exit 1; }
+        [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || refuse "the clone is not on main"
+        [ -z "$(git status --porcelain --untracked-files=no)" ] || refuse "the clone has uncommitted changes"
+        git merge-base --is-ancestor '"$2"' origin/main 2>/dev/null || refuse "'"$2"' is not on origin/main"
+        git merge --ff-only '"$2"' && git log -1 --oneline'
 else
     usage
 fi

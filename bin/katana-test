@@ -6,16 +6,22 @@
 #
 #   bin/katana-test
 #
-# Exits 0 only if every test passed. The module test needs katana_ai_ro
-# membership. `git archive` keeps module/bin's links, which a desktop clone
-# with core.symlinks off checks out as plain files. Over `ssh katana`.
+# Exits 0 only if every test passed. Files git doesn't track stay behind,
+# so it names any under workflows/ or module/: `git add` a new test first.
+# The module test needs katana_ai_ro membership. `git archive` keeps
+# module/bin's links, which a desktop clone with core.symlinks off checks
+# out as plain files. Over `ssh katana`.
 
+set -o pipefail
 [ $# -eq 0 ] || { echo "usage: bin/katana-test" >&2; exit 2; }
-cd "$(git rev-parse --show-toplevel)" || exit 1
+cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 # A commit holding the working tree's tracked files; empty when it's clean.
-tree="$(git stash create)"
+tree="$(git stash create)" || { echo "katana-test: git stash create failed; finish the merge or rebase first" >&2; exit 1; }
+untracked="$(git ls-files --others --exclude-standard workflows module)"
+[ -z "$untracked" ] || printf 'Not sent, since git does not track them:\n%s\n' "$untracked"
 echo "Testing ${tree:+uncommitted edits on }$(git log -1 --format='%h %s') on Katana"
 
+# ruby/3.2.0: Katana's Ruby module (../available-modules.md).
 # shellcheck disable=SC2016  # expanded on Katana
 git archive --format=tar "${tree:-HEAD}" | ssh katana '
     d=$(mktemp -d "/srv/scratch/$USER/katana-test.XXXXXX") || exit 1

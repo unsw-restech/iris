@@ -48,6 +48,17 @@ tar xOf "$fake/tree.tar" tracked.txt | grep -qx edited || fail "didn't send the 
 [ "$(git -C "$repo" stash list | wc -l)" = 0 ] || fail "left a stash entry"
 grep -qx edited "$repo/tracked.txt" || fail "changed the working tree"
 
+# A new file under workflows/ or module/ that git doesn't track is named,
+# since a form test there would be skipped.
+mkdir -p "$repo/workflows/new/tests"
+echo "# test" > "$repo/workflows/new/tests/test_form.rb"
+run | grep -qF "workflows/new/tests/test_form.rb" || fail "didn't name an untracked file under workflows/"
+rm -r "$repo/workflows"
+
+# Run from elsewhere, it sends its own clone.
+(cd / && PATH="$fake/bin:$PATH" "$repo/bin/katana-test" > /dev/null 2>&1) || fail "failed when run from outside its clone"
+tar xOf "$fake/tree.tar" tracked.txt | grep -qx edited || fail "run from elsewhere: didn't send its own clone"
+
 # On Katana: a folder of its own in scratch, deleted on exit, and both tests.
 grep -qF 'mktemp -d "/srv/scratch/$USER/' "$fake/args" || fail "doesn't make its own scratch folder"
 grep -qF 'trap' "$fake/args" && grep -qF 'rm -rf "$d"' "$fake/args" || fail "doesn't delete its folder on exit"

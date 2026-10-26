@@ -49,6 +49,10 @@ sent preview "cd $sys"
 sent preview "git fetch"
 sent preview "HEAD..origin/main"
 not_sent preview "git (pull|merge|reset|checkout|rebase|switch)"
+sent preview "origin/main..HEAD"          # warns of the clone's own commits
+sent preview "HEAD...origin/main"         # lists only what main brings
+sent preview "bin/syspull --apply"        # the line the go-ahead quotes
+not_sent preview "tail|head"              # every file listed, none dropped
 
 # --apply moves the clone to exactly the commit that was previewed.
 expect 0 "fake report" --apply 0123abc
@@ -56,6 +60,9 @@ sent apply "cd $sys"
 sent apply "git merge --ff-only 0123abc"
 sent apply "merge-base --is-ancestor 0123abc origin/main"
 not_sent apply "git (pull|reset|checkout|rebase|switch)"
+sent apply "not on origin/main"           # says why it refused
+sent apply "rev-parse --abbrev-ref HEAD"  # refuses a clone not on main
+sent apply "status --porcelain"           # refuses a clone with edits
 
 # Anything else is a usage error, before ssh runs.
 expect 2 "usage:" --apply
