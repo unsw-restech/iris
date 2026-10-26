@@ -10,7 +10,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Make an issue a sub-issue of a parent**: `gh issue edit <child> --parent <parent>`, or `gh issue create --parent <parent>` for a new one.
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Settle part of another ticket**: when a commit meets an acceptance criterion of a ticket other than its own, comment on that ticket naming the commit and the criterion, so whoever builds it starts from what's left.
+- **Settle part of another ticket**: `gh issue comment <number> --body "..."` naming the commit and the criterion, whenever a commit meets an acceptance criterion of a ticket other than its own, so whoever builds it starts from what's left.
 - **Close with a comment**: `gh issue close <number> --comment "..."`, adding `--reason "not planned"` or `--reason duplicate` when it wasn't completed.
 
 The repo is `unsw-restech/iris`. `gh` infers it when run inside the clone (`iris\`); from the parent `IRIS_github_pages\` directory, which is not a git repo, pass `-R unsw-restech/iris`.
