@@ -104,6 +104,10 @@ _Avoid_: Project, input folder
 What a run notes about the dataset it read, so the researcher can find it again and spot if it changed: the folders' paths and file counts, the volume's size, modification time, shape, data type, voxel spacing if the volume records one, and intensity statistics. It holds no content hash; the digest MLflow shows hashes the record itself.
 _Avoid_: Fingerprint, checksum, manifest
 
+**Staging**:
+Copying a dataset from where it was made, such as the researcher's own computer or an instrument PC, into their Katana scratch before its first run, and bringing run directories back. It sits outside the two-click launch.
+_Avoid_: Upload, ingest, data movement
+
 **Training pair**:
 An image slice and its label slice, matched by filename, used to train a workflow's model.
 _Avoid_: Sample, annotation
