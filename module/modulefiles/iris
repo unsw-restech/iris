@@ -5,7 +5,7 @@
 ## can't read the dev clone. It prepends one folder and does nothing else:
 ## the scripts load Python themselves. Katana's system module tree links
 ## to the system clone's copy of this file, so a git pull there deploys it.
-## See docs/adr/0003-researcher-tools-ship-as-an-environment-module.md.
+## See docs/adr/0003-researcher-tools-ship-as-a-katana-module.md.
 ##
 ## Tested on Katana by module/tests/test_module.sh (see AGENTS.md).
 

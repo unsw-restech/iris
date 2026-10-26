@@ -1,4 +1,4 @@
-# Researcher tools ship as an environment module
+# Researcher tools ship as a Katana module
 
 Researchers reached `iris-view`, `iris-compare` and `iris-rebuild` by pasting their full path in the clone, such as `/srv/scratch/katana_ai/iris/code/bin/iris-view <run directory>`, and long paths put off researchers who don't code. So `module load iris` puts `iris-view` and `iris-compare`, the two they use routinely, on the PATH, and the job output, form help and pages give the short form. The modulefile's source is in the repo and is symlinked into Katana's system module tree, so `module load iris` needs no `module use` first, and a `git pull` in the system clone also deploys the module. It always runs the system clone, `/srv/scratch/katana_ai/iris/code/`, since researchers can't read the dev clone. This reverses the earlier rule that nothing goes on the PATH.
 
