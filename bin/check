@@ -63,6 +63,14 @@ ai_attribution() {
 }
 check "AI attribution in commit messages" ai_attribution
 
+# A conflicted merge finished with `git commit --no-edit` keeps git's
+# commented "# Conflicts:" list in its message; finish one with
+# `git commit -m "<message>"` instead. IRIS_CHECK_REPO as above.
+conflict_lists() {
+    git -C "${IRIS_CHECK_REPO:-.}" log --oneline -E --grep='^# Conflicts:' HEAD
+}
+check "git's conflict list in commit messages" conflict_lists
+
 # Non-ASCII breaks PowerShell 5.1. Checked with perl, not grep: grep -P
 # exits 2 in Git Bash, which reads as clean; [^ -~] flags every line of a
 # CRLF working copy (core.autocrlf is on); and WSL's grep missed a real
@@ -411,6 +419,8 @@ check "qwait test" bash tests/bin/test_qwait.sh
 check "pageswait test" bash tests/bin/test_pageswait.sh
 # The AI-attribution check, against throwaway histories.
 check "attribution test" bash tests/bin/test_attribution.sh
+# The conflict-list check, against throwaway histories.
+check "conflict-list test" bash tests/bin/test_conflict_lists.sh
 # The unmaintained-workflow check, against throwaway site trees.
 check "unmaintained-workflow test" bash tests/bin/test_unmaintained.sh
 # The pre-launch pairing, against copies of the site.
