@@ -11,11 +11,11 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
-# site <pass|fail> <name> <page DOIs> <CITATION.cff DOIs> <more> <more>:
-# the check over a tree in $scratch/<name> whose one workflow page lists
-# the first set of DOIs (space-separated), and whose CITATION.cff
-# identifies the second. The optional fifth and sixth arguments are extra
-# lines at the end of its identifiers block and its references block.
+# site <pass|fail> <name> <page DOIs> <CITATION.cff DOIs>
+#      [<identifiers extra>] [<references extra>]: the check over a tree in
+# $scratch/<name> whose one workflow page lists the first set of DOIs
+# (space-separated), and whose CITATION.cff identifies the second, with
+# any extra lines at the end of its identifiers and references blocks.
 site() {
     local dir="$scratch/$2" doi
     mkdir -p "$dir/bin" "$dir/workflows/some-workflow"

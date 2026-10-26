@@ -392,8 +392,8 @@ check "citable versions on workflow pages" citable_versions
 # CITATION.cff's identifiers list every citable version's DOI, and only
 # those: the same set as the workflow pages (CONTRIBUTING.md, Registering
 # on WorkflowHub, step 6). Only the identifiers block counts, without
-# its comments, whole-line or inline. tests/bin/test_citation_cff.sh runs
-# it on fixture trees.
+# its comments: a # at the start of a line or after whitespace, so a URL's
+# #fragment stays. tests/bin/test_citation_cff.sh runs it on fixture trees.
 citation_cff() {
     local re='10\.48546/workflowhub\.workflow\.[0-9]+\.[0-9]+' pages cff
     pages=$(grep -ohE "$re" workflows/*/index.html | sort -u)
