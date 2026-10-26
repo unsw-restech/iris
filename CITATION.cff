@@ -2,8 +2,11 @@
 # README.md's "Citing IRIS" is the full instruction.
 cff-version: 1.2.0
 message: >-
-  If you publish results from an IRIS run, cite IRIS as below, name the
-  workflow and the commit in the run's commit.txt, and acknowledge Katana.
+  If you publish results from an IRIS run, cite the workflow's latest
+  citable version at or before the commit in the run's commit.txt, listed
+  on the workflow's page, and give that commit. Until the workflow has one,
+  cite IRIS as below, naming the workflow and the commit. Either way,
+  acknowledge Katana.
 title: "IRIS: the UNSW ResTech AI Imaging Gateway"
 type: software
 authors:
@@ -15,6 +18,11 @@ identifiers:
   - type: url
     value: "https://workflowhub.eu/projects/472"
     description: UNSW ResTech's project on WorkflowHub
+  # One DOI per citable version, newest first within each workflow.
+  # GitHub's button reads only a top-level doi, so these never stand in for IRIS's.
+  - type: doi
+    value: 10.48546/workflowhub.workflow.2359.1
+    description: "microct-2d-segmentation's citable version of 2026-10-26, commit 23e9314"
 references:
   # Katana's DataCite record for its DOI, as published.
   - type: generic
