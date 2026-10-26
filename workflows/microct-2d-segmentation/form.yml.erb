@@ -1,3 +1,14 @@
+<%-
+  # The commands a researcher types to view and compare runs. Rendered from
+  # the system clone, they are the short forms that `module load iris` puts
+  # on the PATH (ADR-0003). Rendered from any other clone, such as the dev
+  # clone, they are that clone's bin/ in full, so a dev run is viewed with
+  # the code that ran it.
+  from_system_clone = !@apps_dir.nil? && File.expand_path(@apps_dir) == "/srv/scratch/katana_ai/iris/code/workflows"
+  bin = File.expand_path(File.join(@apps_dir.to_s, "..", "bin"))
+  iris_view = from_system_clone ? "iris-view" : File.join(bin, "iris-view")
+  iris_compare = from_system_clone ? "iris-compare" : File.join(bin, "iris-compare")
+-%>
 ---
 form:
 
@@ -17,7 +28,7 @@ form:
     label: "Experiment name"
     value: "microct-2d-segmentation"
     required: true
-    help: "Groups the runs you want to compare, such as runs on one dataset with different settings. Every run is recorded in your tracking store, /srv/scratch/<%= ENV['USER'] %>/iris/tracking.db: to compare runs, run <%= File.expand_path(File.join(@apps_dir.to_s, "..", "bin", "iris-compare")) %> in a terminal in a Virtual Desktop."
+    help: "Groups the runs you want to compare, such as runs on one dataset with different settings. Every run is recorded in your tracking store, /srv/scratch/<%= ENV['USER'] %>/iris/tracking.db: to compare runs, run <%= from_system_clone ? "module load iris and then iris-compare" : iris_compare %> in a terminal in a Virtual Desktop."
 
   # ── Training ──────────────────────────────────────────────────
   epochs:
@@ -167,6 +178,15 @@ script: |
   set -eo pipefail
   source "$CODE/../../lib/iris-job.sh"
 
+  echo "When this job has finished, in a terminal in a Virtual Desktop, view the result with:"
+  <%- if from_system_clone -%>
+  echo "module load iris"
+  <%- end -%>
+  echo "<%= iris_view %> $RUN_DIR"
+  echo "and compare your runs with:"
+  echo "<%= iris_compare %>"
+  echo ""
+
   python "$CODE/src/run.py" \
     --dataset "$DATASET" --run-dir "$RUN_DIR" \
     --experiment "#{:experiment}" \
@@ -178,9 +198,12 @@ script: |
 
   echo ""
   echo "Done. In a terminal in a Virtual Desktop, view the result with:"
-  echo "$IRIS_BIN/iris-view $RUN_DIR"
+  <%- if from_system_clone -%>
+  echo "module load iris"
+  <%- end -%>
+  echo "<%= iris_view %> $RUN_DIR"
   echo "and compare your runs with:"
-  echo "$IRIS_BIN/iris-compare"
+  echo "<%= iris_compare %>"
 
 check: |
   scratch = "/srv/scratch/" + ENV['USER']
