@@ -115,7 +115,15 @@
     </ol>
 
     <h3 class="sub">Copy a run directory home</h3>
-    <p>Use the same rsync with its source and destination swapped, run from your computer. For example, one run directory:</p>
+    <p>Bring a run back with Globus, the same way you sent the dataset. Your computer needs Globus Connect Personal running.</p>
+    <ol>
+      <li>In Katana OnDemand, click <strong>Files</strong> in the top menu.</li>
+      <li>Open your run directory, <code>my-dataset/runs/&lt;job number&gt;/</code>, in your scratch.</li>
+      <li>Click <strong>Open in Globus</strong>. Globus opens with the run directory on one side.</li>
+      <li>On the other side, choose your computer and the folder to copy into.</li>
+      <li>Press <strong>Start</strong>.</li>
+    </ol>
+    <p><strong>In a terminal instead:</strong> use the same rsync with its source and destination swapped, run from your computer. For example, one run directory:</p>
     <pre class="code-block">rsync -av --progress zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/runs/1234567/ my-dataset/runs/1234567/</pre>
     <p>Or use WinSCP to the same host and folder.</p>
   </div>
