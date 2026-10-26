@@ -211,7 +211,8 @@ finish() {
 # its answers outside the repo.
 
 SLUG=microct-2d-segmentation
-TITLE="microCT 2D Segmentation (U-Net)"
+# The manifest's name, prefixed so it reads on its own in WorkflowHub's search.
+TITLE="UNSW HPC Katana - microCT 2D Segmentation (U-Net)"
 REPO_URL=https://github.com/unsw-restech/iris
 BRANCH=main
 MAIN_FILE=workflows/$SLUG/src/run.py
@@ -346,7 +347,7 @@ step "Check Title, Description, Creators (both, ORCID on yours), Licence $LICENC
 step "Fix anything wrong with Actions → Edit Workflow / Manage workflow."
 step "Find the version's git details and note which commit it shows."
 [[ -n "${WH_IMPORT_COMMIT:-}" ]] && note "It should be ${WH_IMPORT_COMMIT:0:12}… ($BRANCH when you imported)."
-step "In the Citation panel on the right, Freeze this version."
+step "Actions → Freeze version."
 note "Frozen, its files and metadata can't change: that's what the DOI will point at."
 pause "Checked and frozen? Press Enter."
 
@@ -355,7 +356,7 @@ stage "Publish"
 printf '  %s%sOne-way door.%s\n' "$BOLD" "$RED" "$RESET"
 say "Publish makes the entry public. A public entry with a DOI can't be"
 say "withdrawn, so check the metadata once more before going on."
-step "In the Citation panel, click Publish (sharing: Actions → Manage Workflow)."
+step "Actions → Publish Workflow (sharing: Actions → Manage Workflow)."
 printf '\n'
 confirm "Publish $SLUG publicly now? This can't be undone once it has a DOI" ||
   stop_here "Stopped before Publish."
@@ -365,7 +366,7 @@ pause "Published? Press Enter."
 stage "Generate a DOI"
 printf '  %s%sOne-way door.%s\n' "$BOLD" "$RED" "$RESET"
 say "A DOI is permanent: DataCite keeps it, and this snapshot's metadata, for good."
-step "In the Citation panel, generate a DOI for the frozen snapshot."
+step "On the frozen version, Actions → Generate a DOI."
 step "It reminds you to review the metadata, then asks you to confirm."
 printf '\n'
 confirm "Generate the DOI for this frozen snapshot now? It can't be undone" ||
