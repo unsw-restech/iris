@@ -404,6 +404,39 @@ citation_cff() {
 }
 check "CITATION.cff and workflow pages list the same citable versions" citation_cff
 
+# Researchers reach iris-view and iris-compare with `module load iris`
+# (ADR-0003), so no page, form or README gives a full path to either: a
+# "/iris-view" or "/iris-compare" in its text fails, as does a
+# "bin", "iris-..." path join in a form's <%= %> output. A form's Ruby
+# code blocks (<% %>, <%- -%>) are skipped, since that is where the
+# dev-clone branch builds its full paths. iris-rebuild isn't in the
+# module, so its full path stays; maintainer text (CONTRIBUTING, bin/)
+# and _archive/ aren't read. tests/bin/test_module_paths.sh runs it on
+# fixture trees.
+module_paths() {
+    local re='/iris-(view|compare)([^A-Za-z0-9_-]|$)' f
+    grep -rnE "$re" . --include=*.html --exclude-dir=.git --exclude-dir=_archive --exclude-dir=.claude | sed 's|^\./||'
+    [ ! -f README.md ] || grep -nE "$re" README.md | sed 's|^|README.md:|'
+    for f in workflows/*/form.yml.erb; do
+        [ -f "$f" ] || continue
+        tr -d '\r' < "$f" | awk -v f="$f" -v re="$re" '
+            {
+                line = $0; out = ""
+                while (line != "") {
+                    if (code) {
+                        i = index(line, "%>"); if (!i) break
+                        line = substr(line, i + 2); code = 0; continue
+                    }
+                    i = index(line, "<%"); if (!i) { out = out line; break }
+                    out = out substr(line, 1, i - 1); line = substr(line, i + 2)
+                    if (substr(line, 1, 1) == "=") out = out "<%"; else code = 1
+                }
+                if (out ~ re || out ~ /"bin", *"iris-(view|compare)"/) print f ":" NR ": " $0
+            }'
+    done
+}
+check "full paths to iris-view or iris-compare (give module load iris, then the command)" module_paths
+
 # IRIS questions go to Patrick, not a shared inbox (Patrick, 2026-10-22).
 # Only what needs a Katana administrator, such as accounts, goes to
 # restech.support@unsw.edu.au.
@@ -446,6 +479,8 @@ check "workflow owner test" bash tests/bin/test_workflow_owner.sh
 check "citable versions test" bash tests/bin/test_citable_versions.sh
 # The CITATION.cff check, against throwaway trees.
 check "CITATION.cff test" bash tests/bin/test_citation_cff.sh
+# The module-paths check, against throwaway trees.
+check "module paths test" bash tests/bin/test_module_paths.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
