@@ -11,11 +11,11 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
-# site <pass|fail> <name> <page DOIs> <CITATION.cff DOIs> [<in identifiers>
-# [<in references>]]: the check over a tree in $scratch/<name> whose one
-# workflow page lists the first set of DOIs (space-separated), and whose
-# CITATION.cff identifies the second, with any extra lines at the end of
-# its identifiers and references blocks.
+# site <pass|fail> <name> <page DOIs> <CITATION.cff DOIs> <more> <more>:
+# the check over a tree in $scratch/<name> whose one workflow page lists
+# the first set of DOIs (space-separated), and whose CITATION.cff
+# identifies the second. The optional fifth and sixth arguments are extra
+# lines at the end of its identifiers block and its references block.
 site() {
     local dir="$scratch/$2" doi
     mkdir -p "$dir/bin" "$dir/workflows/some-workflow"
@@ -48,6 +48,11 @@ site pass two-any-order "$b $a" "$a $b"
 site fail missing-from-cff "$b $a" "$a"
 site fail missing-from-page "$a" "$b $a"
 site fail cff-but-no-page '' "$a"
+site pass comment-beside-a-doi "$a" "$a" "	# an older note on $b"
 site fail only-in-a-comment "$a" '' "  # $a"
+site fail only-in-an-inline-comment "$a" '' "  - type: url
+    value: \"https://workflowhub.eu/workflows/1234\"  # $a"
 site fail only-in-references "$a" '' '' "  - type: generic
     doi: $a"
+site fail only-under-a-later-key "$a" '' "X2key:
+  - doi: $a"

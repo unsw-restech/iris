@@ -391,12 +391,13 @@ check "citable versions on workflow pages" citable_versions
 
 # CITATION.cff's identifiers list every citable version's DOI, and only
 # those: the same set as the workflow pages (CONTRIBUTING.md, Registering
-# on WorkflowHub, step 6). Only the identifiers block counts, comments
-# aside. tests/bin/test_citation_cff.sh runs it on fixture trees.
+# on WorkflowHub, step 6). Only the identifiers block counts, without
+# its comments, whole-line or inline. tests/bin/test_citation_cff.sh runs
+# it on fixture trees.
 citation_cff() {
     local re='10\.48546/workflowhub\.workflow\.[0-9]+\.[0-9]+' pages cff
     pages=$(grep -ohE "$re" workflows/*/index.html | sort -u)
-    cff=$(tr -d '\r' < CITATION.cff | awk '/^[a-z-]+:/ { ids = /^identifiers:/ } ids && !/^ *#/' |
+    cff=$(tr -d '\r' < CITATION.cff | awk '/^[^ \t#]/ { ids = /^identifiers:/ } ids { sub(/(^|[ \t])#.*/, ""); print }' |
         grep -oE "$re" | sort -u)
     comm -23 <(echo "$pages") <(echo "$cff") | grep . | sed 's/$/ is on a workflow page; add it to identifiers in CITATION.cff/'
     comm -13 <(echo "$pages") <(echo "$cff") | grep . | sed 's/$/ is in CITATION.cff but on no workflow page/'

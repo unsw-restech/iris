@@ -234,7 +234,7 @@ DESCRIPTION="Label a few slices of a microCT volume, and IRIS trains a 2D U-Net 
 
 IRIS is UNSW Research Technology Services' AI imaging gateway on the Katana cluster. Pick a dataset folder in your scratch holding volume/ (the volume's netCDF blocks) and train/images/ with train/labels/ (TIFF pairs with matching names, 0 = unlabelled). The job runs in the pre-built IRIS imaging environment, so nothing is installed.
 
-Everything lands in <dataset>/runs/<job ID>/: labels.tif (the label volume), model.pt, params.json, metrics.json and commit.txt (the IRIS commit that ran). Cite the citable version at or before that commit, and give the commit.
+Everything lands in <dataset>/runs/<job ID>/: labels.tif (the label volume), model.pt, params.json, metrics.json and commit.txt (the IRIS commit that ran). To cite a run, follow \"Cite this workflow\" on the page below, and give that commit.
 
 Documentation: $PAGE_URL"
 
