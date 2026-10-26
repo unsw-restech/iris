@@ -52,6 +52,7 @@ make_tree() {
     printf '%s\n' '├── bin/' '│   ├── iris-view    # bin/iris-view, the wrapper' > "$tree/CONTRIBUTING.md"
     printf '%s\n' '#!/bin/bash' '# bin/iris-compare runs the importer first.' > "$tree/bin/iris-import"
     echo "help: \"run $full/iris-compare\"" > "$tree/_archive/old/form.yml.erb"
+    git init -q "$tree"
 }
 
 # site <pass|fail> <name> [<file> <line>]: the check over a tree from
@@ -64,6 +65,7 @@ site() {
         echo "$4" >> "$tree/$3"
         n=$(wc -l < "$tree/$3")
     fi
+    git -C "$tree" add -A
     expect "$want" "$tree" "$name"
     if [ "$want" = fail ]; then
         out="$("$tree/bin/check" "$name" 2>&1)"
@@ -81,3 +83,13 @@ site fail view-in-form-text workflows/seg/form.yml.erb "  echo \"$full/iris-view
 site fail compare-in-form-variable workflows/seg/form.yml.erb '  echo "$IRIS_BIN/iris-compare"'
 site fail form-output-tag workflows/seg/form.yml.erb \
     '    help: "run <%= File.expand_path(File.join(@apps_dir.to_s, "..", "bin", "iris-compare")) %> in a terminal."'
+site fail form-output-join-variable workflows/seg/form.yml.erb \
+    '    help: "run <%= File.join(bin, "iris-compare") %> in a terminal."'
+
+# A copy of the site outside git's index, such as a worktree under
+# .claude/worktrees/, isn't read: only tracked pages are.
+make_tree untracked-copy
+git -C "$scratch/untracked-copy" add -A
+mkdir -p "$scratch/untracked-copy/old-worktree/guide"
+echo "<p>Run <code>$full/iris-view</code>.</p>" > "$scratch/untracked-copy/old-worktree/guide/index.html"
+expect pass "$scratch/untracked-copy" "$name"

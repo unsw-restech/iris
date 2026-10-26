@@ -429,16 +429,17 @@ check "CITATION.cff and workflow pages list the same citable versions" citation_
 
 # Researchers reach iris-view and iris-compare with `module load iris`
 # (ADR-0003), so no page, form or README gives a full path to either: a
-# "/iris-view" or "/iris-compare" in its text fails, as does a
-# "bin", "iris-..." path join in a form's <%= %> output. A form's Ruby
-# code blocks (<% %>, <%- -%>) are skipped, since that is where the
-# dev-clone branch builds its full paths. iris-rebuild isn't in the
-# module, so its full path stays; maintainer text (CONTRIBUTING, bin/)
-# and _archive/ aren't read. tests/bin/test_module_paths.sh runs it on
-# fixture trees.
+# "/iris-view" or "/iris-compare" in its text fails, as does a path join
+# ending in "iris-..." (File.join(bin, "iris-view")) in a form's <%= %>
+# output. A form's Ruby code blocks (<% %>, <%- -%>) are skipped, since
+# that is where the dev-clone branch builds its full paths. iris-rebuild
+# isn't in the module, so its full path stays; maintainer text
+# (CONTRIBUTING, bin/) and _archive/ aren't read. Pages are read from
+# git's index, as local_links does, so a copy such as a worktree under
+# .claude/ isn't. tests/bin/test_module_paths.sh runs it on fixture trees.
 module_paths() {
     local re='/iris-(view|compare)([^A-Za-z0-9_-]|$)' f
-    grep -rnE "$re" . --include=*.html --exclude-dir=.git --exclude-dir=_archive --exclude-dir=.claude | sed 's|^\./||'
+    git grep -nE "$re" -- '*.html' ':(exclude)_archive'
     [ ! -f README.md ] || grep -nE "$re" README.md | sed 's|^|README.md:|'
     for f in workflows/*/form.yml.erb; do
         [ -f "$f" ] || continue
@@ -454,7 +455,7 @@ module_paths() {
                     out = out substr(line, 1, i - 1); line = substr(line, i + 2)
                     if (substr(line, 1, 1) == "=") out = out "<%"; else code = 1
                 }
-                if (out ~ re || out ~ /"bin", *"iris-(view|compare)"/) print f ":" NR ": " $0
+                if (out ~ re || out ~ /, *"iris-(view|compare)"/) print f ":" NR ": " $0
             }'
     done
 }
