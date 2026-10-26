@@ -108,6 +108,10 @@ _Avoid_: Fingerprint, checksum, manifest
 Copying a dataset from where it was made, such as the researcher's own computer or an instrument PC, into their Katana scratch before its first run, and bringing run directories back. It sits outside the two-click launch.
 _Avoid_: Upload, ingest, data movement
 
+**Files**:
+The **Files** item in the top menu of Katana OnDemand, where a researcher browses their scratch, copies in a few training pairs and opens a folder in Globus. Pages name it "**Files** in the top menu of Katana OnDemand" at first mention and "under **Files**" after (#90).
+_Avoid_: Files app, OnDemand Files app
+
 **Training pair**:
 An image slice and its label slice, matched by filename, used to train a workflow's model.
 _Avoid_: Sample, annotation

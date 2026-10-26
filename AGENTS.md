@@ -63,7 +63,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 - **Confirm one-way doors first.** Get Patrick's explicit go-ahead in chat, naming the exact target, before any one-way door or large blast radius action, on the desktop or on Katana: deleting, overwriting or moving files, `qdel`, `rsync --delete`, or anything recursive over a directory this session did not create (Patrick, 2026-10-14).
 - **`qsub` needs no go-ahead**: name each job and its resources in chat (Patrick, 2026-10-17). Every `qsub` passes `-m abe`, so PBS emails Patrick when the job begins, ends or aborts; a local hook may block a `qsub` without it (Patrick, 2026-10-19).
-- **Login nodes stay light**: editing, `qsub`, short checks (Patrick, 2026-10-14). Anything that loads CPU, memory or I/O runs as a PBS job. Transfers over 10 GB go through the data mover (`katana-dm`), never a login node or the OnDemand Files app.
+- **Login nodes stay light**: editing, `qsub`, short checks (Patrick, 2026-10-14). Anything that loads CPU, memory or I/O runs as a PBS job. Transfers over 10 GB go through the data mover (`katana-dm`), never a login node or **Files** in Katana OnDemand.
 - **Modules first.** Check `..\available-modules.md` before designing an environment or naming a module. `lib/iris-job.sh` shows the pattern: a module (`python/3.13.2`) topped up with the pinned imaging venv.
 - **`module` in batch scripts**: source `/etc/profile.d/modules.sh` first, and run it without `set -u`.
 - **Containers** are for software that genuinely isn't installed. Apptainer/Singularity are on the path, not modules, so there is no `module load apptainer`. Docker is unsupported. Cache images in `/srv/scratch/$USER/.images`. Executor is `pbspro`.

@@ -4,7 +4,7 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 
 ## Domain language
 
-- **Glossary terms, exactly.** Names, docstrings, comments, commit messages and issue text use the term `GLOSSARY.md` defines, never a word its _Avoid_ list names. Past drift: "scan" for Volume, `dataset_identity` for Dataset record, `environment()` for run tags (Environment means the versioned software set).
+- **Glossary terms, exactly.** Page text, names, docstrings, comments, commit messages and issue text use the term `GLOSSARY.md` defines, never a word its _Avoid_ list names. Past drift: "scan" for Volume, `dataset_identity` for Dataset record, `environment()` for run tags (Environment means the versioned software set).
 - **A new domain concept gets a glossary entry** in the same change, as `docs/agents/domain.md` describes.
 - **ADRs hold.** A change that contradicts an ADR in `docs/adr/` either keeps to it or supersedes it with a new ADR.
 
@@ -15,7 +15,7 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 
 ## Pages
 
-- **The guide owns staging and viewing.** A workflow page links `../../guide/#stage` and `#view` and keeps only what is specific to its workflow (its checklist, its dataset rules). Restating the guide's steps, layout tree or Virtual Desktop size is a copy that drifts. `bin/check` catches the host, quota, WinSCP, Globus link and Katana scratch collection ID markers; the rest is judgement.
+- **The guide owns staging and viewing.** A workflow page links `../../guide/#stage` and `#view` and keeps only what is specific to its workflow (its checklist, its dataset rules). Restating the guide's steps, layout tree or Virtual Desktop size is a copy that drifts. `bin/check`'s `guide_copies` catches the markers it lists; the rest is judgement.
 - **README's "Citing IRIS" owns the citing rule.** A workflow page's "Cite this workflow" block is the one other full statement, for its own workflow. Everything else summarises and points to one of those two: the catalogue's Cite step, `CITATION.cff`'s `message`, a WorkflowHub entry's description; restating the at-or-before rule or the IRIS fallback anywhere else is a copy that drifts. Past drift: #77's catalogue step dropped both, then got the fallback too narrow.
 
 ## Job code

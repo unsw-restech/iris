@@ -354,6 +354,13 @@ guide_copies() {
 }
 check "workflow page repeats the guide (link guide/#stage or #view)" guide_copies
 
+# Page text keeps to GLOSSARY.md's terms (CODING_STANDARDS.md). Only the
+# Avoid words that have drifted onto pages are matched, since most Avoid
+# words (sync, results, app) are fine in other senses: "scan" for Volume,
+# "upload" for Staging, and "Files app" for Files (#90).
+check "page uses a glossary Avoid word (see GLOSSARY.md)" \
+    git grep -niE '\bscans?\b|\bupload|files app' -- '*.html' ':(exclude)_archive'
+
 # Every catalogue workflow with a form names its workflow owner on its
 # page, under the description, as <p class="wf-owner"> linking their GitHub
 # profile, and .github/CODEOWNERS has a "/workflows/<slug>/ @<login>" line
