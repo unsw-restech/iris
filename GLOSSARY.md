@@ -109,7 +109,7 @@ Copying a dataset from where it was made, such as the researcher's own computer 
 _Avoid_: Upload, ingest, data movement
 
 **Files**:
-The **Files** item in the top menu of Katana OnDemand, where a researcher browses their scratch, copies in a few training pairs and opens a folder in Globus. Pages name it "**Files** in the top menu of Katana OnDemand" at first mention and "under **Files**" after (#90).
+The **Files** item in the top menu of Katana OnDemand, where a researcher browses their scratch, copies in a few training pairs and opens a folder in Globus.
 _Avoid_: Files app, OnDemand Files app
 
 **Training pair**:
