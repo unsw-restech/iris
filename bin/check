@@ -389,6 +389,19 @@ citable_versions() {
 }
 check "citable versions on workflow pages" citable_versions
 
+# CITATION.cff's identifiers list every citable version's DOI, and only
+# those: the same set as the workflow pages (CONTRIBUTING.md, Registering
+# on WorkflowHub, step 6). tests/bin/test_citation_cff.sh runs it on
+# fixture trees.
+citation_cff() {
+    local re='10\.48546/workflowhub\.workflow\.[0-9]+\.[0-9]+' pages cff
+    pages=$(grep -ohE "$re" workflows/*/index.html | sort -u)
+    cff=$(tr -d '\r' < CITATION.cff | grep -oE "$re" | sort -u)
+    comm -23 <(echo "$pages") <(echo "$cff") | grep . | sed 's/$/ is on a workflow page; add it to identifiers in CITATION.cff/'
+    comm -13 <(echo "$pages") <(echo "$cff") | grep . | sed 's/$/ is in CITATION.cff but on no workflow page/'
+}
+check "CITATION.cff lists every citable version" citation_cff
+
 # IRIS questions go to Patrick, not a shared inbox (Patrick, 2026-10-22).
 # Only what needs a Katana administrator, such as accounts, goes to
 # restech.support@unsw.edu.au.
@@ -429,6 +442,8 @@ check "pre-launch pairing test" bash tests/bin/test_prelaunch.sh
 check "workflow owner test" bash tests/bin/test_workflow_owner.sh
 # The citable-versions check, against throwaway workflow pages.
 check "citable versions test" bash tests/bin/test_citable_versions.sh
+# The CITATION.cff check, against throwaway trees.
+check "CITATION.cff test" bash tests/bin/test_citation_cff.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
