@@ -55,6 +55,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 ## Deliberate, leave as is
 
+- **No `CLAUDE.md`**, in the repo or in `IRIS_github_pages\`: `AGENTS.md` is the only instructions file (Patrick, 2026-10-26). Claude Code loads it on the first Read of a file in the repo, so read with the Read tool before working through Bash.
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
 - **Katana links point at `/pun/dev/`** while pre-launch: `https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/<slug>`. Switching to `/pun/sys/` is a known launch task; its clone is `/srv/scratch/katana_ai/iris/code/` (Patrick, 2026-10-23), beside `envs/` and `wheelhouse/` rather than over them, since the dev clone's home folder is unreadable to researchers. The system OpenComposer's `apps_dir` is `/srv/scratch/katana_ai/iris/code/workflows`. For the pilot, ResTech set `other::---` on `/srv/scratch/katana_ai`, so only members of `katana_ai_ro` (test users) can reach IRIS; it opens to everyone once it runs securely (Patrick, 2026-10-23).
 - **Planned cards still link to their pages**, keeping the dimmed `.planned` style with no hover lift.
