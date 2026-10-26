@@ -42,7 +42,9 @@ iris/
 │   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
 │   ├── iris-rebuild                  # Rebuild a lost tracking store from run directories
 │   ├── iris-view                     # View a run's labels over its volume in napari (in a Virtual Desktop)
+│   ├── katana-test                   # Run the form tests and the module test on Katana (desktop)
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
+│   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
 │   └── workflowhub-microct-2d-segmentation  # Walkthrough registering it on WorkflowHub; copy it for another workflow (desktop)
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
@@ -51,7 +53,7 @@ iris/
 ├── module/                           # `module load iris` (ADR-0003)
 │   ├── modulefiles/iris              # The modulefile: puts the system clone's module/bin on the PATH
 │   ├── bin/iris-view, iris-compare   # Links to the bin/ scripts: all the module exposes
-│   └── tests/test_module.sh          # Loads the modulefile on Katana (see AGENTS.md)
+│   └── tests/test_module.sh          # Loads the modulefile on Katana (bin/katana-test runs it)
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html

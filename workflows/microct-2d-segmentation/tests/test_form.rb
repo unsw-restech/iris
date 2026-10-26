@@ -1,7 +1,6 @@
 # What the form accepts, rejects and generates. Needs Ruby and a
-# /srv/scratch/$USER to build fixture datasets in, so it runs on Katana:
-#
-#   module load ruby/3.2.0 && ruby workflows/microct-2d-segmentation/tests/test_form.rb
+# /srv/scratch/$USER to build fixture datasets in, so bin/katana-test runs
+# it on Katana.
 
 require "fileutils"
 require "minitest/autorun"

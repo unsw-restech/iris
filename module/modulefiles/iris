@@ -7,7 +7,7 @@
 ## to the system clone's copy of this file, so a git pull there deploys it.
 ## See docs/adr/0003-researcher-tools-ship-as-a-katana-module.md.
 ##
-## Tested on Katana by module/tests/test_module.sh (see AGENTS.md).
+## Tested on Katana by module/tests/test_module.sh, through bin/katana-test.
 
 proc ModulesHelp {} {
     puts stderr "IRIS: iris-view <run directory> views a run in napari;"

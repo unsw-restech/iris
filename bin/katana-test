@@ -1,0 +1,30 @@
+#!/bin/bash
+# Run the tests that only run on Katana, every form test and the module
+# test, on this clone's tracked files, uncommitted edits included. The tree
+# goes to a folder of its own in /srv/scratch/$USER, deleted when the run
+# ends, so no clone on Katana is touched and nothing is left behind.
+#
+#   bin/katana-test
+#
+# Exits 0 only if every test passed. The module test needs katana_ai_ro
+# membership. `git archive` keeps module/bin's links, which a desktop clone
+# with core.symlinks off checks out as plain files. Over `ssh katana`.
+
+[ $# -eq 0 ] || { echo "usage: bin/katana-test" >&2; exit 2; }
+cd "$(git rev-parse --show-toplevel)" || exit 1
+# A commit holding the working tree's tracked files; empty when it's clean.
+tree="$(git stash create)"
+echo "Testing ${tree:+uncommitted edits on }$(git log -1 --format='%h %s') on Katana"
+
+# shellcheck disable=SC2016  # expanded on Katana
+git archive --format=tar "${tree:-HEAD}" | ssh katana '
+    d=$(mktemp -d "/srv/scratch/$USER/katana-test.XXXXXX") || exit 1
+    trap '\''chmod -R u+rwx "$d"; rm -rf "$d"'\'' EXIT
+    cd "$d" && tar xf - || exit 1
+    . /etc/profile.d/modules.sh && module load ruby/3.2.0 || exit 1
+    s=0
+    for t in workflows/*/tests/test_form.rb; do
+        echo "== $t"; ruby "$t" || s=1
+    done
+    echo "== module/tests/test_module.sh"; bash module/tests/test_module.sh || s=1
+    exit $s'

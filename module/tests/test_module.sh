@@ -3,11 +3,9 @@
 # this copy's modulefiles folder, then `module load iris`, puts the system
 # clone's module/bin first on the PATH and nothing from bin/, and `module
 # unload iris` restores the PATH. It doesn't resolve the links there: the
-# system clone has them only once it has pulled this change. Run it on
-# Katana from a scratch copy of the working tree, as a member of
-# katana_ai_ro (see AGENTS.md); it prints each failure and exits 1 if any.
-#
-#   bash module/tests/test_module.sh
+# system clone has them only once it has pulled this change. bin/katana-test
+# runs it on Katana, where it needs katana_ai_ro membership; it prints each
+# failure and exits 1 if any.
 #
 # No `set -u`: the module scripts reference unset variables.
 

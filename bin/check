@@ -489,6 +489,9 @@ check "shellcheck" shellcheck_all
 check "qwait test" bash tests/bin/test_qwait.sh
 # The live-site wait, against a fake curl on PATH.
 check "pageswait test" bash tests/bin/test_pageswait.sh
+# The system-clone pull preview and the Katana test runner, against a fake ssh.
+check "syspull test" bash tests/bin/test_syspull.sh
+check "katana-test test" bash tests/bin/test_katana_test.sh
 # The AI-attribution check, against throwaway histories.
 check "attribution test" bash tests/bin/test_attribution.sh
 # The conflict-list check, against throwaway histories.

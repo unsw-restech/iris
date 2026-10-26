@@ -37,17 +37,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazi
 
 Run `bin/check` before committing; CI runs it on every push. It covers the link and URL greps, the form and manifest rules, executable bits, shellcheck, ruff and the synthetic-dataset test, which needs the desktop CPU venv (`envs/imaging/desktop.sh` builds it). Its attribution check reads commit messages, so it sees a message only once committed; `.githooks/commit-msg` refuses one first. Turn the hook on once per clone: `git config core.hooksPath .githooks`.
 
-A change to `microct-2d-segmentation/form.yml.erb` also needs its form test, which runs on Katana because `check:` looks inside `/srv/scratch/$USER`. Run it from a copy of the working tree in scratch, so the dev clone is never touched:
-
-```
-module load ruby/3.2.0 && ruby workflows/microct-2d-segmentation/tests/test_form.rb
-```
-
-A change to `module/` also needs the module test, run the same way from a scratch copy, as a member of `katana_ai_ro`. Copy the tree with `git archive`: it keeps `module/bin`'s links, which this clone checks out as plain files when `core.symlinks` is off.
-
-```
-bash module/tests/test_module.sh
-```
+A change to a `form.yml.erb` or to `module/` also needs `bin/katana-test`, which runs every form test and the module test on Katana, since `check:` looks inside `/srv/scratch/$USER` and the module test needs Environment Modules and `katana_ai_ro` membership.
 
 ## Deploying
 
@@ -55,7 +45,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 - **CI:** `bin/ciwait <commit>` waits for that commit's `check` run and prints the failed log. Push a change to `.github/` to a branch first. Merge `origin/main` into that branch before its run, so the green run is on the commit `main` becomes, then push that commit to `main`.
 - **Dev clone:** after pushing a change to `workflows/`, `lib/` or `bin/iris-*` (researchers run those from the clone), run `ssh katana 'cd ~/iris && git pull --ff-only'` as its own command, so a permission rule scoped to `ssh katana` can match it. That pull is the OpenComposer deploy.
-- **System clone:** any git change in `/srv/scratch/katana_ai/iris/code/` (pull, reset, checkout) deploys to the pilot (members of `katana_ai_ro`), since the system OpenComposer's `apps_dir` points into it. Get Patrick's go-ahead naming that path first.
+- **System clone:** any git change in `/srv/scratch/katana_ai/iris/code/` (pull, reset, checkout) deploys to the pilot (members of `katana_ai_ro`), since the system OpenComposer's `apps_dir` points into it. Run `bin/syspull` to list what a pull would deploy, get Patrick's go-ahead naming that path and quoting the list, then run the `bin/syspull --apply <sha>` line it prints.
 
 **Push auth:** the repo is owned by the `unsw-restech` org and pushed as `PatrickTung` over HTTPS + Git Credential Manager (no SSH keys). A stale `patricktung-unsw` credential has caused a 403 before, and retrying cannot fix that. Check with `cmdkey /list:git:https://github.com`; clearing it is Patrick's call.
 
