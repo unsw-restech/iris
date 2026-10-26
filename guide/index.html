@@ -38,11 +38,40 @@
       <li>IRIS adds a <code>runs/</code> folder the first time you run on the dataset, with one folder per run.</li>
     </ul>
 
-    <h3 class="sub">Copy it to your scratch</h3>
+    <!-- Globus as the first staging route: unsw-restech/iris#90. -->
+    <h3 class="sub">What is Globus</h3>
+    <p>Globus copies your dataset folder to Katana. It was made by the University of Chicago and the US Department of Energy's Argonne National Laboratory to transfer research data securely. You use it from a web page, signing in with your zID. You choose a folder on your computer and a folder on Katana and press <strong>Start</strong>, and Globus copies the files in the background: you can close the browser, and if your computer sleeps it picks up where it left off. It checks that every file arrived intact, and handles datasets of any size.</p>
+
+    <h3 class="sub">Install Globus Connect Personal once</h3>
+    <p>Globus Connect Personal lets Globus reach folders on your computer.</p>
+    <ol>
+      <li>Download Globus Connect Personal for your computer from <a href="https://docs.globus.org/globus-connect-personal/install/" target="_blank">Globus's install page</a>, which has full steps for Windows, Mac and Linux.</li>
+      <li>Run the installer. On Windows it installs for your own account, without admin rights.</li>
+      <li>Open Globus Connect Personal and click <strong>Log In</strong>. Choose UNSW and sign in with your zID.</li>
+      <li>Give your computer a name you'll recognise, such as <em>My laptop</em>, and click <strong>Save</strong>.</li>
+    </ol>
+
+    <h3 class="sub">Send your dataset folder</h3>
+    <!-- Katana scratch collection: unsw-restech/iris#18. It opens in the signed-in user's own scratch (confirmed by Patrick, unsw-restech/iris#90). -->
+    <p><a href="https://app.globus.org/file-manager?destination_id=ee4d18e3-a68d-447a-8acc-8b97771239d4" class="run-btn" target="_blank">Send your dataset folder</a></p>
+    <p>Globus opens with your Katana scratch on one side. On the other side, choose your computer by the name you gave it, select your dataset folder, and press <strong>Start</strong>.</p>
+    <p><strong>Already in Katana OnDemand?</strong> Click <strong>Files</strong> in the top menu, open your scratch folder, and click <strong>Open in Globus</strong>.</p>
+    <p>To add or replace a few training pairs later, upload them under <strong>Files</strong> in the top menu of Katana OnDemand.</p>
+
+    <h3 class="sub">Make it repeat (instrument PCs)</h3>
+    <p>Optional. If an instrument PC keeps producing scans, Globus can send new ones to your scratch on a schedule. Before pressing <strong>Start</strong>, open <strong>Transfer &amp; Timer Options</strong>, choose to sync so only new or changed files are copied, and set how often it repeats.</p>
+    <ul>
+      <li>If Globus emails you that your repeat is paused, sign in to Globus and press <strong>Resume</strong>. It pauses when it needs you to sign in again.</li>
+      <li>A repeat that fills your 128 GB scratch makes later runs fail. Watch how much it copies.</li>
+    </ul>
+
+    <h3 class="sub">In a terminal instead</h3>
     <!-- Data mover host and route: unsw-restech/iris#11 (katana-dm is kdm.restech.unsw.edu.au). -->
     <p>Copy through Katana's data mover, <code>kdm.restech.unsw.edu.au</code>, never a login node. From a terminal on your computer, replacing <code>zID</code> with yours:</p>
     <pre class="code-block">rsync -av --progress my-dataset/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/</pre>
-    <p>On Windows, use <a href="https://winscp.net/" target="_blank">WinSCP</a> to the same host and folder, logging in with your zID. To add or replace a few training pairs later, the OnDemand Files app is fine; copy volumes through the data mover.</p>
+    <p>On Windows, use <a href="https://winscp.net/" target="_blank">WinSCP</a> to the same host and folder, logging in with your zID.</p>
+
+    <h3 class="sub">Where it goes</h3>
     <p>The dataset can go anywhere under <code>/srv/scratch/zID</code>, so you can keep several datasets your own way. <!-- Quota: unsw-restech/iris#11. -->Your scratch holds 128 GB: about seven 16 GB volumes, before any run directories. Scratch has no backup, so keep your own copy of the original data.</p>
   </div>
 
