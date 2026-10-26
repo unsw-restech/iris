@@ -256,24 +256,27 @@ stop_here() {
 }
 
 # wh_read <field> prints one field of the entry at $WH_ENTRY_URL from
-# WorkflowHub's public JSON API: title, licence, or the latest version's
+# WorkflowHub's public JSON API: title, licence, or the newest snapshot's
 # commit or doi. Prints nothing until the entry is public, or if the API
 # can't be reached, so a caller falls back to asking.
 wh_read() {
-  curl -fsS -H 'Accept: application/vnd.api+json' "$WH_ENTRY_URL" 2>/dev/null | python3 -I -c '
+  { curl -fsS -H 'Accept: application/vnd.api+json' "$WH_ENTRY_URL" | python3 -I -c '
 import json, sys
-a = json.load(sys.stdin)["data"]["attributes"]
-v = (a.get("versions") or [{}])[-1]
-print({"title": a.get("title"), "licence": a.get("license"),
-       "commit": v.get("commit"), "doi": v.get("doi")}[sys.argv[1]] or "")' "$1" 2>/dev/null
+attrs = json.load(sys.stdin)["data"]["attributes"]
+newest = max(attrs.get("versions") or [{}], key=lambda v: v.get("version", 0))
+print({"title": attrs.get("title"), "licence": attrs.get("license"),
+       "commit": newest.get("commit"), "doi": newest.get("doi")}[sys.argv[1]] or "")' "$1"; } 2>/dev/null || true
 }
 
-# expect_field <field> <wanted> warns if the live entry's field differs.
+ok() { printf '  %s✓%s %s\n' "$GREEN" "$RESET" "$1"; }
+
+# expect_field <field> <wanted> warns, and fails, if the live entry's field
+# differs.
 expect_field() {
   local got; got=$(wh_read "$1")
   if [[ -z "$got" ]]; then warn "couldn't read the entry's $1 from WorkflowHub; check it by eye"
-  elif [[ "$got" != "$2" ]]; then warn "the entry's $1 is \"$got\", not \"$2\""; MISMATCH=1
-  else printf '  %s✓%s %s: %s\n' "$GREEN" "$RESET" "$1" "$got"; fi
+  elif [[ "$got" != "$2" ]]; then warn "the entry's $1 is \"$got\", not \"$2\""; return 1
+  else ok "$1: $got"; fi
 }
 
 if [[ -n "$TICKET" ]]; then TOTAL_STAGES=8; else TOTAL_STAGES=7; fi
@@ -391,21 +394,24 @@ step "It reminds you to review the metadata, then asks you to confirm."
 printf '\n'
 # Published, the entry is public, so the API shows what the DOI will carry.
 say "What the published entry says:"
-MISMATCH=0
-expect_field title "$TITLE"
-expect_field licence "$LICENCE"
-[[ -n "${WH_IMPORT_COMMIT:-}" ]] && expect_field commit "$WH_IMPORT_COMMIT"
-(( MISMATCH )) && warn "fix it with Actions → Edit Workflow first, or change the value in this script"
+matches=yes
+expect_field title "$TITLE" || matches=no
+expect_field licence "$LICENCE" || matches=no
+if [[ -n "${WH_IMPORT_COMMIT:-}" ]]; then expect_field commit "$WH_IMPORT_COMMIT" || matches=no; fi
+[[ "$matches" == yes ]] || warn "fix it with Actions → Edit Workflow first, or change the value in this script"
 printf '\n'
 confirm "Generate the DOI for this frozen snapshot now? It can't be undone" ||
   stop_here "Stopped before Generate a DOI."
 printf '\n'
+# Read from the entry; a pasted DOI covers an API that can't be reached.
 WH_DOI=$(wh_read doi)
 until [[ "${WH_DOI:-}" =~ ^10\.48546/workflowhub\.workflow\.[0-9]+\.[0-9]+$ ]]; do
-  pause "No DOI on the entry yet. Once WorkflowHub shows it, press Enter to read it again."
-  WH_DOI=$(wh_read doi)
+  [[ -n "${WH_DOI:-}" ]] && warn "expected a WorkflowHub DOI like 10.48546/workflowhub.workflow.123.1"
+  ask WH_DOI "No DOI read from WorkflowHub yet. Paste it, or press Enter to read again:" || true
+  WH_DOI="${WH_DOI#https://doi.org/}"
+  [[ -n "$WH_DOI" ]] || WH_DOI=$(wh_read doi)
 done
-printf '  %s✓%s DOI: %s\n' "$GREEN" "$RESET" "$WH_DOI"
+ok "DOI: $WH_DOI"
 write_env WH_DOI "$WH_DOI"
 open_url "https://doi.org/$WH_DOI"
 note "It should resolve to the entry; a new DOI can take a few minutes."

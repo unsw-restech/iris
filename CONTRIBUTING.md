@@ -115,7 +115,7 @@ If your workflow breaks and you don't answer about it for six months, it becomes
 
 ## Registering on WorkflowHub
 
-Each catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step. `bin/workflowhub-microct-2d-segmentation` is the worked example: run on the desktop, it walks through steps 3 to 5 for the reference workflow, with every value filled in. Copy it for your workflow and change the values at the top of its stages.
+Each catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step. `bin/workflowhub-microct-2d-segmentation` is the worked example: run on the desktop (it needs `curl` and `python3`), it walks through steps 3 to 5 for the reference workflow, with every value filled in. Copy it for your workflow and change the values at the top of its stages.
 
 1. **Create an account** on [WorkflowHub](https://workflowhub.eu/) and link your ORCID to it.
 2. **Ask to join Team 472**, [UNSW ResTech](https://workflowhub.eu/projects/472), from its page. The maintainer approves, and keeps edit rights over every entry in the team, so leave the team able to manage your entry.
