@@ -347,7 +347,8 @@ check "unmaintained workflows have no Run button, card, live form or CODEOWNERS 
 
 # The guide owns staging and viewing (CONTRIBUTING.md step 5): its data mover host,
 # scratch quota, WinSCP note, Globus link (app.globus.org) and Katana scratch
-# collection ID stay out of workflow pages, so a change of collection is one edit.
+# collection ID stay out of workflow pages, so a change of collection edits the
+# guide and the ID in this pattern, and no workflow page.
 guide_copies() {
     grep -n -i 'kdm\.restech\|128 GB\|winscp\|app\.globus\.org\|ee4d18e3-a68d-447a-8acc-8b97771239d4' workflows/*/index.html
 }
