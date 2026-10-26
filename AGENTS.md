@@ -43,6 +43,12 @@ A change to `microct-2d-segmentation/form.yml.erb` also needs its form test, whi
 module load ruby/3.2.0 && ruby workflows/microct-2d-segmentation/tests/test_form.rb
 ```
 
+A change to `module/` also needs the module test, run the same way from a scratch copy, as a member of `katana_ai_ro`. Copy the tree with `git archive`: it keeps `module/bin`'s links, which this clone checks out as plain files when `core.symlinks` is off.
+
+```
+bash module/tests/test_module.sh
+```
+
 ## Deploying
 
 Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au/iris/. The org serves its Pages sites under its docs domain, and `unsw-restech.github.io/iris/` redirects there. Confirm with Patrick before pushing unless they've already said to. If your sandbox or permissions block the push, give Patrick the exact `git push origin <sha>:main` to run, then do the dev-clone pull and the live check yourself. Live-check every push on one changed file outside `.github/`: Pages serves every other file, `_archive/` and dotfiles included (`.nojekyll`). Pages takes 40–60 seconds; run `bin/pageswait <path> <marker>` in the background.
@@ -81,7 +87,8 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, page and code: `hello-world` and `microct-2d-segmentation`. The folder name is the OnDemand URL segment each "Run on Katana" button points at. Patrick's dev OpenComposer's `apps_dir` points at his dev clone's `workflows/`, and a `git pull` there is the deploy. Planned workflows have no form, so OpenComposer never lists them.
 
-- **A form runs its own clone's code.** It sets `CODE` from `@apps_dir` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. No job downloads its own code. Researchers' commands run from that clone too: the job output and the Experiment help print `<clone>/bin/iris-view` and `<clone>/bin/iris-compare` in full, and nothing goes on the PATH.
+- **A form runs its own clone's code.** It sets `CODE` from `@apps_dir` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. No job downloads its own code, and no job loads the `iris` module.
+- **`module load iris` puts `iris-view` and `iris-compare` on the PATH**, from the system clone's `module/bin` and nothing else (ADR-0003). Researchers can't read the dev clone, so the module never points at it. `iris-rebuild` and the maintainer tools in `bin/` stay off the PATH and are given as full paths.
 
 `_archive\<slug>\` in the repo keeps the forms of the 26 retired workflows (`mnist-classification` included) and of the two Planned ones. It is public and OpenComposer never serves it.
 

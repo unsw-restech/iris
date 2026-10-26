@@ -1,0 +1,20 @@
+#%Module1.0
+##
+## IRIS researcher tools: `module load iris` puts iris-view and iris-compare
+## on the PATH, from the system clone, which researchers can read; they
+## can't read the dev clone. It prepends one folder and does nothing else:
+## the scripts load Python themselves. Katana's system module tree links
+## to the system clone's copy of this file, so a git pull there deploys it.
+## See docs/adr/0003-researcher-tools-ship-as-an-environment-module.md.
+##
+## Tested on Katana by module/tests/test_module.sh (see AGENTS.md).
+
+proc ModulesHelp {} {
+    puts stderr "IRIS: iris-view <run directory> views a run in napari;"
+    puts stderr "iris-compare compares your runs in MLflow."
+    puts stderr "Run them in a terminal in a Virtual Desktop."
+}
+
+module-whatis "IRIS: iris-view and iris-compare, to view and compare imaging runs"
+
+prepend-path PATH /srv/scratch/katana_ai/iris/code/module/bin

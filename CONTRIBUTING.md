@@ -48,6 +48,10 @@ iris/
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
 │   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
+├── module/                           # `module load iris` (ADR-0003)
+│   ├── modulefiles/iris              # The modulefile: puts the system clone's module/bin on the PATH
+│   ├── bin/iris-view, iris-compare   # Links to the bin/ scripts: all the module exposes
+│   └── tests/test_module.sh          # Loads the modulefile on Katana (see AGENTS.md)
 └── workflows/
     ├── hello-world/                  # Test job — start here (onboarding, not in the catalogue)
     │   ├── index.html
