@@ -122,7 +122,7 @@ Each catalogue workflow has its own WorkflowHub entry, and each citable version 
 3. **Register the workflow** in Team 472 by importing from git: repository `https://github.com/unsw-restech/iris`, branch `main`, main workflow file the workflow's entry point (`workflows/<slug>/src/run.py` for the reference workflow), workflow type `Other`.
 4. **Fill in the metadata**: the title and description from the workflow's page, licence Apache-2.0, and as creators yourself, your co-authors (with ORCIDs where they have them) and UNSW Research Technology Services.
 5. **Freeze** the entry's snapshot of `main` (WorkflowHub's Freeze button), **publish** it, then **mint** its DOI, which makes it a citable version. Neither publishing nor minting can be undone. Note the date and the commit of `main` it was frozen at.
-6. **Open a PR** adding the citable version to the workflow's page: its DOI, its date and its commit, never a version number.
+6. **Open a PR** adding the citable version to the workflow's page: its DOI, its date and its commit, never a version number. Add its DOI to `identifiers` in `CITATION.cff` too, above that workflow's older ones.
 
 **When to mint:** the first citable version straight after your workflow merges; after that, only when its code or defaults change in a way that changes results, not on every merge. A citable version's commit may include unrelated changes to other workflows; that is harmless, since each run's `commit.txt` pins exactly what ran.
 

@@ -4,9 +4,9 @@ cff-version: 1.2.0
 message: >-
   If you publish results from an IRIS run, cite the workflow's latest
   citable version at or before the commit in the run's commit.txt, listed
-  on the workflow's page, and give that commit. Until the workflow has one,
-  cite IRIS as below, naming the workflow and the commit. Either way,
-  acknowledge Katana.
+  on the workflow's page, and give that commit. Until the workflow has a
+  citable version at or before that commit, cite IRIS as below, naming the
+  workflow and the commit. Either way, acknowledge Katana and cite its DOI.
 title: "IRIS: the UNSW ResTech AI Imaging Gateway"
 type: software
 authors:
