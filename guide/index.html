@@ -53,7 +53,7 @@
 
     <!-- Virtual Desktop size: unsw-restech/iris#14. -->
     <h3 class="sub">Start a Virtual Desktop</h3>
-    <p>In Katana OnDemand, start a Virtual Desktop with <strong>no GPU, 4 cores, 16 GB of memory and 4 hours</strong>. That is enough for a 16 GB volume, and asking for more only queues you longer. One desktop serves everything below. Open a terminal in it, and run <code>module load iris</code>. That gives the terminal the <code>iris-view</code> and <code>iris-compare</code> commands until you close it.</p>
+    <p>In Katana OnDemand, start a Virtual Desktop with <strong>no GPU, 4 cores, 16 GB of memory and 4 hours</strong>. That is enough for a 16 GB volume, and asking for more only queues you longer. One desktop serves everything below. Open a terminal in it, and run <code>module load iris</code>. That gives the terminal the <code>iris-view</code> and <code>iris-compare</code> commands until you close it, so a new terminal needs it again: without it, the terminal says <code>iris-view: command not found</code>.</p>
 
     <h3 class="sub">View a run: iris-view</h3>
     <p>Run <code>iris-view</code> followed by the run directory, as the job output gives it, such as <code>iris-view /srv/scratch/zID/my-dataset/runs/1234567</code>. napari opens with your volume and the run's label volume over it at half opacity. Scroll through the slices with the slider under the image. Only the slices you look at are read, so a 16 GB volume fits in the desktop. Close the napari window to quit.</p>

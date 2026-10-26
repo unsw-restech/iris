@@ -24,7 +24,8 @@ before="$PATH"
 module load iris || fail "module load iris"
 [ "$PATH" = "$commands:$before" ] ||
     fail "module load iris should prepend only $commands; PATH went from $before to $PATH"
-# Terse listing: a "Currently Loaded Modulefiles:" header, then one per line.
+# Terse listing: a "Currently Loaded Modulefiles:" header, then one per line
+# (`module -t list`, Environment Modules 5.3.1 on Katana, 2026-10-26).
 loaded=$(module -t list 2>&1 | grep -v ':$' | tr '\n' ' ')
 [ "$loaded" = "iris " ] || fail "module load iris should load only iris; loaded: $loaded"
 for cmd in iris-rebuild iris-import check ciwait; do
