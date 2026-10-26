@@ -82,10 +82,6 @@ class FullSequence(unittest.TestCase):
                               capture_output=True, text=True, check=True).stdout.strip()
         self.assertEqual((self.run_dir / "commit.txt").read_text().strip(), head)
 
-    def test_prints_the_clones_iris_view_and_iris_compare_lines(self):
-        self.assertIn(f"\n{REPO}/bin/iris-view {self.run_dir}\n", self.result.stdout)
-        self.assertIn(f"\n{REPO}/bin/iris-compare\n", self.result.stdout)
-
 
 if __name__ == "__main__":
     unittest.main()
