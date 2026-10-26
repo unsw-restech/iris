@@ -18,7 +18,7 @@ IRIS used to be called ARES. The old `patricktung.github.io/ares/` address no lo
 
 1. **Stage** a dataset: lay out its folder and copy it into your scratch. The [guide](https://docs.restech.unsw.edu.au/iris/guide/#stage) shows how. Do this once per dataset.
 2. **Launch** a workflow from the [catalogue](https://docs.restech.unsw.edu.au/iris/): click **Run on Katana** on its page, check the form and submit.
-3. **View and compare** your runs with `iris-view` and `iris-compare`, as the [guide](https://docs.restech.unsw.edu.au/iris/guide/#view) shows. When a job finishes, its output gives you both commands ready to paste.
+3. **View and compare** your runs: run `module load iris` in a terminal in a Virtual Desktop, then `iris-view` and `iris-compare`, as the [guide](https://docs.restech.unsw.edu.au/iris/guide/#view) shows. When a job finishes, its output gives you the exact commands to type.
 
 New to Katana? Run [Hello World](https://docs.restech.unsw.edu.au/iris/workflows/hello-world/) first. It needs no data and checks that your access works.
 
@@ -30,7 +30,7 @@ You don't need anything here to use IRIS; the website and forms are enough. The 
 |---|---|
 | `workflows/<workflow>/src/` | The code a workflow's jobs run |
 | `lib/iris/` | Code shared by imaging workflows: reading volumes, writing label volumes, recording runs |
-| `bin/iris-view`, `bin/iris-compare`, `bin/iris-rebuild` | Your tools: view a run, compare runs, and rebuild your tracking store if it is lost |
+| `bin/` | Your tools, beside the maintainers' scripts: `module load iris` gives you `iris-view`, to view a run, and `iris-compare`, to compare runs. If your tracking store is ever lost, `/srv/scratch/katana_ai/iris/code/bin/iris-rebuild` rebuilds it |
 | `envs/imaging/` | The software, with exact versions, that imaging runs use |
 
 Every run writes `commit.txt` into its run directory: the exact commit of this repo it ran, so you can see the code behind any result.

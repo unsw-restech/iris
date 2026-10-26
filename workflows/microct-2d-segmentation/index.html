@@ -54,7 +54,7 @@
     <div class="col">
       <div class="col-when">After it finishes</div>
       <h3>3 · View</h3>
-      <p>In a Virtual Desktop, paste the <code>iris-view</code> line from the end of the job output to see the labels over your volume. <code>iris-compare</code> compares your runs.</p>
+      <p>In a terminal in a Virtual Desktop, run <code>module load iris</code>, then <code>iris-view</code> to see the labels over your volume and <code>iris-compare</code> to compare your runs.</p>
       <p><a href="../../guide/#view">Viewing and comparing runs</a></p>
     </div>
   </div>
@@ -109,7 +109,7 @@
         <tr><td><code>commit.txt</code></td><td>The IRIS commit that ran</td></tr>
       </tbody>
     </table>
-    <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. When the job succeeds, the output ends with two lines to paste into a terminal in a Virtual Desktop: <code>iris-view</code>, which shows the label volume over your volume in napari, and <code>iris-compare</code>, which opens your runs in MLflow. Fiji and ParaView open the label volume too. The <a href="../../guide/#view">guide</a> covers the Virtual Desktop to start, all four, and copying a run directory home.</p>
+    <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. When the job succeeds, the output ends with the commands to run in a terminal in a Virtual Desktop: <code>module load iris</code>, then <code>iris-view</code> with the run directory, which shows the label volume over your volume in napari, and <code>iris-compare</code>, which opens your runs in MLflow. Fiji and ParaView open the label volume too. The <a href="../../guide/#view">guide</a> covers the Virtual Desktop to start, all four, and copying a run directory home.</p>
     <p>To cite a run, use the commit in its <code>commit.txt</code>, as in <a href="#cite">Cite this workflow</a>.</p>
   </details>
 
@@ -132,8 +132,9 @@
       <li><strong>The job stopped before training with an <code>ERROR:</code> line about your dataset.</strong> It names the file and what's wrong: a training image at a different size or bit depth from the volume, a label slice that doesn't match its image, label values that aren't whole numbers from 0, more than 255 classes, or labels that are all 0.</li>
       <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. Load parameters keeps your other settings.</li>
       <li><strong>The job ran out of GPU memory.</strong> Lower the batch size under advanced options, or the patch size.</li>
+      <li><strong>The terminal says <code>iris-view: command not found</code>.</strong> Run <code>module load iris</code> first, in the same terminal. It lasts until you close that terminal.</li>
       <li><strong><code>iris-view</code> says there is no label volume.</strong> The run hasn't finished, or it failed: read the end of its <code>runs/&lt;job ID&gt;.OU</code>.</li>
-      <li><strong>The job output doesn't end with the <code>iris-view</code> line.</strong> The job stopped at its first error, which is the last thing in the output. The same two lines are printed near the start of the output, before training, so the run directory they name may be incomplete.</li>
+      <li><strong>The job output doesn't end with the <code>iris-view</code> line.</strong> The job stopped at its first error, which is the last thing in the output. The same commands are printed near the start of the output, before training, so the run directory they name may be incomplete.</li>
       <li><strong>Anything else.</strong> Email patrick.tung@unsw.edu.au with the job ID and the end of the job output.</li>
     </ul>
   </details>
