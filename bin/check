@@ -11,7 +11,8 @@
 #
 # The synthetic-dataset test runs in the desktop CPU venv, which
 # envs/imaging/desktop.sh builds (IRIS_PYTHON names another interpreter).
-# The microCT form test needs Katana and is not run here: see AGENTS.md.
+# The microCT form test and the module test need Katana and are not run
+# here: see AGENTS.md.
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 PYTHON="${IRIS_PYTHON:-$HOME/.venvs/iris-imaging/bin/python}"
@@ -148,6 +149,28 @@ exec_bits() {
     git ls-files -s bin 'envs/*.sh' 'tests/bin/test_*.sh' .githooks/commit-msg | awk '$1 != "100755" { print $4 }'
 }
 check "scripts run by path are 100755 (git update-index --chmod=+x)" exec_bits
+
+# `module load iris` puts module/bin on the PATH (ADR-0003), so it holds
+# exactly iris-view and iris-compare, each a relative link to its script
+# in bin/, which also holds maintainer tools. Read from git's index, since
+# a clone with core.symlinks off checks links out as plain files.
+# tests/bin/test_module_commands.sh runs it on fixture repos.
+module_commands() {
+    local mode blob path name target want=" iris-compare iris-view " got=" "
+    while read -r mode blob _ path; do
+        name="${path#module/bin/}"
+        got+="$name "
+        if [ "$mode" != 120000 ]; then echo "$path: not a symlink"; continue; fi
+        target=$(git cat-file blob "$blob")
+        if [[ "$target" == /* ]]; then echo "$path: links to $target; make it relative (../../bin/$name)"; continue; fi
+        [ "$(realpath -ms --relative-to=. "module/bin/$target")" = "bin/$name" ] &&
+            [ "$(git ls-files -s "bin/$name" | cut -c1-3)" = 100 ] ||
+            echo "$path: links to $target, not to the script bin/$name"
+    done < <(git ls-files -s module/bin | tr '\t' ' ')
+    [ "$(tr ' ' '\n' <<< "$got" | grep . | sort | tr '\n' ' ' | sed 's/^/ /')" = "$want" ] ||
+        echo "module/bin: holds${got% }; it holds iris-view and iris-compare only"
+}
+check "module commands are iris-view and iris-compare linked into bin/" module_commands
 
 # Print $2 (a link in $1, relative to $3) if it reaches no file, or if its
 # #fragment names no id there.
@@ -481,6 +504,8 @@ check "citable versions test" bash tests/bin/test_citable_versions.sh
 check "CITATION.cff test" bash tests/bin/test_citation_cff.sh
 # The module-paths check, against throwaway trees.
 check "module paths test" bash tests/bin/test_module_paths.sh
+# The module command folder check, against throwaway repos.
+check "module command folder test" bash tests/bin/test_module_commands.sh
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
