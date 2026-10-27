@@ -24,4 +24,6 @@ printf '%s\n' \
   "GPUs: $NGPUS" \
   "Code: $CODE" > "$OUTDIR/result.txt"
 
+# Also to the log, where bin/qwait reads which clone the job ran.
+echo "Code: $CODE"
 echo "Done. Result at $OUTDIR/result.txt"

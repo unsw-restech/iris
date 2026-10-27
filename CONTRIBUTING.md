@@ -44,6 +44,7 @@ iris/
 │   ├── iris-rebuild                  # Rebuild a lost tracking store from run directories
 │   ├── iris-view                     # View a run's labels over its volume in napari (in a Virtual Desktop)
 │   ├── katana-test                   # Run the form tests and the module test on Katana (desktop)
+│   ├── pilot-readable.py             # List what pilot testers can't read in the system clone (syspull runs it)
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 │   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
 │   └── workflowhub-microct-2d-segmentation  # Walkthrough registering it on WorkflowHub; copy it for another workflow (desktop)

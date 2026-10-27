@@ -40,7 +40,12 @@ if [ $# -eq 0 ]; then
         git diff --stat=200 --stat-graph-width=20 HEAD...origin/main
         echo
         echo "To deploy them: bin/syspull --apply $(git rev-parse --short origin/main)"' || exit
-    out=$(readable) || printf '\nPilot testers already can'"'"'t read these in the clone:\n%s\n' "$out"
+    out=$(readable)
+    case $? in
+        0) ;;
+        1) printf '\nPilot testers already can'"'"'t read these in the clone:\n%s\n' "$out" ;;
+        *) echo; echo "Couldn't check what pilot testers can read in the clone." ;;
+    esac
 elif [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
     # shellcheck disable=SC2016  # $(...) expanded on Katana
     ssh katana 'cd '"$sys"' && git fetch -q origin || exit

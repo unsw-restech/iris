@@ -10,8 +10,9 @@ fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
 
 # Adds its arguments to $fake/args and prints a stand-in report. A file
-# named ssh-down makes it fail as ssh itself does (255), and one named
-# unreadable makes the readability check list a path and fail.
+# named ssh-down makes it fail as ssh itself does (255), one named
+# check-down does that to the readability check alone, and one named
+# unreadable makes that check list a path and fail.
 cat > "$fake/ssh" <<'EOF'
 #!/bin/bash
 dir="$(dirname "$0")"
@@ -19,6 +20,7 @@ printf '%s\n' "$@" >> "$dir/args"
 [ -e "$dir/ssh-down" ] && { echo "ssh: connect to host katana: Connection refused" >&2; exit 255; }
 if [ "$2" = python3 ]; then
     cat > /dev/null
+    [ -e "$dir/check-down" ] && exit 255
     [ -e "$dir/unreadable" ] && { echo "needs r--: /x/hidden"; exit 1; }
     exit 0
 fi
@@ -85,6 +87,11 @@ expect 2 "usage:" pull
 [ ! -e "$fake/args" ] || echo "syspull pull: ran ssh on a usage error"
 
 # ssh's own failure is the script's.
+# A readability check that can't run says so, not that paths are unreadable.
+touch "$fake/check-down"
+expect 0 "Couldn't check"
+rm "$fake/check-down"
+
 touch "$fake/ssh-down"
 expect 255 "Connection refused"
 not_sent ssh-down "python3"               # a failed ssh stops before the check

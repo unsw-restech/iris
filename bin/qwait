@@ -1,8 +1,8 @@
 #!/bin/bash
 # Wait on the desktop for Katana jobs to finish, then show how each ended:
-# Exit_status, the log path PBS actually wrote, the clone the job ran (its
-# log's "Code:" line, which lib/iris-job.sh and hello-world write) and the
-# log's last lines.
+# Exit_status, the log path PBS actually wrote, the clone the job ran (from
+# the "Code:" line lib/iris-job.sh and hello-world print to the log) and
+# the log's last lines.
 #
 #   bin/qwait <job id>...        (9551129 or 9551129.kman.restech.unsw.edu.au)
 #
@@ -11,7 +11,7 @@
 # instead of polling an error. One light qstat per poll, over `ssh katana`.
 # QWAIT_INTERVAL (seconds, default 60) and QWAIT_TAIL (lines, default 20).
 
-[ $# -gt 0 ] || { sed -n '5p' "$0" | sed 's/^# *//'; exit 2; }
+[ $# -gt 0 ] || { grep -m1 '^#   bin/qwait' "$0" | sed 's/^# *//'; exit 2; }
 INTERVAL="${QWAIT_INTERVAL:-60}"
 TAIL="${QWAIT_TAIL:-20}"
 # The system clone (see AGENTS.md); a run from /pun/sys/ ran its code.
@@ -60,12 +60,17 @@ while [ ${#pending[@]} -gt 0 ]; do
         fi
         echo "== $id finished: Exit_status $exit_status"
         echo "   log: $log"
-        code=$(ssh -n katana "grep -m1 -E '^Code *:' '$log'" 2>/dev/null | sed 's/^Code *: *//')
-        case "$code" in
-            "$SYS_CLONE"/*) echo "   clone: system ($code)" ;;
-            "") echo "   clone: the log has no Code: line" ;;
-            *) echo "   clone: not the system clone ($code)" ;;
-        esac
+        code=$(ssh -n katana "grep -m1 -E '^Code *:' '$log'" 2>/dev/null)
+        rc=$? code=${code#Code*: }
+        if [ $rc = 255 ]; then echo "   clone: unknown, ssh failed"
+        elif [ $rc != 0 ]; then echo "   clone: unknown, the log has no Code: line"
+        else
+            case "$code" in
+                "$SYS_CLONE"/*) echo "   clone: system ($code)" ;;
+                /home/*/iris/*) echo "   clone: dev ($code)" ;;
+                *) echo "   clone: other ($code)" ;;
+            esac
+        fi
         # -n: ssh would otherwise read the rest of "$out" from this loop's stdin.
         ssh -n katana "tail -n $TAIL '$log' 2>&1" | sed 's/^/   /'
         [ "$exit_status" = 0 ] || status=1
