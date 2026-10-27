@@ -143,7 +143,7 @@ The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points
 
 ## Status
 
-`v0.1-alpha`. The "Run on Katana" buttons currently point at the **development** OnDemand instance (`/pun/dev/OpenComposer/...`) while workflows are being validated. Switch these to `/pun/sys/` at launch, and remove every pre-launch notice: the README's, and the line saying proposals open at launch on the contribute page, in step 1 of [From proposal to DOI](#from-proposal-to-doi) and in the proposal form. `bin/check` fails if only some are done.
+`v0.1-alpha`, in a **pilot**. The "Run on Katana" buttons point at the system OnDemand instance (`/pun/sys/OpenComposer/...`), whose workflows only pilot testers (members of `katana_ai_ro`) can reach. At launch, remove every pre-launch notice: the pilot notices in the README and on the landing page, and the line saying proposals open at launch on the contribute page, in step 1 of [From proposal to DOI](#from-proposal-to-doi) and in the proposal form. `bin/check` fails if only some are gone.
 
 The catalogue is **imaging only**. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**, which has no workflows at present. `hello-world` sits outside the catalogue as onboarding.
 
@@ -153,7 +153,7 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 | **Planned** | None | Page only, describing what the workflow will do. No form, no Run button |
 | **Unmaintained** | None | Page only, with the `unmaintained-banner` saying it can't be run, so its citable versions and cited commits still lead somewhere. No card, no Run button, form moved to `_archive/<slug>/`, and its `CODEOWNERS` line removed, since it has no workflow owner. A workflow lands here when it breaks and its workflow owner hasn't answered for six months. To adopt one, file a proposal; once it's approved, open a PR that fixes the workflow, cites a `qsub` run's job ID and names you as its workflow owner on its page and in `CODEOWNERS`. It returns as the same folder and WorkflowHub entry |
 
-`hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
+`hello-world` ran from the browser through the system OnDemand instance (job 9622779), and so did `microct-2d-segmentation` (job 9622783), both from `/pun/sys/` at `3fa4177`. Both had earlier run through the dev clone (`hello-world` job 9584951, #53; `microct-2d-segmentation` job 9577519, #46).
 
 IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The repo moved from `PatrickTung/iris` to `unsw-restech/iris` on 2026-10-23; GitHub redirects the old repo URL, but the old `patricktung.github.io/iris/` site address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms are kept in `_archive/`. `mnist-classification` was removed the same way on 2026-10-22 (#53): its form is in `_archive/`, the rest under the `pre-mnist-removal` tag. The two Planned workflows, `cellpose-segmentation` and `qupath-pathology`, were removed on 2026-10-27: their pages are in git history and their forms in `_archive/`.
 

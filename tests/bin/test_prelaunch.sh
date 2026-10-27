@@ -1,9 +1,10 @@
 #!/bin/bash
 # bin/check's pre-launch pairing against copies of the site in a scratch
-# repo: the Run buttons' /pun/dev/ or /pun/sys/ and every pre-launch notice
-# (the README's, and "Proposals open at launch" on the contribute page, in
-# CONTRIBUTING and in the proposal form) switch together at launch. Prints
-# each failed case and nothing on success, so bin/check can run it.
+# repo: every pre-launch notice (the README's and the landing page's pilot
+# notices, and "Proposals open at launch" on the contribute page, in
+# CONTRIBUTING and in the proposal form) goes together at launch, and Run
+# buttons on /pun/dev/ need them all. Prints each failed case and nothing on
+# success, so bin/check can run it.
 #
 #   tests/bin/test_prelaunch.sh
 
@@ -14,7 +15,8 @@ trap 'rm -rf "$scratch"' EXIT
 
 # Each pre-launch notice, as <file>|<text>.
 notices=(
-    'README.md|not open to researchers yet'
+    'README.md|work only for pilot testers until launch'
+    'index.html|work only for pilot testers until launch'
     'contribute/index.html|Proposals open at launch'
     'CONTRIBUTING.md|Proposals open at launch'
     '.github/ISSUE_TEMPLATE/proposal.yml|Proposals open at launch'
@@ -31,10 +33,11 @@ copy_site() {
     git -C "$repo" add -A
 }
 
-# The scratch repo's Run buttons, moved to /pun/sys/.
-launch_buttons() {
-    git -C "$scratch/$1" grep -lz 'pun/dev/OpenComposer' -- '*.html' |
-        (cd "$scratch/$1" && xargs -0 sed -i 's|pun/dev/OpenComposer|pun/sys/OpenComposer|g')
+# The scratch repo's Run buttons, moved back to /pun/dev/; with a file
+# argument, that file's only.
+dev_buttons() {
+    git -C "$scratch/$1" grep -lz 'pun/sys/OpenComposer' -- "${2:-*.html}" |
+        (cd "$scratch/$1" && xargs -0 sed -i 's|pun/sys/OpenComposer|pun/dev/OpenComposer|g')
 }
 
 # Removes every line holding notice $2 (<file>|<text>) in the scratch repo $1.
@@ -47,22 +50,33 @@ pairing() {
     expect "$1" "$scratch/$2" "notices match the Run buttons"
 }
 
-copy_site pre-launch
-pairing pass pre-launch
+copy_site pilot
+pairing pass pilot
+
+copy_site dev
+dev_buttons dev
+pairing pass dev
+
+copy_site split
+dev_buttons split workflows/hello-world/index.html
+pairing fail split
 
 copy_site launched
-launch_buttons launched
 for notice in "${notices[@]}"; do drop_notice launched "$notice"; done
 pairing pass launched
 
 for notice in "${notices[@]}"; do
     name="${notice%%|*}"; name="${name//\//-}"
+    copy_site "$name-dev-notice-gone"
+    dev_buttons "$name-dev-notice-gone"
+    drop_notice "$name-dev-notice-gone" "$notice"
+    pairing fail "$name-dev-notice-gone"
+
     copy_site "$name-notice-gone"
     drop_notice "$name-notice-gone" "$notice"
     pairing fail "$name-notice-gone"
 
     copy_site "$name-notice-left"
-    launch_buttons "$name-notice-left"
     for other in "${notices[@]}"; do
         [ "$other" = "$notice" ] || drop_notice "$name-notice-left" "$other"
     done

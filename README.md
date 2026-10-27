@@ -4,7 +4,7 @@ IRIS is a catalogue of imaging analysis workflows that UNSW researchers launch o
 
 **Website**: https://docs.restech.unsw.edu.au/iris/
 
-> **IRIS is not open to researchers yet.** Its workflows are still being tested, and their Run buttons lead to a test instance you can't use. If you'd like to use IRIS, or try it before launch, email patrick.tung@unsw.edu.au.
+> **IRIS is in a pilot.** Its Run buttons work only for pilot testers until launch. If you'd like to try IRIS before launch, email patrick.tung@unsw.edu.au.
 
 IRIS used to be called ARES. The old `patricktung.github.io/ares/` address no longer works, and neither does `patricktung.github.io/iris/`, its address before the repo moved to `unsw-restech` on 2026-10-23.
 

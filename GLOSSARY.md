@@ -4,6 +4,14 @@ IRIS is the UNSW ResTech AI Imaging Gateway: a catalogue from which researchers 
 
 ## Language
 
+**Pilot**:
+The period in which IRIS runs on Katana's system instance but only pilot testers, members of a group ResTech chooses, can run workflows.
+_Avoid_: Beta, test instance
+
+**Launch**:
+The day IRIS opens to every researcher with a Katana account, ending the pilot. Starting a single run is launching a workflow, never "a launch".
+_Avoid_: Go-live, release
+
 **Workflow**:
 One imaging analysis a researcher can launch from IRIS, made up of a catalogue page, a form and the code the job runs.
 _Avoid_: Pipeline, app, job
