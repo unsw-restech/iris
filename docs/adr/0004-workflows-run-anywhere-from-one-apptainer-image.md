@@ -1,5 +1,7 @@
 # Workflows run anywhere from one Apptainer image
 
+**Superseded by [ADR-0005](0005-environments-stay-venvs-on-katana.md)**: environments stay venvs on Katana (Patrick, 2026-10-27).
+
 Researchers need to run IRIS workflows on other HPCs and on their own desktops, not only on Katana. The shared imaging venv can't follow them: a venv only works at the path it was built at, on Katana's `python/3.13.2` module. So from imaging environment version 2, an environment is an Apptainer image, and Katana runs the same image as everyone else. This reverses decision 12 of #12 ("Off Katana: no promise"), which chose the venv while naming Apptainer as the route if IRIS ever had to leave Katana (Patrick, 2026-10-27).
 
 - The image holds the environment only. The code comes from a git clone bound in at run time, so a form still runs its own clone's code and `commit.txt` still identifies it.

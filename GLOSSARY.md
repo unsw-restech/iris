@@ -1,6 +1,6 @@
 # IRIS
 
-IRIS is the UNSW ResTech AI Imaging Gateway: a catalogue of imaging workflows that researchers launch on Katana in two clicks, or run on another Linux machine from the same code and environment.
+IRIS is the UNSW ResTech AI Imaging Gateway: a catalogue from which researchers launch imaging workflows on Katana.
 
 ## Language
 
@@ -9,7 +9,7 @@ One imaging analysis a researcher can launch from IRIS, made up of a catalogue p
 _Avoid_: Pipeline, app, job
 
 **Researcher**:
-Someone who runs IRIS workflows on their own data, on Katana from their own account or on another machine.
+Someone who runs IRIS workflows on their own data from their own Katana account.
 _Avoid_: User, end user
 
 **Workflow author**:
@@ -65,8 +65,8 @@ A frozen WorkflowHub snapshot of one workflow at one commit of `main`, with its 
 _Avoid_: Release, workflow version
 
 **Run**:
-One execution of a workflow on one dataset, producing one run directory: a form submission on Katana, or a single command elsewhere.
-_Avoid_: Job
+One submission of a form, producing one job on Katana and one set of outputs.
+_Avoid_: Execution
 
 **Experiment**:
 A named group of one researcher's runs that are compared with each other, such as runs on the same dataset with different hyperparameters. The researcher names it on the form.
