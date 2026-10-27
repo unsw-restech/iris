@@ -1,6 +1,8 @@
 #!/bin/bash
 # Wait on the desktop for Katana jobs to finish, then show how each ended:
-# Exit_status, the log path PBS actually wrote and the log's last lines.
+# Exit_status, the log path PBS actually wrote, the clone the job ran (its
+# log's "Code:" line, which lib/iris-job.sh and hello-world write) and the
+# log's last lines.
 #
 #   bin/qwait <job id>...        (9551129 or 9551129.kman.restech.unsw.edu.au)
 #
@@ -12,6 +14,8 @@
 [ $# -gt 0 ] || { sed -n '5p' "$0" | sed 's/^# *//'; exit 2; }
 INTERVAL="${QWAIT_INTERVAL:-60}"
 TAIL="${QWAIT_TAIL:-20}"
+# The system clone (see AGENTS.md); a run from /pun/sys/ ran its code.
+SYS_CLONE=/srv/scratch/katana_ai/iris/code
 pending=("$@")
 status=0
 ssh_failures=0
@@ -56,6 +60,12 @@ while [ ${#pending[@]} -gt 0 ]; do
         fi
         echo "== $id finished: Exit_status $exit_status"
         echo "   log: $log"
+        code=$(ssh -n katana "grep -m1 -E '^Code *:' '$log'" 2>/dev/null | sed 's/^Code *: *//')
+        case "$code" in
+            "$SYS_CLONE"/*) echo "   clone: system ($code)" ;;
+            "") echo "   clone: the log has no Code: line" ;;
+            *) echo "   clone: not the system clone ($code)" ;;
+        esac
         # -n: ssh would otherwise read the rest of "$out" from this loop's stdin.
         ssh -n katana "tail -n $TAIL '$log' 2>&1" | sed 's/^/   /'
         [ "$exit_status" = 0 ] || status=1

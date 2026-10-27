@@ -10,11 +10,17 @@
 # The listing ends with the --apply line for origin/main's tip. Quote the
 # listing in the go-ahead request, naming the clone's path; --apply then
 # deploys that commit even if main has moved since, and refuses a clone that
-# isn't on main or holds uncommitted edits. Over `ssh katana`.
+# isn't on main or holds uncommitted edits. Both end by listing what a pilot
+# tester can't read in the clone (bin/pilot-readable.py), and --apply exits
+# 1 if anything is listed, since the deploy has happened. Over `ssh katana`.
 
 # The system clone (Patrick, 2026-10-23; see AGENTS.md).
 sys=/srv/scratch/katana_ai/iris/code
 usage() { echo "usage: bin/syspull [--apply <sha>]" >&2; exit 2; }
+# Lists what a pilot tester can't read in the clone; fails if anything.
+readable() {
+    ssh katana python3 - "$sys" < "$(dirname "$0")/pilot-readable.py"
+}
 
 if [ $# -eq 0 ]; then
     # shellcheck disable=SC2016  # expanded on Katana
@@ -33,7 +39,8 @@ if [ $# -eq 0 ]; then
         echo
         git diff --stat=200 --stat-graph-width=20 HEAD...origin/main
         echo
-        echo "To deploy them: bin/syspull --apply $(git rev-parse --short origin/main)"'
+        echo "To deploy them: bin/syspull --apply $(git rev-parse --short origin/main)"' || exit
+    out=$(readable) || printf '\nPilot testers already can'"'"'t read these in the clone:\n%s\n' "$out"
 elif [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
     # shellcheck disable=SC2016  # $(...) expanded on Katana
     ssh katana 'cd '"$sys"' && git fetch -q origin || exit
@@ -41,7 +48,8 @@ elif [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
         [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || refuse "the clone is not on main"
         [ -z "$(git status --porcelain --untracked-files=no)" ] || refuse "the clone has uncommitted changes"
         git merge-base --is-ancestor '"$2"' origin/main 2>/dev/null || refuse "'"$2"' is not on origin/main"
-        git merge --ff-only '"$2"' && git log -1 --oneline'
+        git merge --ff-only '"$2"' && git log -1 --oneline' || exit
+    readable || { echo "syspull: deployed, but pilot testers can't read the paths above; fix their ACLs." >&2; exit 1; }
 else
     usage
 fi

@@ -9,13 +9,19 @@ cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
 
-# Records its arguments in $fake/args and prints a stand-in report. A file
-# named ssh-down makes it fail as ssh itself does (255).
+# Adds its arguments to $fake/args and prints a stand-in report. A file
+# named ssh-down makes it fail as ssh itself does (255), and one named
+# unreadable makes the readability check list a path and fail.
 cat > "$fake/ssh" <<'EOF'
 #!/bin/bash
 dir="$(dirname "$0")"
-printf '%s\n' "$@" > "$dir/args"
+printf '%s\n' "$@" >> "$dir/args"
 [ -e "$dir/ssh-down" ] && { echo "ssh: connect to host katana: Connection refused" >&2; exit 255; }
+if [ "$2" = python3 ]; then
+    cat > /dev/null
+    [ -e "$dir/unreadable" ] && { echo "needs r--: /x/hidden"; exit 1; }
+    exit 0
+fi
 echo "fake report"
 EOF
 chmod +x "$fake/ssh"
@@ -53,6 +59,7 @@ sent preview "origin/main..HEAD"          # warns of the clone's own commits
 sent preview "HEAD...origin/main"         # lists only what main brings
 sent preview "bin/syspull --apply"        # the line the go-ahead quotes
 not_sent preview "tail|head"              # every file listed, none dropped
+sent preview "python3"                    # then what pilot testers can't read
 
 # --apply moves the clone to exactly the commit that was previewed.
 expect 0 "fake report" --apply 0123abc
@@ -63,6 +70,13 @@ not_sent apply "git (pull|reset|checkout|rebase|switch)"
 sent apply "not on origin/main"           # says why it refused
 sent apply "rev-parse --abbrev-ref HEAD"  # refuses a clone not on main
 sent apply "status --porcelain"           # refuses a clone with edits
+sent apply "python3"                      # checks the deployed clone is readable
+
+# A path pilot testers can't read: the preview warns, --apply fails.
+touch "$fake/unreadable"
+expect 0 "needs r--: /x/hidden"
+expect 1 "fix their ACLs" --apply 0123abc
+rm "$fake/unreadable"
 
 # Anything else is a usage error, before ssh runs.
 expect 2 "usage:" --apply
@@ -73,3 +87,4 @@ expect 2 "usage:" pull
 # ssh's own failure is the script's.
 touch "$fake/ssh-down"
 expect 255 "Connection refused"
+not_sent ssh-down "python3"               # a failed ssh stops before the check

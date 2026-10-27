@@ -318,7 +318,7 @@ tier_jobs() {
     doc=$(tr -d '\r' < CONTRIBUTING.md)
     for slug in $(tier_rows | sed -n 's/ Run and verified$//p'); do
         grep -v '^|' <<< "$doc" | grep -qE "\`$slug\`[^\`]*\(job [0-9]+" ||
-            echo "CONTRIBUTING.md: $slug is Run and verified but no line cites its job: \"\`$slug\` ... (job <ID>\""
+            echo "CONTRIBUTING.md: $slug is Run and verified but no line cites its job: \"\`$slug\` ... (job <ID>\", with no backtick between them"
     done
 }
 check "Run and verified workflows cite a job" tier_jobs
@@ -515,6 +515,8 @@ check "issue-tick test" bash tests/bin/test_issue_tick.sh
 # The system-clone pull preview and the Katana test runner, against a fake ssh.
 check "syspull test" bash tests/bin/test_syspull.sh
 check "katana-test test" bash tests/bin/test_katana_test.sh
+# The pilot readability check syspull runs, against a fake getfacl.
+check "pilot-readable test" bash tests/bin/test_pilot_readable.sh
 # The AI-attribution check, against throwaway histories.
 check "attribution test" bash tests/bin/test_attribution.sh
 # The conflict-list check, against throwaway histories.

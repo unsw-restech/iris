@@ -45,7 +45,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 - **CI:** `bin/ciwait <commit>` waits for that commit's `check` run and prints the failed log. Push a change to `.github/` to a branch first. Merge `origin/main` into that branch before its run, so the green run is on the commit `main` becomes, then push that commit to `main`.
 - **Dev clone:** after pushing a change to `workflows/`, `lib/` or `bin/iris-*` (researchers run those from the clone), run `ssh katana 'cd ~/iris && git pull --ff-only'` as its own command, so a permission rule scoped to `ssh katana` can match it. The dev clone is Patrick's test bed: a change goes push, dev pull, `bin/katana-test` where it applies, then the system clone.
-- **System clone:** any git change in `/srv/scratch/katana_ai/iris/code/` (pull, reset, checkout) deploys to the pilot (members of `katana_ai_ro`), since the system OpenComposer's `apps_dir` points into it. That pull is the OpenComposer deploy. Run `bin/syspull` to list what a pull would deploy, get Patrick's go-ahead naming that path and quoting the list, then run the `bin/syspull --apply <sha>` line it prints.
+- **System clone:** `/srv/scratch/katana_ai/iris/code/`, beside `envs/` and `wheelhouse/`, since the dev clone's home folder is unreadable to researchers (Patrick, 2026-10-23). The system OpenComposer's `apps_dir` is its `workflows/`, and every Run button opens `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>`. Any git change there (pull, reset, checkout) deploys to the pilot, so it is the OpenComposer deploy. Run `bin/syspull` to list what a pull would deploy, get Patrick's go-ahead naming that path and quoting the list, then run the `bin/syspull --apply <sha>` line it prints.
 
 **Push auth:** the repo is owned by the `unsw-restech` org and pushed as `PatrickTung` over HTTPS + Git Credential Manager (no SSH keys). A stale `patricktung-unsw` credential has caused a 403 before, and retrying cannot fix that. Check with `cmdkey /list:git:https://github.com`; clearing it is Patrick's call.
 
@@ -55,7 +55,6 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 - **No `CLAUDE.md`**, in the repo or in `IRIS_github_pages\`: `AGENTS.md` is the only instructions file (Patrick, 2026-10-26). Claude Code loads it on the first Read of a file in the repo, so read with the Read tool before working through Bash.
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
-- **Katana links point at `/pun/sys/`**: `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>`, since 2026-10-27, while the pre-launch notices stay up for the pilot (Patrick, 2026-10-27). Its clone is `/srv/scratch/katana_ai/iris/code/` (Patrick, 2026-10-23), beside `envs/` and `wheelhouse/` rather than over them, since the dev clone's home folder is unreadable to researchers. The system OpenComposer's `apps_dir` is `/srv/scratch/katana_ai/iris/code/workflows`. For the pilot, ResTech set `other::---` on `/srv/scratch/katana_ai`, so only members of `katana_ai_ro` (test users) can reach IRIS; it opens to everyone once it runs securely (Patrick, 2026-10-23).
 - **Planned cards still link to their pages**, keeping the dimmed `.planned` style with no hover lift.
 - **No version tags** on cards: nothing versions a workflow, and each run's `commit.txt` records the code it ran (Patrick, 2026-10-22). A workflow page lists its citable versions by DOI, date and commit, never as a version number (ADR-0002).
 
@@ -63,6 +62,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 ## Katana
 
+- **Pilot until launch.** ResTech set `other::---` on `/srv/scratch/katana_ai`, so only `katana_ai_ro` members (pilot testers) can run IRIS; it opens to everyone once it runs securely (Patrick, 2026-10-23). Launch removes the pre-launch notices CONTRIBUTING.md's Status lists, all in one commit.
 - **Confirm one-way doors first.** Get Patrick's explicit go-ahead in chat, naming the exact target, before any one-way door or large blast radius action, on the desktop or on Katana: deleting, overwriting or moving files, `qdel`, `rsync --delete`, or anything recursive over a directory this session did not create (Patrick, 2026-10-14).
 - **`qsub` needs no go-ahead**: name each job and its resources in chat (Patrick, 2026-10-17). Every `qsub` passes `-m abe`, so PBS emails Patrick when the job begins, ends or aborts; a local hook may block a `qsub` without it (Patrick, 2026-10-19).
 - **Login nodes stay light**: editing, `qsub`, short checks (Patrick, 2026-10-14). Anything that loads CPU, memory or I/O runs as a PBS job. Transfers over 10 GB go through the data mover (`katana-dm`), never a login node or **Files** in Katana OnDemand.

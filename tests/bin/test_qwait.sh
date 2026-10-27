@@ -10,13 +10,17 @@ fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
 
 # Job IDs pick the fake's answer: a number finished with exit 0, fail
-# finished with exit 3, slow is running on the first poll, and anything
-# else is unknown to qstat, as a warning read as a job ID would be.
+# finished with exit 3, slow is running on the first poll, dev's log names
+# a dev clone and nocode's no clone, and anything else is unknown to qstat,
+# as a warning read as a job ID would be. Other logs name the system clone.
 # A file named ssh-down makes the next query fail as ssh itself (255).
 cat > "$fake/ssh" <<'EOF'
 #!/bin/bash
 echo "mux_client_request_session: session request failed: Session open refused by peer" >&2
-[ "$1" = -n ] && { echo "last log line"; exit 0; }
+case "$1 $3" in
+    "-n grep"*) [ "$2" = katana ] && case "$3" in *dev.OU*) echo "Code: /home/u/iris/workflows/x" ;; *nocode.OU*) ;; *) echo "Code        : /srv/scratch/katana_ai/iris/code/workflows/x" ;; esac; exit 0 ;;
+    -n*) echo "last log line"; exit 0 ;;
+esac
 dir="$(dirname "$0")"
 [ -e "$dir/ssh-down" ] && { rm "$dir/ssh-down"; echo "ssh: connect to host katana: Connection refused" >&2; exit 255; }
 shift 3
@@ -25,6 +29,7 @@ for id in "$@"; do
     case "$id" in
         fail) echo "fail F 3 /x/fail.OU" ;;
         slow) if [ -e "$dir/slow-seen" ]; then echo "slow F 0 /x/slow.OU"; else touch "$dir/slow-seen"; echo "slow R - /x/slow.OU"; fi ;;
+        dev|nocode) echo "$id F 0 /x/$id.OU" ;;
         *[!0-9]*) echo "qstat $id: qstat: Unknown Job Id $id" >&2; exit 1 ;;
         *) echo "$id F 0 /x/$id.OU" ;;
     esac
@@ -56,3 +61,11 @@ expect 2 "Unknown Job Id bad" bad
 expect 2 "Unknown Job Id bad" 1 bad
 touch "$fake/ssh-down"
 expect 0 "" 1
+
+# Each finished job names the clone its log's Code: line points at.
+out="$(PATH="$fake:$PATH" QWAIT_INTERVAL=0 timeout 20 bin/qwait 1 dev nocode 2>/dev/null)"
+for want in "clone: system (/srv/scratch/katana_ai/iris/code/workflows/x)" \
+    "clone: not the system clone (/home/u/iris/workflows/x)" \
+    "clone: the log has no Code: line"; do
+    grep -qF -- "$want" <<< "$out" || { echo "qwait 1 dev nocode: stdout lacks '$want'"; echo "$out" | sed 's/^/  /'; }
+done
