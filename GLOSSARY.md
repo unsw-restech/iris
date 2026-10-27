@@ -112,6 +112,10 @@ _Avoid_: Upload, ingest, data movement
 The **Files** item in the top menu of Katana OnDemand, where a researcher browses their scratch, copies in a few training pairs and opens a folder in Globus.
 _Avoid_: Files app, OnDemand Files app
 
+**Endpoint**:
+A computer or storage system Globus can transfer to or from: a researcher's computer running Globus Connect Personal, or Katana. Globus's own web app now says "collection"; IRIS keeps endpoint.
+_Avoid_: Collection, except when quoting Globus
+
 **Training pair**:
 An image slice and its label slice, matched by filename, used to train a workflow's model.
 _Avoid_: Sample, annotation

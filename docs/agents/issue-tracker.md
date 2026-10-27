@@ -9,6 +9,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
 - **Make an issue a sub-issue of a parent**: `gh issue edit <child> --parent <parent>`, or `gh issue create --parent <parent>` for a new one.
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
+- **Tick a box**: `bin/issue-tick <number> "<box text prefix>"...`, one prefix per box. It changes nothing unless each prefix matches exactly one box.
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Settle part of another ticket**: `gh issue comment <number> --body "..."` naming the commit and the criterion, whenever a commit meets an acceptance criterion of a ticket other than its own, so whoever builds it starts from what's left.
 - **Close with a comment**: `gh issue close <number> --comment "..."`, adding `--reason "not planned"` or `--reason duplicate` when it wasn't completed.
