@@ -12,6 +12,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Settle part of another ticket**: `gh issue comment <number> --body "..."` naming the commit and the criterion, whenever a commit meets an acceptance criterion of a ticket other than its own, so whoever builds it starts from what's left.
 - **Close with a comment**: `gh issue close <number> --comment "..."`, adding `--reason "not planned"` or `--reason duplicate` when it wasn't completed.
+- **Close a spec**: first list every open issue (`gh issue list --state open --json number,title --jq '.[] | "\(.number) \(.title)"'`), not just its sub-issues, and settle or comment on any whose question the spec's work answers. An issue raised beside a spec often isn't linked to it: #97 asked what #83's real run had just shown, and #83 closed without it (2026-10-27).
 
 The repo is `unsw-restech/iris`. `gh` infers it when run inside the clone (`iris\`); from the parent `IRIS_github_pages\` directory, which is not a git repo, pass `-R unsw-restech/iris`.
 
