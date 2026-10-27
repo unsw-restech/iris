@@ -49,6 +49,8 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 **Push auth:** the repo is owned by the `unsw-restech` org and pushed as `PatrickTung` over HTTPS + Git Credential Manager (no SSH keys). A stale `patricktung-unsw` credential has caused a 403 before, and retrying cannot fix that. Check with `cmdkey /list:git:https://github.com`; clearing it is Patrick's call.
 
+**Org rights:** Patrick is an admin of the repo but only a member of the org. Anything org-level, such as a package's visibility or deletion, org settings or an org-owned secret, needs one of the org's owners (`gh api 'orgs/unsw-restech/members?role=admin' --jq '.[].login'`). Name that dependency before a design rests on it: #99's image was built and published, then dropped, because only an owner could make it public (ADR-0005). GitHub answers a package delete Patrick lacks the right for with 404, not 403 (Patrick, 2026-10-27).
+
 ## Deliberate, leave as is
 
 - **No `CLAUDE.md`**, in the repo or in `IRIS_github_pages\`: `AGENTS.md` is the only instructions file (Patrick, 2026-10-26). Claude Code loads it on the first Read of a file in the repo, so read with the Read tool before working through Bash.

@@ -21,7 +21,7 @@ The arch list for version 1 was read from the `torch-2.10.0+cu128` cp313 wheel i
 
 ## Building version *n* on Katana
 
-All five steps run from `envs/imaging/` in a clone on Katana. Every `qsub` is named, with its resources, for Patrick's go-ahead first.
+All five steps run from `envs/imaging/` in a clone on Katana.
 
 1. **Download** on the data mover, never a login node: `ssh katana-dm`, then `./download.sh <n>`. This puts every wheel into `/srv/scratch/katana_ai/iris/wheelhouse/imaging/<n>/`. It reads `requirements.lock` if present, otherwise `requirements.in`.
 2. **Build** in a short CPU job (2 CPUs, 8 GB, 1 h): `qsub -v VERSION=<n> build.pbs`. This creates the venv at its final path with `pip install --no-index`, then writes `requirements.lock` and `build-info.txt` into it and imports every package in the lock. It fails if PyTorch has no `sm_70`, or if a rebuild from the lock installs anything different. It refuses to touch an environment that already exists, so after a failed build the half-built folder has to be deleted before retrying. That deletion is Patrick's call, by name.

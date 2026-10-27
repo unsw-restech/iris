@@ -10,6 +10,8 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 | `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
 | `wontfix`                  | `wontfix`            | Will not be actioned                     |
 
+A ticket goes to `ready-for-agent` only if an agent can meet every acceptance criterion on its own. A criterion that needs someone outside the session, such as an org owner or a ResTech administrator, names who in the criterion, and the ticket goes to `ready-for-human` unless the rest is worth building first (#99).
+
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
 Edit the "Label in our tracker" column to match whatever vocabulary you actually use.
