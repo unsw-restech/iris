@@ -3,8 +3,9 @@
 ## IRIS researcher tools: `module load iris` puts iris-view and iris-compare
 ## on the PATH, from the system clone, which researchers can read; they
 ## can't read the dev clone. It prepends one folder and does nothing else:
-## the scripts load Python themselves. Katana's system module tree links
-## to the system clone's copy of this file, so a git pull there deploys it.
+## the scripts load Python themselves. Katana's /apps/rts/modules/iris
+## links to the system clone's copy of this folder, so a git pull there
+## deploys it, and module avail lists this file as iris/iris.
 ## See docs/adr/0003-researcher-tools-ship-as-a-katana-module.md.
 ##
 ## Tested on Katana by module/tests/test_module.sh, through bin/katana-test.
