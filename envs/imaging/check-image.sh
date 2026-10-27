@@ -7,6 +7,7 @@
 # Fails, naming what is wrong, unless:
 #   - pip freeze inside the image is requirements.lock exactly
 #   - every package in the lock imports (check_imports.py)
+#   - PyTorch is compiled for sm_70, as the V100s need
 #   - Qt's xcb platform plugin, its GLX integration and the PyQt5 modules
 #     napari loads find every library they link
 #   - napari draws a frame on $DISPLAY, which Xvfb -ac provides in CI
@@ -32,6 +33,9 @@ echo "identical"
 
 echo "== imports"
 run python /recipe/check_imports.py /recipe/requirements.lock
+
+echo "== PyTorch compiled for the V100s (sm_70)"
+run python -c 'import torch; a = torch._C._cuda_getArchFlags(); print(a); assert "sm_70" in a.split(), "no sm_70: this PyTorch cannot run on the V100s"'
 
 echo "== Qt libraries"
 # shellcheck disable=SC2016  # expanded inside the image

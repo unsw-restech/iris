@@ -13,7 +13,8 @@ FROM python:3.13.2-slim-bookworm@sha256:6b3223eb4d93718828223966ad316909c39813de
 # GLX integration and the PyQt5 modules napari loads (check-image.sh fails on
 # any it still can't find). libgl1-mesa-dri renders in software where the
 # host binds no GPU driver, as in a Virtual Desktop; fonts-dejavu-core gives
-# fontconfig a font, without which napari's labels draw empty.
+# fontconfig a font, without which napari's labels draw empty. git is for
+# GitPython, which mlflow imports and which fails to import without it.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libdbus-1-3 libegl1 libfontconfig1 libfreetype6 libgl1 libgl1-mesa-dri \
@@ -21,7 +22,7 @@ RUN apt-get update \
         libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
         libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 \
         libxcb-xinerama0 libxcb-xkb1 libxcb1 libxext6 libxkbcommon-x11-0 \
-        libxkbcommon0 fonts-dejavu-core \
+        libxkbcommon0 fonts-dejavu-core git \
     && rm -rf /var/lib/apt/lists/*
 
 # A venv, as on Katana, so pip freeze lists the lock and nothing else, and a
