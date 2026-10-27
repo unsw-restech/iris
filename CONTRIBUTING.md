@@ -61,13 +61,11 @@ iris/
     │   ├── src/hello_world.sh
     │   ├── katana/iris_hello_world.pbs
     │   └── local/run_local.sh, run_local.ps1
-    ├── microct-2d-segmentation/      # Reference workflow: copy it to start a new one
-    │   ├── index.html
-    │   ├── form.yml.erb, manifest.yml  # OpenComposer form
-    │   ├── src/run.py                # Entry point: train, then segment into a run directory
-    │   └── tests/                    # Synthetic-dataset, job-library and form tests (see AGENTS.md)
-    ├── cellpose-segmentation/index.html   # Planned
-    └── qupath-pathology/index.html        # Planned
+    └── microct-2d-segmentation/      # Reference workflow: copy it to start a new one
+        ├── index.html
+        ├── form.yml.erb, manifest.yml  # OpenComposer form
+        ├── src/run.py                # Entry point: train, then segment into a run directory
+        └── tests/                    # Synthetic-dataset, job-library and form tests (see AGENTS.md)
 ```
 
 Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the workflow detail pages and the guide share `assets/iris.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
@@ -151,10 +149,10 @@ The catalogue is **imaging only**. Each card carries a modality tag and a comput
 | Tier | Workflows | What exists |
 |---|---|---|
 | **Run and verified** | `hello-world` (onboarding), `microct-2d-segmentation` (microCT) | Page, form, job script, executed end to end |
-| **Planned** | `cellpose-segmentation` (Microscopy), `qupath-pathology` (Pathology) | Page only, describing what the workflow will do. No form, no Run button |
+| **Planned** | None | Page only, describing what the workflow will do. No form, no Run button |
 | **Unmaintained** | None | Page only, with the `unmaintained-banner` saying it can't be run, so its citable versions and cited commits still lead somewhere. No card, no Run button, form moved to `_archive/<slug>/`, and its `CODEOWNERS` line removed, since it has no workflow owner. A workflow lands here when it breaks and its workflow owner hasn't answered for six months. To adopt one, file a proposal; once it's approved, open a PR that fixes the workflow, cites a `qsub` run's job ID and names you as its workflow owner on its page and in `CODEOWNERS`. It returns as the same folder and WorkflowHub entry |
 
 `hello-world` ran from the browser through the dev clone (job 9584951, #53), and so did `microct-2d-segmentation` (job 9577519, #46).
 
-IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The repo moved from `PatrickTung/iris` to `unsw-restech/iris` on 2026-10-23; GitHub redirects the old repo URL, but the old `patricktung.github.io/iris/` site address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms (with the Planned entries' forms) are kept in `_archive/`. `mnist-classification` was removed the same way on 2026-10-22 (#53): its form is in `_archive/`, the rest under the `pre-mnist-removal` tag.
+IRIS was called ARES until 2026-10-13; the old `patricktung.github.io/ares/` address does not redirect. The repo moved from `PatrickTung/iris` to `unsw-restech/iris` on 2026-10-23; GitHub redirects the old repo URL, but the old `patricktung.github.io/iris/` site address does not redirect. The catalogue used to list 28 workflows across 11 research domains. The removed pages are recoverable from the `pre-prune` tag, and their OpenComposer forms are kept in `_archive/`. `mnist-classification` was removed the same way on 2026-10-22 (#53): its form is in `_archive/`, the rest under the `pre-mnist-removal` tag. The two Planned workflows, `cellpose-segmentation` and `qupath-pathology`, were removed on 2026-10-27: their pages are in git history and their forms in `_archive/`.
 

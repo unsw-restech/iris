@@ -80,7 +80,7 @@ Each live form is `workflows/<slug>/form.yml.erb`, beside its `manifest.yml`, pa
 - **A form runs its own clone's code.** It sets `CODE` from `@apps_dir` at render time, the job runs `$CODE/src/...` and writes `git -C "$CODE" rev-parse HEAD` to `commit.txt` in its output directory. No job downloads its own code, and no job loads the `iris` module.
 - **`module load iris` puts `iris-view` and `iris-compare` on the PATH**, from the system clone's `module/bin` and nothing else (ADR-0003). Researchers can't read the dev clone, so the module never points at it. `iris-rebuild` and the maintainer tools in `bin/` stay off the PATH and are given as full paths.
 
-`_archive\<slug>\` in the repo keeps the forms of the 26 retired workflows (`mnist-classification` included) and of the two Planned ones. It is public and OpenComposer never serves it.
+`_archive\<slug>\` in the repo keeps the forms of the 28 retired workflows (`mnist-classification`, `cellpose-segmentation` and `qupath-pathology` included). It is public and OpenComposer never serves it.
 
 - **Written is not installed.** A form counts as working only once a real job from the dev clone has run; cite its job ID.
 - **Start a new form from `hello-world`**, the reference schema.
