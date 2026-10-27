@@ -6,7 +6,7 @@
 name: image
 on:
   push:
-    paths:
+    paths: &recipe
       - envs/imaging/Dockerfile
       - envs/imaging/requirements.lock
       - envs/imaging/check_imports.py
@@ -15,12 +15,7 @@ on:
   # Branches in this repo already build on push; this covers forks, whose
   # builds are checked but never published.
   pull_request:
-    paths:
-      - envs/imaging/Dockerfile
-      - envs/imaging/requirements.lock
-      - envs/imaging/check_imports.py
-      - envs/imaging/check-image.sh
-      - .github/workflows/image.yml
+    paths: *recipe
   workflow_dispatch:
 
 permissions:

@@ -1,8 +1,8 @@
 # Imaging environment
 
-From version 2, each version is a container image that CI builds and publishes, and Katana runs the same image as everyone else: [ADR-0004](../../docs/adr/0004-workflows-run-anywhere-from-one-apptainer-image.md).
+From version 2, each version ships as an environment image that CI builds and publishes, and Katana runs the same image as everyone else: [ADR-0004](../../docs/adr/0004-workflows-run-anywhere-from-one-apptainer-image.md).
 
-The shared, versioned environment that imaging workflows run in. Nothing is installed when a run starts. Each version is built once and never changed again; any change to its packages, or to the system libraries an image adds, means a new version. Version 1 is a venv built on Katana. Version 2 is version 1's lock, unchanged, built as an image that runs with Apptainer on Katana and on any Linux x86_64 machine.
+The shared, versioned environment that imaging workflows run in. Nothing is installed when a run starts. Each version is built once and never changed again; any change to its packages, or to the system libraries an image adds, means a new version. Version 1 is a venv built on Katana. Version 2 is version 1's lock, unchanged, shipped as an environment image that runs with Apptainer on Katana and on any Linux x86_64 machine.
 
 | Version | Built as | Where | PyTorch | Compiled GPU archs | Status |
 |---|---|---|---|---|---|
@@ -29,8 +29,8 @@ The arch list for version 1 was read from the `torch-2.10.0+cu128` cp313 wheel i
 
 CI builds and checks an image; a commit to `images.txt` makes one a version.
 
-1. **Build**: change the recipe on a branch and push it. The `image` workflow (`.github/workflows/image.yml`) runs on any push that changes `Dockerfile`, `requirements.lock`, `check_imports.py`, `check-image.sh` or the workflow itself. It builds the image, then `check-image.sh` fails it unless `pip freeze` inside it matches `requirements.lock` exactly, every package imports, PyTorch lists `sm_70`, Qt finds every library it links, and napari draws a frame under Xvfb. A pull request from a fork is built and checked, never published.
-2. **Publish**: a build that passes on a branch in this repo is pushed to `ghcr.io/unsw-restech/iris-imaging`, tagged with its commit. The run's summary prints the image's digest. GHCR starts a new package as private, so an org admin makes `iris-imaging` public once, under **Change visibility** in its package settings; every later push inherits that.
+1. **Build**: change the recipe on a branch and push it. The `image` workflow (`.github/workflows/image.yml`) runs on any push that changes the recipe, as its `paths:` list names it. It builds the image, then `check-image.sh` fails it unless `pip freeze` inside it matches `requirements.lock` exactly, every package imports, PyTorch lists `sm_70`, Qt finds every library it links, and napari draws a frame under Xvfb. A pull request from a fork is built and checked, never published.
+2. **Publish**: a build that passes on a branch in this repo is pushed to `ghcr.io/unsw-restech/iris-imaging`, tagged with its commit. The run's summary prints the image's digest. GHCR starts a new package as private, so a GitHub org owner makes `iris-imaging` public once, under **Change visibility** in its package settings; every later push inherits that.
 3. **Pin**: add `<n> ghcr.io/unsw-restech/iris-imaging@sha256:<digest>` to `images.txt`, add the version's row to the table above, and commit both. Workflows pin a version, and `iris-run` looks its digest up here. Only the digest counts: the commit tag is a label, and rebuilding the same recipe gives a different digest, so a version is never rebuilt and its line never changes.
 4. **On Katana**: the image is pulled once by digest on the data mover into a sealed SIF beside the venv versions, then smoke-tested and tested as version 1 was (#101).
 
@@ -38,7 +38,7 @@ The digest on GHCR is the durable copy of a version; the lock stays the fallback
 
 ## Building a venv version on Katana
 
-Version 1 was built this way, and these steps are its rebuild recipe. All five steps run from `envs/imaging/` in a clone on Katana. Every `qsub` is named, with its resources, for Patrick's go-ahead first.
+Version 1 was built this way, and these steps are its rebuild recipe. All five steps run from `envs/imaging/` in a clone on Katana. Name every `qsub` and its resources in chat before submitting it.
 
 1. **Download** on the data mover, never a login node: `ssh katana-dm`, then `./download.sh <n>`. This puts every wheel into `/srv/scratch/katana_ai/iris/wheelhouse/imaging/<n>/`. It reads `requirements.lock` if present, otherwise `requirements.in`.
 2. **Build** in a short CPU job (2 CPUs, 8 GB, 1 h): `qsub -v VERSION=<n> build.pbs`. This creates the venv at its final path with `pip install --no-index`, then writes `requirements.lock` and `build-info.txt` into it and imports every package in the lock. It fails if PyTorch has no `sm_70`, or if a rebuild from the lock installs anything different. It refuses to touch an environment that already exists, so after a failed build the half-built folder has to be deleted before retrying. That deletion is Patrick's call, by name.

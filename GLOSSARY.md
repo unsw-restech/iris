@@ -84,6 +84,10 @@ _Avoid_: Usage log, telemetry
 The shared, versioned set of software a workflow's runs use. It is built ahead of time and never changed, and nothing is installed into it when a run starts.
 _Avoid_: Image, container, setup
 
+**Environment image**:
+The container file one version of an environment ships as, from imaging environment version 2 (ADR-0004). CI builds it, GHCR holds it, and the version's digest pins it; Katana runs the same file, pulled into a sealed SIF. It holds no workflow code. Workflows pin the environment version, never the image.
+_Avoid_: Docker image, container
+
 **`iris` module**:
 The Katana module that `module load iris` loads. It puts `iris-view` and `iris-compare`, from the system clone, on the researcher's PATH and does nothing else. It is not an environment: it installs no software and has no version.
 _Avoid_: IRIS environment, iris package

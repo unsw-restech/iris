@@ -19,27 +19,27 @@ IMAGE="${1:?usage: check-image.sh <image>}"
 RECIPE="$(cd "$(dirname "$0")" && pwd)"
 : "${DISPLAY:?set DISPLAY to an X server that accepts any client, e.g. Xvfb :99 -ac}"
 
-run() {
+in_image() {
     docker run --rm -v "$RECIPE:/recipe:ro" -v /tmp/.X11-unix:/tmp/.X11-unix \
         -e DISPLAY -e MLFLOW_DISABLE_AGENT_HINT=1 "$IMAGE" "$@"
 }
 
 echo "== installed packages against requirements.lock"
-if ! diff <(tr -d '\r' < "$RECIPE/requirements.lock") <(run python -m pip freeze); then
+if ! diff <(tr -d '\r' < "$RECIPE/requirements.lock") <(in_image python -m pip freeze); then
     echo "FAILED: the installed packages differ from requirements.lock (diff above)."
     exit 1
 fi
 echo "identical"
 
 echo "== imports"
-run python /recipe/check_imports.py /recipe/requirements.lock
+in_image python /recipe/check_imports.py /recipe/requirements.lock
 
 echo "== PyTorch compiled for the V100s (sm_70)"
-run python -c 'import torch; a = torch._C._cuda_getArchFlags(); print(a); assert "sm_70" in a.split(), "no sm_70: this PyTorch cannot run on the V100s"'
+in_image python -c 'import torch; a = torch._C._cuda_getArchFlags(); print(a); assert "sm_70" in a.split(), "no sm_70: this PyTorch cannot run on the V100s"'
 
 echo "== Qt libraries"
 # shellcheck disable=SC2016  # expanded inside the image
-missing=$(run bash -c 'q=$(python -c "import os, PyQt5; print(os.path.dirname(PyQt5.__file__))")
+missing=$(in_image bash -c 'q=$(python -c "import os, PyQt5; print(os.path.dirname(PyQt5.__file__))")
     ldd "$q"/Qt{Core,Gui,Widgets,OpenGL,Svg}.abi3.so "$q"/Qt5/plugins/platforms/libqxcb.so \
         "$q"/Qt5/plugins/xcbglintegrations/*.so | grep "not found" | sort -u')
 if [ -n "$missing" ]; then
@@ -50,7 +50,7 @@ fi
 echo "all found"
 
 echo "== napari draws a frame"
-run python -c '
+in_image python -c '
 import numpy as np, napari
 from vispy.gloo import gl
 v = napari.Viewer(show=False)

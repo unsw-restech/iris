@@ -1,4 +1,5 @@
-# Imaging environment versions published as images (ADR-0004), one per line:
+# Imaging environment versions shipped as environment images (ADR-0004), one
+# per line:
 #   <version> ghcr.io/unsw-restech/iris-imaging@sha256:<digest>
 # CI prints the line for each image it publishes; adding it here is what
 # makes that image a version. A version's line never changes, and a digest

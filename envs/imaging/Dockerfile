@@ -1,8 +1,8 @@
-# The imaging environment as a container image (ADR-0004): requirements.lock
-# installed into a venv on a digest-pinned Python, plus the system libraries
-# napari's Qt needs for iris-view. It holds the environment only, never
-# workflow code: a run binds its clone in. CUDA comes from the lock's wheels
-# and the driver from the host (apptainer --nv).
+# The imaging environment image (ADR-0004): requirements.lock installed into
+# a venv on a digest-pinned Python, plus the system libraries napari's Qt
+# needs for iris-view. It holds the environment only, never workflow code: a
+# run binds its clone in. CUDA comes from the lock's wheels and the driver
+# from the host (apptainer --nv).
 #
 # CI builds, checks and publishes it (.github/workflows/image.yml); README.md
 # in this folder covers how a build becomes a pinned version.
