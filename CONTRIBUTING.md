@@ -30,6 +30,7 @@ iris/
 ├── guide/index.html                  # "Using IRIS on Katana": staging and viewing, shared by imaging workflows
 ├── _archive/<slug>/                  # Retired OpenComposer forms, never served by OpenComposer
 ├── .github/workflows/check.yml       # CI: runs bin/check on every push
+├── .github/workflows/image.yml       # CI: builds, checks and publishes the imaging environment image
 ├── .github/ISSUE_TEMPLATE/proposal.yml  # Issue form for a workflow author's proposal
 ├── .github/pull_request_template.md  # The checklist a workflow PR is ready for review on
 ├── .githooks/commit-msg              # Refuses AI attribution in a commit message; AGENTS.md turns it on
@@ -46,7 +47,7 @@ iris/
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 │   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
 │   └── workflowhub-microct-2d-segmentation  # Walkthrough registering it on WorkflowHub; copy it for another workflow (desktop)
-├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
+├── envs/imaging/                     # Recipes for the shared imaging environment: Katana venv and CI-built image (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
 │   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view

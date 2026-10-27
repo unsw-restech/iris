@@ -4,3 +4,4 @@
 # makes that image a version. A version's line never changes, and a digest
 # that a citable version's commit pins is never deleted from GHCR.
 # README.md in this folder covers the rest.
+2 ghcr.io/unsw-restech/iris-imaging@sha256:decf6e5581a3486f1483c98322a051626408efd67f09dc0707d0be2b1b8f7c6b
