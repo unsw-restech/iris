@@ -12,7 +12,7 @@
 <nav>
   <a href="../" class="nav-logo">
     <div class="nav-logo-mark">I</div>
-    <span class="nav-logo-text">IRIS</span>
+    <span class="nav-logo-text">UNSW IRIS</span>
   </a>
   <a href="../#workflows" class="nav-back">← Back to catalogue</a>
 </nav>
@@ -21,8 +21,21 @@
   <h1 class="wf-title">Using IRIS on Katana</h1>
   <p class="wf-desc">The steps every imaging workflow shares: getting a dataset into your Katana scratch before your first run, and viewing and comparing runs once they finish. Each workflow's own page covers launching it.</p>
 
-  <h2 id="stage">Staging a dataset</h2>
-  <div class="prose">
+  <div class="toc">
+    <div class="toc-title">On this page</div>
+    <ol>
+      <li><a href="#stage">Prepare your dataset</a></li>
+      <li><a href="#send">Send it to Katana</a></li>
+      <li><a href="#view">Find your run</a></li>
+      <li><a href="#compare">View and compare runs</a></li>
+      <li><a href="#viewers">Fiji and ParaView</a></li>
+      <li><a href="#copy">Copy a run home</a></li>
+    </ol>
+  </div>
+
+  <section class="guide-section prose" id="stage">
+    <div class="section-step">Step 1 · Before your first run</div>
+    <h2>Prepare your dataset</h2>
     <p>Do this once per dataset. Every run reads the dataset from your scratch and writes its run directory back into it.</p>
 
     <h3 class="sub">Lay out the folder</h3>
@@ -37,6 +50,14 @@
       <li>Each label slice has the same file name and size as its image. Labels can be any whole-number type; the number of classes is read from them.</li>
       <li>IRIS adds a <code>runs/</code> folder the first time you run on the dataset, with one folder per run.</li>
     </ul>
+
+    <h3 class="sub">Where it goes</h3>
+    <p>The dataset can go anywhere under <code>/srv/scratch/zID</code>, so you can keep several datasets your own way. <!-- Quota: unsw-restech/iris#11. -->Your scratch holds 128 GB, shared between your datasets and their run directories. Scratch has no backup, so keep your own copy of the original data.</p>
+  </section>
+
+  <section class="guide-section prose" id="send">
+    <div class="section-step">Step 2 · Before your first run</div>
+    <h2>Send it to Katana</h2>
 
     <!-- Globus as the first staging route: unsw-restech/iris#90. -->
     <h3 class="sub">What is Globus</h3>
@@ -72,26 +93,39 @@
     <pre class="code-block">rsync -av --progress my-dataset/ zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/</pre>
     <p>On Windows, use <a href="https://winscp.net/" target="_blank">WinSCP</a> to the same host and folder, logging in with your zID.</p>
 
-    <h3 class="sub">Where it goes</h3>
-    <p>The dataset can go anywhere under <code>/srv/scratch/zID</code>, so you can keep several datasets your own way. <!-- Quota: unsw-restech/iris#11. -->Your scratch holds 128 GB: about seven 16 GB volumes, before any run directories. Scratch has no backup, so keep your own copy of the original data.</p>
-  </div>
+  </section>
 
-  <h2 id="view">Viewing and comparing runs</h2>
-  <div class="prose">
+  <section class="guide-section prose" id="view">
+    <div class="section-step">Step 3 · After a run</div>
+    <h2>Find your run</h2>
     <h3 class="sub">Find the job output</h3>
     <p>When a job ends, PBS writes its output into your dataset as <code>runs/&lt;job ID&gt;.OU</code>, beside the run directory, <code>runs/&lt;job number&gt;/</code>. When the job succeeds, its output ends with the commands to view and compare it: <code>module load iris</code>, then <code>iris-view</code> with the run directory, and <code>iris-compare</code>. Read it in a terminal in the Virtual Desktop below, for example with <code>tail /srv/scratch/zID/my-dataset/runs/1234567*.OU</code>.</p>
 
     <!-- Virtual Desktop size: unsw-restech/iris#14. -->
     <h3 class="sub">Start a Virtual Desktop</h3>
-    <p>In Katana OnDemand, start a Virtual Desktop with <strong>no GPU, 4 cores, 16 GB of memory and 4 hours</strong>. That is enough for a 16 GB volume, and asking for more only queues you longer. One desktop serves everything below. Open a terminal in it, and run <code>module load iris</code>. That gives the terminal the <code>iris-view</code> and <code>iris-compare</code> commands until you close it, so a new terminal needs it again: without it, the terminal says <code>iris-view: command not found</code>.</p>
+    <p>In Katana OnDemand, start a Virtual Desktop with <strong>no GPU, 4 cores, 16 GB of memory and 4 hours</strong>. That is enough for most volumes, and asking for more only queues you longer. One desktop serves everything below. Open a terminal in it, and run <code>module load iris</code>. That gives the terminal the <code>iris-view</code> and <code>iris-compare</code> commands until you close it, so a new terminal needs it again: without it, the terminal says <code>iris-view: command not found</code>.</p>
+
+  </section>
+
+  <section class="guide-section prose" id="compare">
+    <div class="section-step">Step 4 · After a run</div>
+    <h2>View and compare runs</h2>
+    <p>Both commands run in the Virtual Desktop's terminal, after <code>module load iris</code>.</p>
 
     <h3 class="sub">View a run: iris-view</h3>
-    <p>Run <code>iris-view</code> followed by the run directory, as the job output gives it, such as <code>iris-view /srv/scratch/zID/my-dataset/runs/1234567</code>. napari opens with your volume and the run's label volume over it at half opacity. Scroll through the slices with the slider under the image. Only the slices you look at are read, so a 16 GB volume fits in the desktop. Close the napari window to quit.</p>
+    <p>Run <code>iris-view</code> followed by the run directory, as the job output gives it, such as <code>iris-view /srv/scratch/zID/my-dataset/runs/1234567</code>. napari opens with your volume and the run's label volume over it at half opacity. Scroll through the slices with the slider under the image. Only the slices you look at are read, so even a volume larger than the desktop's memory fits. Close the napari window to quit.</p>
     <p>Run <code>iris-view</code> with no run directory to list your 10 most recent finished runs, then type the number beside the one to open.</p>
 
     <h3 class="sub">Compare runs: iris-compare</h3>
     <p>Run <code>iris-compare</code>. It adds your new runs to your tracking store, <code>/srv/scratch/zID/iris/tracking.db</code>, then opens MLflow in Firefox inside the desktop. <!-- MLflow 3.17.1 in envs/imaging/1; recheck these labels when it changes. -->On the left, switch from <strong>GenAI</strong> to <strong>Model Training</strong>, then click <strong>Runs</strong>: each run is named after its job ID, under its experiment. Select runs and click <strong>Compare</strong> to see their settings and per-class Dice and IoU side by side. Leave the terminal open while you use MLflow; Ctrl+C there stops it.</p>
     <p>Your tracking store is created the first time you run <code>iris-compare</code>. If it is ever lost, run <code>/srv/scratch/katana_ai/iris/code/bin/iris-rebuild</code> to rebuild it from your run directories. It isn't in the <code>iris</code> module, so type its full path.</p>
+
+  </section>
+
+  <section class="guide-section prose" id="viewers">
+    <div class="section-step">Optional</div>
+    <h2>Fiji and ParaView</h2>
+    <p>For a closer look than <code>iris-view</code> gives, open the run's label volume in Fiji, or crop a region of it in Fiji and render it in 3D in ParaView.</p>
 
     <!-- Fiji and ParaView steps run as written in unsw-restech/iris#46 (2026-10-21). labels.tif is a BigTIFF: ImageJ's own TIFF Virtual Stack reads it as 0 x 0, Bio-Formats opens it. Bio-Formats reads its slices as time points, hence "T" below. workflows/microct-2d-segmentation/tests/katana/viewers.pbs checks these readers headless. -->
     <h3 class="sub">Open the label volume in Fiji</h3>
@@ -103,7 +137,7 @@
     <p>To look around the labels over your volume, <code>iris-view</code> is quicker. Use Fiji to cut out a region for ParaView.</p>
 
     <h3 class="sub">A region in 3D with ParaView</h3>
-    <p>A whole label volume is too large to render in 3D in the desktop: a 16 GB volume's labels take 8 GB once read. Crop a region in Fiji first.</p>
+    <p>A whole label volume is usually too large to render in 3D in the desktop: once read, the labels take about half the memory of a 16-bit volume. Crop a region in Fiji first.</p>
     <ol>
       <li>Import <code>labels.tif</code> with Bio-Formats as above, this time with <strong>Use virtual stack</strong> unticked and <strong>Specify range for each series</strong> ticked. Set the <strong>T</strong> range to the slices you want, such as 600–800: Bio-Formats lists the slices as time points. Only those slices are read.</li>
       <li>Draw a rectangle around the region, then choose Image › Crop.</li>
@@ -115,7 +149,12 @@
       <li>Or select <code>crop.tif</code> in the Pipeline Browser and set its <strong>Representation</strong> to <strong>Volume</strong>. Dragging to rotate stays smooth; after you let go, ParaView takes a few seconds to redraw at full detail.</li>
     </ol>
 
-    <h3 class="sub">Copy a run directory home</h3>
+  </section>
+
+  <section class="guide-section prose" id="copy">
+    <div class="section-step">Optional</div>
+    <h2>Copy a run home</h2>
+    <h3 class="sub">With Globus</h3>
     <p>Bring a run back with Globus, the same way you sent the dataset. Your computer needs Globus Connect Personal running.</p>
     <ol>
       <li>In Katana OnDemand, click <strong>Files</strong> in the top menu.</li>
@@ -128,7 +167,7 @@
     <p>Use the same rsync as for staging, with its source and destination swapped, run from your computer. For example, one run directory:</p>
     <pre class="code-block">rsync -av --progress zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/runs/1234567/ my-dataset/runs/1234567/</pre>
     <p>Or use WinSCP to the same host and folder.</p>
-  </div>
+  </section>
 </div>
 <footer>
   <span>IRIS · UNSW ResTech</span>
