@@ -12,7 +12,7 @@ It runs from `/pun/sys/`, since the pilot's only users are testers (Patrick, 202
 2. Push the branch to `main` with Patrick's push go-ahead (AGENTS.md, Deploying), then pull the dev clone.
 3. Run `bin/syspull` and get its own go-ahead, quoting the listing, before `--apply`.
 4. Submit the runs from `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>`. They land in Patrick's own run index and store, not a throwaway home, so ask before removing any of them.
-5. Inspect as in step 4 and report as in step 5, citing each job ID.
+5. Inspect with `inspect.pbs`: make `/srv/scratch/$USER/iris-test-<ticket>/`, copy the helper in from the system clone's `workflows/<slug>/tests/katana/`, and submit it from there with `JOBS` naming the runs. It imports into Patrick's own tracking store, as `iris-compare` would, so the first import counts whatever is new and the second must import nothing. It must finish before Patrick opens `iris-compare`: both write `tracking.db`. Report as in step 5, citing each job ID.
 
 ## 1. Copy the committed tree to scratch
 
@@ -61,7 +61,7 @@ Timing on a V100 for the sample at the form's defaults (job 9577519, 50 epochs):
 
 A second job runs `bin/iris-import` twice against the same `IRIS_HOME`, expecting `Imported 1`, then `Imported 0`. It then prints what the ticket asks about, through `MlflowClient(store_uri(Path(IRIS_HOME)))` in the pinned environment `/srv/scratch/katana_ai/iris/envs/imaging/1`, after `module load python/3.13.2`. Read `tracking.db` directly with that Python too: Katana's system `python3` has SQLite 3.26.0, which can't parse the `spans` table's generated column (it needs 3.31; the environment has 3.39.4, checked 2026-10-21) and fails with "malformed database schema (spans)". 1 CPU, 4 GB and 15 min are plenty: the #36 import took 45 s.
 
-Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`, and each one's header gives its `qsub` line. Copy them into the test folder and submit from there. They are `canary.pbs`, `job_lib.pbs` (`test_job_lib`, which needs Katana's modules; `bin/katana-test` submits it too, so submit it by hand only beside a real run), `compare.pbs` (`iris-compare` end to end, against a run-index pointer, by default the fixture's) and `viewers.pbs` (the guide's Fiji and ParaView steps, headless, on a run directory, by default the fixture's).
+Committed helper jobs live in `workflows/microct-2d-segmentation/tests/katana/`, and each one's header gives its `qsub` line. Copy them into the test folder and submit from there. They are `canary.pbs`, `job_lib.pbs` (`test_job_lib`, which needs Katana's modules; `bin/katana-test` submits it too, so submit it by hand only beside a real run), `compare.pbs` (`iris-compare` end to end, against a run-index pointer, by default the fixture's), `inspect.pbs` (a final real-run ticket's import into Patrick's own store, then each run's tags and artifacts) and `viewers.pbs` (the guide's Fiji and ParaView steps, headless, on a run directory, by default the fixture's).
 
 ### Before a Virtual Desktop session
 

@@ -1,0 +1,51 @@
+#!/bin/bash
+#PBS -N iris_inspect
+#PBS -A iris-microct-2d-segmentation
+#PBS -l select=1:ncpus=1:mem=4gb
+#PBS -l walltime=0:15:00
+#PBS -j oe
+# A final real-run ticket's import and inspection (docs/agents/katana-test-run.md):
+# imports the run index into your own tracking store with the system clone's
+# iris-import, as iris-compare would, then again, which must import nothing.
+# Then prints each run in JOBS, colon-separated job numbers, with its status,
+# tags and artifacts. Finish it before opening iris-compare: both write
+# tracking.db. Exits 1 if the second import imports anything or a run isn't
+# in the store. 32 s for #111's two runs (job 9631629).
+#
+#   qsub -m abe -v JOBS=<job>:<job>,PYTHONUNBUFFERED=1 inspect.pbs
+#
+# Add IRIS_HOME=<home> to -v for another tracking store.
+: "${JOBS:?pass JOBS=<job>:<job> with qsub -v}"
+CODE=/srv/scratch/katana_ai/iris/code
+ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
+"$CODE/bin/iris-import" || exit 1
+second=$("$CODE/bin/iris-import") || exit 1
+echo "$second"
+case "$second" in
+    "Imported 0 "*) ;;
+    *) echo "FAIL: the second import imported runs"; exit 1 ;;
+esac
+. /etc/profile.d/modules.sh
+module load python/3.13.2
+MLFLOW_DISABLE_AGENT_HINT=1 PYTHONPATH=$CODE/lib "$ENV_DIR/bin/python" - "$JOBS" <<'PY'
+import sys
+from mlflow import MlflowClient
+from iris.record import iris_home
+from iris.tracking import store_uri
+
+client = MlflowClient(store_uri(iris_home()))
+experiments = [e.experiment_id for e in client.search_experiments()]
+missing = 0
+for job in sys.argv[1].split(":"):
+    runs = client.search_runs(experiments, filter_string=f"tags.job_id = '{job}'")
+    if not runs:
+        print(f"{job}: FAIL, not in the store")
+        missing += 1
+    for run in runs:
+        artifacts = sorted(a.path for a in client.list_artifacts(run.info.run_id))
+        tags = {k: v for k, v in sorted(run.data.tags.items()) if not k.startswith("mlflow.")}
+        print(f"{job}: {run.info.status}, artifacts {artifacts}")
+        for key, value in tags.items():
+            print(f"    {key} = {value}")
+sys.exit(1 if missing else 0)
+PY
