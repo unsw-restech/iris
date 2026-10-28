@@ -76,6 +76,10 @@ _Avoid_: Release, workflow version
 One submission of a form, producing one job on Katana and one set of outputs.
 _Avoid_: Execution
 
+**Edited run**:
+A run whose code the researcher changed on the form before submitting, so it differs from the code at the commit the run recorded. The change belongs to that run alone; the workflow itself is unchanged.
+_Avoid_: Custom run, modified workflow
+
 **Experiment**:
 A named group of one researcher's runs that are compared with each other, such as runs on the same dataset with different hyperparameters. The researcher names it on the form.
 _Avoid_: Project, study
