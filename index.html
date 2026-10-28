@@ -231,6 +231,19 @@
     .prelaunch-note strong { color: var(--amber); font-weight: 500; }
     .prelaunch-note code { font-family: inherit; color: var(--text); }
 
+    /* ── LABS ── */
+    .lab + .lab { margin-top: 56px; }
+    .lab-header {
+      display: flex; align-items: baseline;
+      justify-content: space-between; gap: 16px; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .lab-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 17px; font-weight: 700;
+      color: var(--gold2);
+    }
+
     /* ── WORKFLOW GRID ── */
     .workflow-grid {
       display: grid;
@@ -286,6 +299,7 @@
     .card-domain.microct   { background: rgba(200,169,110,0.12); color: var(--gold); }
     .card-domain.microscopy{ background: rgba(78,203,141,0.1); color: var(--green); }
     .card-domain.pathology { background: rgba(224,122,176,0.1); color: var(--pink); }
+    .card-domain.mri       { background: rgba(106,174,232,0.1); color: var(--blue2); }
 
     .card-name {
       font-family: 'Syne', sans-serif;
@@ -450,23 +464,99 @@
     <span class="section-title">Workflow catalogue</span>
   </div>
 
-  <div class="workflow-grid">
+  <div class="lab" id="microct-lab">
+    <div class="lab-header">
+      <span class="lab-title">X-ray MicroCT Lab</span>
+      <span class="section-mono">3D X-ray imaging of materials and specimens</span>
+    </div>
+    <div class="workflow-grid">
 
-    <a href="workflows/microct-2d-segmentation/" class="workflow-card">
-      <div class="card-top">
-        <span class="card-domain microct">microCT</span>
-      </div>
-      <div class="card-name">microCT 2D Segmentation (U-Net)</div>
-      <div class="card-desc">Label a few slices of a microCT volume, and a 2D U-Net trained on them segments the whole volume. Every run is recorded so you can compare settings.</div>
-      <div class="card-compute">
-        <span class="compute-tag">Katana GPU · IRIS imaging env</span>
-      </div>
-      <div class="card-meta">
-        <span><span class="status-dot"></span> Active</span>
-        <span>patrick.tung@unsw.edu.au</span>
-      </div>
-    </a>
+      <a href="workflows/microct-2d-segmentation/" class="workflow-card">
+        <div class="card-top">
+          <span class="card-domain microct">microCT</span>
+        </div>
+        <div class="card-name">microCT 2D Segmentation (U-Net)</div>
+        <div class="card-desc">Label a few slices of a microCT volume, and a 2D U-Net trained on them segments the whole volume. Every run is recorded so you can compare settings.</div>
+        <div class="card-compute">
+          <span class="compute-tag">Katana GPU · IRIS imaging env</span>
+        </div>
+        <div class="card-meta">
+          <span><span class="status-dot"></span> Active</span>
+          <span>patrick.tung@unsw.edu.au</span>
+        </div>
+      </a>
 
+      <a href="workflows/microct-denoising/" class="workflow-card planned">
+        <div class="card-top">
+          <span class="card-domain microct">microCT</span>
+        </div>
+        <div class="card-name">microCT Denoising</div>
+        <div class="card-desc">Reduce noise in microCT volumes, such as low-dose or fast acquisitions, so later segmentation and measurement are cleaner.</div>
+        <div class="card-compute">
+          <span class="compute-tag">Katana GPU</span>
+        </div>
+        <div class="card-meta">
+          <span><span class="status-dot planned"></span> Planned</span>
+          <span>patrick.tung@unsw.edu.au</span>
+        </div>
+      </a>
+
+      <a href="workflows/microct-super-resolution/" class="workflow-card planned">
+        <div class="card-top">
+          <span class="card-domain microct">microCT</span>
+        </div>
+        <div class="card-name">microCT Super-resolution</div>
+        <div class="card-desc">Recover finer detail from lower-resolution microCT volumes, so you can image faster or cover a larger field of view.</div>
+        <div class="card-compute">
+          <span class="compute-tag">Katana GPU</span>
+        </div>
+        <div class="card-meta">
+          <span><span class="status-dot planned"></span> Planned</span>
+          <span>patrick.tung@unsw.edu.au</span>
+        </div>
+      </a>
+
+      <a href="workflows/microct-reconstruction/" class="workflow-card planned">
+        <div class="card-top">
+          <span class="card-domain microct">microCT</span>
+        </div>
+        <div class="card-name">microCT Reconstruction</div>
+        <div class="card-desc">Reconstruct microCT volumes from their raw projections on Katana, including sparse or limited-angle acquisitions.</div>
+        <div class="card-compute">
+          <span class="compute-tag">Katana GPU</span>
+        </div>
+        <div class="card-meta">
+          <span><span class="status-dot planned"></span> Planned</span>
+          <span>patrick.tung@unsw.edu.au</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="lab" id="bril">
+    <div class="lab-header">
+      <span class="lab-title">BRIL</span>
+      <span class="section-mono">Preclinical imaging</span>
+    </div>
+    <div class="workflow-grid">
+
+      <a href="workflows/mri-rat-brain-tumour-segmentation/" class="workflow-card planned">
+        <div class="card-top">
+          <span class="card-domain mri">MRI</span>
+        </div>
+        <div class="card-name">Rat Brain Tumour Segmentation</div>
+        <div class="card-desc">Segment tumours in rat brain MRI volumes and report tumour volume for each one, for longitudinal preclinical studies.</div>
+        <div class="card-compute">
+          <span class="compute-tag">Katana GPU</span>
+        </div>
+        <div class="card-meta">
+          <span><span class="status-dot planned"></span> Planned</span>
+          <span>patrick.tung@unsw.edu.au</span>
+        </div>
+      </a>
+
+    </div>
   </div>
 </section>
 

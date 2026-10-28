@@ -56,6 +56,10 @@ _Avoid_: Revival, rescue, takeover
 The imaging technique a workflow serves, such as microCT, microscopy or pathology, shown as a tag on its catalogue card.
 _Avoid_: Domain, category
 
+**Lab**:
+The imaging facility or research group a workflow serves, such as the X-ray MicroCT Lab or BRIL. The catalogue groups its workflows by lab. A lab can span several modalities, so a workflow's lab and its modality are separate.
+_Avoid_: Group, team, facility
+
 **Reference workflow**:
 The single microCT workflow every IRIS v1 design decision is tested against.
 _Avoid_: Demo, example workflow
