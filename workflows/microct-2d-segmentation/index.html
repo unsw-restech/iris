@@ -91,15 +91,16 @@
         <tr><td>Mail events</td><td>ends, ends abnormally</td><td>When PBS emails you.</td></tr>
       </tbody>
     </table>
-    <p>To start from an earlier run's settings, use <strong>Load parameters</strong> in the form's job history.</p>
+    <p>To start from an earlier run's settings, open <strong>History</strong> in the form's top bar, click the <strong>Script Name</strong> in the run's row (not its job ID), then <strong>Load parameters</strong>.</p>
   </details>
 
   <details>
     <summary>Editing the workflow code for one run</summary>
     <p>The form's script pane holds this workflow's code, <code>run.py</code>, below the comment <code># Workflow code: edit below.</code> To try a different model architecture, loss, augmentation or training loop, edit it there before you submit: the job runs the code exactly as it appears in the pane. The change belongs to that run alone, which makes it an <strong>edited run</strong>; the workflow itself is unchanged. Record keeping and reading and writing volumes stay in IRIS, out of the pane, and an edited run uses the same Python packages.</p>
     <ul>
-      <li><strong>Set the fields first and edit the code last.</strong> Changing a field after editing rewrites the whole pane and discards your edits. The form warns you first, so you can cancel, but after it refuses to submit that warning no longer appears: your edits are kept, and the next field change discards them without asking.</li>
-      <li><strong>To rerun an edited run</strong>, use <strong>Load parameters</strong> in the form's job history: it restores the fields and your edited code, and the job output says the run is edited.</li>
+      <li><strong>Set the fields first and edit the code last.</strong> Changing a field after editing rewrites the whole pane and discards your edits. The form warns you first, so you can cancel, but after it refuses to submit (see <strong>The form won't submit</strong> below) that warning no longer appears: your edits are kept, and the next field change discards them without asking.</li>
+      <li><strong>After you cancel, check the field you changed.</strong> Cancel keeps your edits, but a number changed with its arrows keeps its new value, while the pane keeps the old one. The run uses the pane: the <code>#PBS</code> lines at its top and the <code>python</code> line at its bottom, such as <code>--epochs 5</code>. Click in a field before changing it, and Cancel puts it back too.</li>
+      <li><strong>To rerun an edited run</strong>, open <strong>History</strong>, click the <strong>Script Name</strong> in its row, then <strong>Load parameters</strong>: it restores the fields and your edited code, and the job output says the run is edited.</li>
       <li>Every run directory keeps the code its run ran as <code>run.py</code>, and your changes as <code>run.diff</code>. The job writes both and prints the diff near the top of its output before the code starts, so a run whose code crashes, even one Python cannot read, still shows them. In the rare case the job cannot tell which commit the form showed, it warns, writes no <code>run.diff</code>, and <code>run.json</code> records that whether the run is edited is unknown.</li>
     </ul>
   </details>
@@ -143,7 +144,7 @@
       <li><strong>The form won't submit.</strong> Its warning names the rule your dataset folder broke, and your values are kept. Fix the folder and submit again. A stray <code>.DS_Store</code> or <code>Thumbs.db</code> in one of the <code>train/</code> folders counts as a file-name mismatch: delete it.</li>
       <li><strong>The job stopped at once with "the IRIS imaging environment is missing".</strong> Nothing is wrong with your data. Email patrick.tung@unsw.edu.au with the job ID.</li>
       <li><strong>The job stopped before training with an <code>ERROR:</code> line about your dataset.</strong> It names the file and what's wrong: a training image at a different size or bit depth from the volume, a label slice that doesn't match its image, label values that aren't whole numbers from 0, more than 255 classes, or labels that are all 0.</li>
-      <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. Load parameters keeps your other settings.</li>
+      <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. <strong>Load parameters</strong> in <strong>History</strong> keeps your other settings.</li>
       <li><strong>The job ran out of GPU memory.</strong> Lower the batch size under advanced options, or the patch size.</li>
       <li><strong><code>iris-view</code> says there is no label volume.</strong> The run hasn't finished, or it failed: read the end of its <code>runs/&lt;job ID&gt;.OU</code>.</li>
       <li><strong>The job output doesn't end with the <code>iris-view</code> line.</strong> The job stopped at its first error, which is the last thing in the output. The same commands are printed near the start of the output, before training, so the run directory they name may be incomplete.</li>
