@@ -1,6 +1,6 @@
 # IRIS
 
-IRIS is the UNSW ResTech AI Imaging Gateway: a catalogue from which researchers launch imaging workflows on Katana.
+IRIS (Intelligent Research Imaging Suite) is the UNSW ResTech AI Imaging Gateway: a catalogue from which researchers launch imaging workflows on Katana.
 
 ## Language
 

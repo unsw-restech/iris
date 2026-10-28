@@ -1,4 +1,6 @@
-# IRIS — the ResTech AI Imaging Gateway
+# IRIS — Intelligent Research Imaging Suite
+
+*The UNSW ResTech AI Imaging Gateway*
 
 IRIS is a catalogue of imaging analysis workflows that UNSW researchers launch on Katana, UNSW's computing cluster, from their browser. Each workflow has a page saying what it does and what data it needs, and a **Run on Katana** button that opens a form: fill it in, submit, and the job runs on Katana with your data in your own scratch space.
 
@@ -51,7 +53,7 @@ If you publish results from an IRIS run, find the commit in the run's `commit.tx
 
    **Until the workflow has a citable version** at or before your commit, cite IRIS instead, naming the workflow and the commit:
 
-   > UNSW Research Technology Services. *IRIS: the UNSW ResTech AI Imaging Gateway*, workflow `<workflow>`, commit `<commit>`. https://github.com/unsw-restech/iris
+   > UNSW Research Technology Services. *IRIS: Intelligent Research Imaging Suite, the UNSW ResTech AI Imaging Gateway*, workflow `<workflow>`, commit `<commit>`. https://github.com/unsw-restech/iris
 
    [CITATION.cff](CITATION.cff) holds IRIS's details, and GitHub's **Cite this repository** button turns them into APA or BibTeX. Either way, the commit is what identifies the code you ran.
 2. **Acknowledge Katana** with [ResTech's wording](https://docs.restech.unsw.edu.au/help_support/faq/#acknowledging-katana):

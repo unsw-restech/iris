@@ -6,7 +6,7 @@ message: >-
   version or IRIS as below, give the commit in the run's commit.txt, and
   acknowledge Katana. README.md's "Citing IRIS" says which to cite:
   https://github.com/unsw-restech/iris#citing-iris
-title: "IRIS: the UNSW ResTech AI Imaging Gateway"
+title: "IRIS: Intelligent Research Imaging Suite, the UNSW ResTech AI Imaging Gateway"
 type: software
 authors:
   - name: UNSW Research Technology Services
