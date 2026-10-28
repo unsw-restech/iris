@@ -13,16 +13,16 @@ form:
 
   # ── Tracking ──────────────────────────────────────────────────
 <%-
-  # The commands a researcher types to view and compare runs, which this
-  # help and the job output give. Rendered from the system clone, they are
-  # the short forms that `module load iris` puts on the PATH (ADR-0003).
-  # Rendered from any other clone, such as the dev clone, they are that
-  # clone's bin/ in full, so a dev run is viewed with the code that ran it.
+  # The command a researcher types to compare runs, which this help gives.
+  # Rendered from the system clone, it is the short form that `module load
+  # iris` puts on the PATH (ADR-0003). Rendered from any other clone, such
+  # as the dev clone, it is that clone's bin/ in full, so a dev run is
+  # compared with the code that ran it. lib/iris-job.sh makes the same
+  # choice for the view and compare commands in the job output.
   if @apps_dir && File.expand_path(@apps_dir) == "/srv/scratch/katana_ai/iris/code/workflows"
-    load_iris, iris_view, iris_compare = "module load iris", "iris-view", "iris-compare"
+    load_iris, iris_compare = "module load iris", "iris-compare"
   else
-    bin = File.expand_path(File.join(@apps_dir.to_s, "..", "bin"))
-    load_iris, iris_view, iris_compare = nil, File.join(bin, "iris-view"), File.join(bin, "iris-compare")
+    load_iris, iris_compare = nil, File.expand_path(File.join(@apps_dir.to_s, "..", "bin", "iris-compare"))
   end
 -%>
   experiment:
@@ -164,9 +164,10 @@ form:
 # researcher can edit it for one run; the job writes it into the run
 # directory as run.py and runs it from there, while lib/ stays in the clone
 # (ADR-0006). It must hold no OpenComposer field or ERB tag, which bin/check
-# enforces. COMMIT is
-# the clone's commit at render time, the commit the embedded code is from:
-# the job records it in commit.txt, and warns if the clone has moved since.
+# enforces. COMMIT is the clone's commit at render time, the commit the
+# embedded code is from: the job records it in commit.txt, and warns if the
+# clone has moved since. Before Python runs run.py, iris_record_edits writes
+# and prints its diff against the entry script at COMMIT, run.diff.
 <% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>
 <%- entry_script = "src/run.py" -%>
 <%- entry_code = code.empty? ? "" : File.read(File.join(code, entry_script)).gsub(/^(?=.)/, "  ") -%>
@@ -198,6 +199,7 @@ script: |
   cat > "$RUN_DIR/run.py" <<'IRIS_RUN_PY_END'
 <%= entry_code -%>
   IRIS_RUN_PY_END
+  iris_record_edits <%= entry_script %>
 
   python "$RUN_DIR/run.py" \
     --dataset "$DATASET" --run-dir "$RUN_DIR" \

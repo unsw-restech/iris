@@ -115,19 +115,24 @@ def clone_with_entry_script(root):
 
 
 def stage_run_dir(run_dir, code, commit, edit=None):
-    """Lay out `run_dir` as the job does before Python starts: the entry
-    script from `code` as run.py, changed by `edit` (old, new) if given,
-    and `commit`, unless None, in commit.txt. Returns run.py's path."""
+    """Lay out `run_dir` as the job does before it runs run.py: `commit`,
+    the render-time commit (None for none), in commit.txt; the entry script
+    from `code` as run.py, changed by `edit` (old, new) if given; then the
+    record step lib/iris-job.sh's iris_record_edits runs, which writes
+    run.diff. Returns run.py's path and the record step's result."""
     run_dir.mkdir(parents=True)
+    if commit is not None:
+        (run_dir / "commit.txt").write_text(commit + "\n")
     script = (code / "src" / "run.py").read_text()
     if edit is not None:
         old, new = edit
         assert old in script, old
         script = script.replace(old, new, 1)
     (run_dir / "run.py").write_text(script)
-    if commit is not None:
-        (run_dir / "commit.txt").write_text(commit + "\n")
-    return run_dir / "run.py"
+    recorded = subprocess.run(
+        [sys.executable, "-m", "iris.record", str(run_dir), str(code), "src/run.py", commit or ""],
+        env=dict(os.environ, PYTHONPATH=str(LIB)), capture_output=True, text=True, timeout=60)
+    return run_dir / "run.py", recorded
 
 
 def run_entry(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au", **overrides):
@@ -173,7 +178,7 @@ class SyntheticRun(unittest.TestCase):
         cls.iris_home = Path(cls.tmp.name) / "iris"
         cls.run_dir = cls.dataset / "runs" / "1234"
         cls.code, commit = clone_with_entry_script(Path(cls.tmp.name))
-        script = stage_run_dir(cls.run_dir, cls.code, commit)
+        script, _ = stage_run_dir(cls.run_dir, cls.code, commit)
         cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, script=script, code=cls.code)
 
     @classmethod
@@ -241,6 +246,7 @@ class SyntheticRun(unittest.TestCase):
         self.assertEqual(tags["venv"], sys.prefix)
         self.assertEqual(tags["run_dir"], str(self.run_dir.resolve()))
         self.assertRegex(tags["commit"], r"^[0-9a-f]{40}$")
+        self.assertNotIn("lib_commit", tags)
         self.assertEqual(list(self.run_dir.glob("*.tmp")), [])
 
     def test_dataset_record_names_the_training_folders_and_the_volume(self):
@@ -303,7 +309,9 @@ class EditedRun(unittest.TestCase):
         cls.iris_home = Path(cls.tmp.name) / "iris"
         cls.run_dir = cls.dataset / "runs" / "1234"
         cls.code, cls.commit = clone_with_entry_script(Path(cls.tmp.name))
-        script = stage_run_dir(cls.run_dir, cls.code, cls.commit, edit=cls.EDIT)
+        script, cls.recorded = stage_run_dir(cls.run_dir, cls.code, cls.commit, edit=cls.EDIT)
+        # As the job leaves it when the clone moved after the form rendered.
+        (cls.run_dir / "lib_commit.txt").write_text("f" * 40 + "\n")
         cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, script=script, code=cls.code)
 
     @classmethod
@@ -325,10 +333,35 @@ class EditedRun(unittest.TestCase):
     def test_run_json_says_edited(self):
         self.assertIs(json.loads((self.run_dir / "run.json").read_text())["edited"], True)
 
-    def test_the_diff_is_in_the_output_before_training_starts(self):
-        out = self.result.stdout
+    def test_the_job_prints_the_diff_before_python_runs_run_py(self):
+        out = self.recorded.stdout
+        self.assertEqual(self.recorded.returncode, 0, self.recorded.stderr)
+        self.assertIn("EDITED RUN", out)
         self.assertIn(self.commit, out)
-        self.assertLess(out.index("+" + self.EDIT[1]), out.index("training pairs"))
+        self.assertIn("+" + self.EDIT[1], out)
+
+    def test_the_output_says_the_script_was_edited_and_to_set_the_fields_first(self):
+        out = self.recorded.stdout
+        self.assertIn("Load parameters", out)
+        self.assertIn("set the form's fields first and edit the code last", out)
+
+    def test_run_json_records_the_lib_commit(self):
+        self.assertEqual(json.loads((self.run_dir / "run.json").read_text())["tags"]["lib_commit"], "f" * 40)
+
+    def test_a_run_py_that_python_cannot_parse_still_leaves_run_py_and_run_diff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "dataset"
+            write_dataset(dataset, make_volume(), two_class_labels())
+            run_dir = dataset / "runs" / "1234"
+            code, commit = clone_with_entry_script(Path(tmp))
+            breaks = ("    model.train()\n", "    model.train(\n")
+            script, recorded = stage_run_dir(run_dir, code, commit, edit=breaks)
+            result = run_entry(dataset, run_dir, Path(tmp) / "iris", script=script, code=code)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("SyntaxError", result.stderr)
+            self.assertIn("+    model.train(\n", (run_dir / "run.diff").read_text())
+            self.assertIn("+    model.train(\n", recorded.stdout)
+            self.assertIn("    model.train(\n", (run_dir / "run.py").read_text())
 
     def test_an_edit_that_fails_training_still_leaves_its_run_diff(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -337,7 +370,7 @@ class EditedRun(unittest.TestCase):
             run_dir = dataset / "runs" / "1234"
             code, commit = clone_with_entry_script(Path(tmp))
             breaks = ("    model.train()\n", "    model.train()\n    raise RuntimeError('broken by the edit')\n")
-            script = stage_run_dir(run_dir, code, commit, edit=breaks)
+            script, _ = stage_run_dir(run_dir, code, commit, edit=breaks)
             result = run_entry(dataset, run_dir, Path(tmp) / "iris", script=script, code=code)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("broken by the edit", result.stderr)
@@ -349,8 +382,9 @@ class EditedRun(unittest.TestCase):
 
 
 class UnknownEdits(unittest.TestCase):
-    """A run with no commit to compare its run.py with goes on, and records
-    that whether it was edited is unknown, never that it was not."""
+    """A run with no render-time commit to compare its run.py with, or one
+    git cannot read, goes on, and records that whether it was edited is
+    unknown, never that it was not."""
 
     def run_without(self, commit):
         with tempfile.TemporaryDirectory() as tmp:
@@ -358,18 +392,19 @@ class UnknownEdits(unittest.TestCase):
             write_dataset(dataset, make_volume(), two_class_labels())
             run_dir = dataset / "runs" / "1234"
             code, _ = clone_with_entry_script(Path(tmp))
-            script = stage_run_dir(run_dir, code, commit)
+            script, recorded = stage_run_dir(run_dir, code, commit)
+            self.assertEqual(recorded.returncode, 0, recorded.stderr)
+            self.assertIn("WARNING", recorded.stderr)
+            self.assertIn("edited is unknown", recorded.stderr)
+            self.assertNotIn("Traceback", recorded.stderr)
             result = run_entry(dataset, run_dir, Path(tmp) / "iris", script=script, code=code)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("WARNING", result.stderr)
-            self.assertIn("edited is unknown", result.stderr)
-            self.assertNotIn("Traceback", result.stderr)
             self.assertFalse((run_dir / "run.diff").exists())
             run = json.loads((run_dir / "run.json").read_text())
             self.assertEqual(run["status"], "FINISHED")
             self.assertEqual(run["edited"], "unknown")
 
-    def test_without_commit_txt(self):
+    def test_without_a_render_time_commit(self):
         self.run_without(None)
 
     def test_with_a_commit_git_cannot_read(self):
@@ -387,7 +422,7 @@ class Import(unittest.TestCase):
         write_dataset(cls.dataset, make_volume(), two_class_labels())
         cls.run_dir = cls.dataset / "runs" / "1234"
         code, commit = clone_with_entry_script(Path(cls.tmp.name))
-        script = stage_run_dir(cls.run_dir, code, commit)
+        script, _ = stage_run_dir(cls.run_dir, code, commit)
         result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, seed="7", script=script, code=code)
         assert result.returncode == 0, result.stderr
         cls.metrics = json.loads((cls.run_dir / "metrics.json").read_text())

@@ -12,12 +12,14 @@
 # missing, then loads the Python module, activates the environment, puts
 # lib/ on PYTHONPATH, exports CODE as IRIS_CODE for the entry script, which
 # runs from the run directory, creates the run directory and records the
-# commit in it. That is COMMIT, or the clone's commit at job start if COMMIT
-# is empty; if the clone has moved since the form rendered, as after a
-# bin/syspull, its commit at job start goes in lib_commit.txt, since lib/ is
-# read from the clone now, and the job warns. It then prints what the job
-# runs with and how to view the result, and defines iris_done, which the
-# script calls after the run to print that again. Nothing is installed.
+# commit in it. That is COMMIT, or, with a warning, the clone's commit at job
+# start if COMMIT is empty; if the clone has moved since the form rendered,
+# as after a bin/syspull, its commit at job start goes in lib_commit.txt,
+# since lib/ is read from the clone now, and the job warns. It then prints
+# what the job runs with and how to view the result. It defines
+# iris_record_edits, which the script calls once it has written run.py and
+# before Python runs it, and iris_done, which the script calls after the run
+# to print the view commands again. Nothing is installed.
 # Keep it free of `set -u`: the module scripts reference unset variables.
 
 : "${CODE:?set CODE before sourcing iris-job.sh}"
@@ -44,7 +46,10 @@ export IRIS_CODE="$CODE"
 mkdir -p "$RUN_DIR"
 IRIS_HEAD="$(git -C "$CODE" rev-parse HEAD)"
 echo "${COMMIT:-$IRIS_HEAD}" > "$RUN_DIR/commit.txt"
-if [ -n "$COMMIT" ] && [ "$COMMIT" != "$IRIS_HEAD" ]; then
+if [ -z "$COMMIT" ]; then
+    echo "WARNING: the form did not record the IRIS clone's commit, so commit.txt holds its commit at job start," \
+        "$IRIS_HEAD, and whether this run is edited is unknown." >&2
+elif [ "$COMMIT" != "$IRIS_HEAD" ]; then
     echo "$IRIS_HEAD" > "$RUN_DIR/lib_commit.txt"
     echo "WARNING: the IRIS clone moved from commit $COMMIT, when the form was opened, to $IRIS_HEAD." \
         "The workflow code in this script is from $COMMIT; the library it uses (lib/) is from $IRIS_HEAD," \
@@ -69,6 +74,16 @@ iris_view_lines() {
     echo "$IRIS_VIEW $RUN_DIR"
     echo "and compare your runs with:"
     echo "$IRIS_COMPARE"
+}
+
+# iris_record_edits <entry>: compare the run.py the script wrote with
+# <entry> (src/run.py) in CODE at COMMIT, write the diff to run.diff and
+# print it (ADR-0006). It runs in a Python of its own, before the script's,
+# so a run.py that cannot even start still leaves run.py and run.diff. A
+# record step: it only warns.
+iris_record_edits() {
+    python -m iris.record "$RUN_DIR" "$CODE" "$1" "$COMMIT" ||
+        echo "WARNING: could not compare run.py with $1, so whether this run is edited is unknown." >&2
 }
 
 # What the script calls once the run has finished.

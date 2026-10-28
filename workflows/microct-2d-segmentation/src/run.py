@@ -2,12 +2,11 @@
 """microCT 2D Segmentation (U-Net): the reference workflow's entry point.
 
 Trains a 2D U-Net from scratch on a dataset's training pairs, then segments
-its whole volume slice by slice along z into one label volume. Everything is
-written into --run-dir:
+its whole volume slice by slice along z into one label volume. Before it
+runs this script, the job writes it into --run-dir as run.py, beside
+commit.txt and its diff, run.diff (lib/iris-job.sh). The script writes the
+rest there:
 
-  run.diff      written first: how this script differs from src/run.py at
-                the commit in commit.txt, empty for an unedited run, also
-                printed at the top of the output
   labels.tif    the label volume, uint8 BigTIFF, one deflate page per slice
   model.pt      the trained weights
   params.json   every form field, including the seed actually used
@@ -16,8 +15,9 @@ written into --run-dir:
   metrics.json  training loss and per-class Dice/IoU on held-out patches,
                 per epoch and final
   run.json      the experiment, job ID, environment, whether it is an
-                edited run and how the run ended, written last; the run index then points at the run
-                directory, so the importer can replay it into MLflow
+                edited run and how the run ended, written last; the run
+                index then points at the run directory, so the importer can
+                replay it into MLflow
 
 Classes are 1..K, where K is the highest value in train/labels; 0 marks an
 unlabelled pixel and is never predicted. lib/ must be on PYTHONPATH (the job
@@ -39,13 +39,12 @@ import torch.nn.functional as F
 
 from iris.dataset import IntensityStats, dataset_record
 from iris.labels import MAX_CLASSES, write_label_volume
-from iris.record import RunRecord, record_edits
+from iris.record import RunRecord
 from iris.volume import open_volume, to_intensity
 
 # This workflow's folder in the clone; its name is the slug. A job runs a
 # copy of this script from the run directory and sets IRIS_CODE to it.
 CODE = Path(os.environ.get("IRIS_CODE") or Path(__file__).resolve().parents[1])
-ENTRY = "src/run.py"  # this script's path in CODE
 
 DOWNSAMPLE = 16  # the U-Net halves the image four times
 TILE = 1024      # inference tile edge; bounds GPU memory whatever the slice size
@@ -288,8 +287,6 @@ def parse_args(argv):
 def main(argv=None):
     args = parse_args(argv)
     run_dir = Path(args.run_dir)
-    # First, so the record of an edit survives a run that fails.
-    edited = record_edits(run_dir, __file__, CODE, ENTRY)
 
     # Everything that can fail on the dataset fails here, before training.
     pairs = read_training_pairs(args.dataset)
@@ -308,7 +305,7 @@ def main(argv=None):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     gpu = torch.cuda.get_device_name(device) if device.type == "cuda" else "none"
-    with RunRecord(run_dir, args.experiment, CODE, tags={"gpu": gpu}, edited=edited) as record:
+    with RunRecord(run_dir, args.experiment, CODE, tags={"gpu": gpu}) as record:
         dataset = record.write_dataset(lambda: dataset_record(args.dataset, vol))
         intensity = IntensityStats()
         train_and_segment(args, record, pairs, n_classes, vol, device, intensity)
