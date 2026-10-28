@@ -1,8 +1,18 @@
 # Real-run acceptance on Katana
 
-How to meet a ticket's "a real run shows…" criterion for `microct-2d-segmentation`: run the committed code on the sample dataset, from a scratch copy, into a throwaway run index and tracking store. Your dev clone, run index and `tracking.db` stay untouched.
+How to meet a ticket's "a real run shows…" criterion for `microct-2d-segmentation`. A spec's final real-run ticket runs from `/pun/sys/` ([below](#the-final-real-run-ticket)). A build ticket that needs its own real run follows steps 1–5: the committed code on the sample dataset, from a scratch copy, into a throwaway run index and tracking store, leaving your dev clone, run index and `tracking.db` untouched.
 
 Name every `qsub` and its resources in chat as you submit it. Delete nothing without Patrick's go-ahead naming the target.
+
+## The final real-run ticket
+
+It runs from `/pun/sys/`, since the pilot's only users are testers (Patrick, 2026-10-28), in a session with Patrick:
+
+1. Patrick says the review of the integration branch is done.
+2. Push the branch to `main` with Patrick's push go-ahead (AGENTS.md, Deploying), then pull the dev clone.
+3. Run `bin/syspull` and get its own go-ahead, quoting the listing, before `--apply`.
+4. Submit the runs from `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>`. They land in Patrick's own run index and store, not a throwaway home, so ask before removing any of them.
+5. Inspect as in step 4 and report as in step 5, citing each job ID.
 
 ## 1. Copy the committed tree to scratch
 
