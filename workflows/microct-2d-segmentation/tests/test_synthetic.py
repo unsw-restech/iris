@@ -9,6 +9,7 @@ in the desktop CPU venv (envs/imaging/desktop.sh):
 
 import json
 import os
+import shutil
 import signal
 import socket
 import subprocess
@@ -94,6 +95,41 @@ def two_class_labels():
     return labels
 
 
+def git(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def clone_with_entry_script(root):
+    """A throwaway clone holding the workflow's entry script as it is now,
+    committed. Returns its workflow folder, which the job sets as CODE, and
+    the commit, which the job records in commit.txt."""
+    clone = root / "clone"
+    code = clone / "workflows" / WORKFLOW.name
+    (code / "src").mkdir(parents=True)
+    shutil.copy(ENTRY, code / "src" / "run.py")
+    git(clone, "init", "--quiet")
+    git(clone, "add", ".")
+    git(clone, "-c", "user.name=IRIS test", "-c", "user.email=iris@example.org",
+        "commit", "--quiet", "-m", "The entry script")
+    return code, git(clone, "rev-parse", "HEAD")
+
+
+def stage_run_dir(run_dir, code, commit, edit=None):
+    """Lay out `run_dir` as the job does before Python starts: the entry
+    script from `code` as run.py, changed by `edit` (old, new) if given,
+    and `commit`, unless None, in commit.txt. Returns run.py's path."""
+    run_dir.mkdir(parents=True)
+    script = (code / "src" / "run.py").read_text()
+    if edit is not None:
+        old, new = edit
+        assert old in script, old
+        script = script.replace(old, new, 1)
+    (run_dir / "run.py").write_text(script)
+    if commit is not None:
+        (run_dir / "commit.txt").write_text(commit + "\n")
+    return run_dir / "run.py"
+
+
 def run_entry(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au", **overrides):
     """Run the entry point as a job would, with PBS's variables set and the
     IRIS home (run index and tracking store) pointed at `iris_home`."""
@@ -101,12 +137,15 @@ def run_entry(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au
     return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=600)
 
 
-def entry_command(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au", **overrides):
-    """The command line and environment run_entry() runs the entry point with."""
+def entry_command(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au",
+                  script=ENTRY, code=None, **overrides):
+    """The command line and environment run_entry() runs the entry point
+    with: `script`, the clone's by default, or a copy in the run directory
+    with `code`, the workflow folder in the clone, as the job sets them."""
     args = {"epochs": 1, "patch_size": 32, "lr": 0.001, "val_percent": 20, "batch_size": 4, "seed": ""}
     args.update(overrides)
     cmd = [
-        sys.executable, str(ENTRY),
+        sys.executable, str(script),
         "--dataset", str(dataset), "--run-dir", str(run_dir),
         "--experiment", "microct-2d-segmentation",
         "--epochs", str(args["epochs"]), "--patch-size", str(args["patch_size"]),
@@ -116,10 +155,14 @@ def entry_command(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.ed
     ]
     env = dict(os.environ, PYTHONPATH=str(LIB), CUDA_VISIBLE_DEVICES="",
                IRIS_HOME=str(iris_home), PBS_JOBID=job_id, PBS_QUEUE="cpuq")
+    if code is not None:
+        env["IRIS_CODE"] = str(code)
     return cmd, env
 
 
 class SyntheticRun(unittest.TestCase):
+    """An unedited run: the entry script, written into the run directory as
+    the job writes it, run from there."""
 
     @classmethod
     def setUpClass(cls):
@@ -129,7 +172,9 @@ class SyntheticRun(unittest.TestCase):
         write_dataset(cls.dataset, cls.vol, two_class_labels())
         cls.iris_home = Path(cls.tmp.name) / "iris"
         cls.run_dir = cls.dataset / "runs" / "1234"
-        cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2)
+        cls.code, commit = clone_with_entry_script(Path(cls.tmp.name))
+        script = stage_run_dir(cls.run_dir, cls.code, commit)
+        cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, script=script, code=cls.code)
 
     @classmethod
     def tearDownClass(cls):
@@ -149,6 +194,10 @@ class SyntheticRun(unittest.TestCase):
                 self.assertEqual(one.dtype, np.uint8)
                 self.assertEqual(one.shape, SHAPE[1:])
                 self.assertTrue(set(np.unique(one)) <= {1, 2})
+
+    def test_an_unedited_run_writes_an_empty_run_diff_and_edited_false(self):
+        self.assertEqual((self.run_dir / "run.diff").read_text(), "")
+        self.assertIs(json.loads((self.run_dir / "run.json").read_text())["edited"], False)
 
     def test_weights_written(self):
         self.assertGreater((self.run_dir / "model.pt").stat().st_size, 0)
@@ -241,6 +290,92 @@ class SyntheticRun(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in pointer.parent.iterdir()), ["1234"])
 
 
+class EditedRun(unittest.TestCase):
+    """A run whose researcher changed the model on the form before submitting."""
+
+    EDIT = ("    def __init__(self, n_classes, base=32):", "    def __init__(self, n_classes, base=16):")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dataset = Path(cls.tmp.name) / "dataset"
+        write_dataset(cls.dataset, make_volume(), two_class_labels())
+        cls.iris_home = Path(cls.tmp.name) / "iris"
+        cls.run_dir = cls.dataset / "runs" / "1234"
+        cls.code, cls.commit = clone_with_entry_script(Path(cls.tmp.name))
+        script = stage_run_dir(cls.run_dir, cls.code, cls.commit, edit=cls.EDIT)
+        cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, script=script, code=cls.code)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_run_succeeds(self):
+        self.assertEqual(self.result.returncode, 0, self.result.stderr)
+
+    def test_run_diff_holds_the_change_against_the_recorded_commit(self):
+        diff = (self.run_dir / "run.diff").read_text()
+        path = f"workflows/{WORKFLOW.name}/src/run.py"
+        self.assertTrue(diff.startswith(f"--- a/{path}\n+++ b/{path}\n"), diff)
+        removed = [line for line in diff.splitlines() if line.startswith("-") and not line.startswith("---")]
+        added = [line for line in diff.splitlines() if line.startswith("+") and not line.startswith("+++")]
+        self.assertEqual(removed, ["-" + self.EDIT[0]])
+        self.assertEqual(added, ["+" + self.EDIT[1]])
+
+    def test_run_json_says_edited(self):
+        self.assertIs(json.loads((self.run_dir / "run.json").read_text())["edited"], True)
+
+    def test_the_diff_is_in_the_output_before_training_starts(self):
+        out = self.result.stdout
+        self.assertIn(self.commit, out)
+        self.assertLess(out.index("+" + self.EDIT[1]), out.index("training pairs"))
+
+    def test_an_edit_that_fails_training_still_leaves_its_run_diff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "dataset"
+            write_dataset(dataset, make_volume(), two_class_labels())
+            run_dir = dataset / "runs" / "1234"
+            code, commit = clone_with_entry_script(Path(tmp))
+            breaks = ("    model.train()\n", "    model.train()\n    raise RuntimeError('broken by the edit')\n")
+            script = stage_run_dir(run_dir, code, commit, edit=breaks)
+            result = run_entry(dataset, run_dir, Path(tmp) / "iris", script=script, code=code)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("broken by the edit", result.stderr)
+            self.assertFalse((run_dir / "model.pt").exists())
+            self.assertIn("+    raise RuntimeError('broken by the edit')\n", (run_dir / "run.diff").read_text())
+            run = json.loads((run_dir / "run.json").read_text())
+            self.assertEqual(run["status"], "FAILED")
+            self.assertIs(run["edited"], True)
+
+
+class UnknownEdits(unittest.TestCase):
+    """A run with no commit to compare its run.py with goes on, and records
+    that whether it was edited is unknown, never that it was not."""
+
+    def run_without(self, commit):
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "dataset"
+            write_dataset(dataset, make_volume(), two_class_labels())
+            run_dir = dataset / "runs" / "1234"
+            code, _ = clone_with_entry_script(Path(tmp))
+            script = stage_run_dir(run_dir, code, commit)
+            result = run_entry(dataset, run_dir, Path(tmp) / "iris", script=script, code=code)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("WARNING", result.stderr)
+            self.assertIn("edited is unknown", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertFalse((run_dir / "run.diff").exists())
+            run = json.loads((run_dir / "run.json").read_text())
+            self.assertEqual(run["status"], "FINISHED")
+            self.assertEqual(run["edited"], "unknown")
+
+    def test_without_commit_txt(self):
+        self.run_without(None)
+
+    def test_with_a_commit_git_cannot_read(self):
+        self.run_without("0123456789abcdef0123456789abcdef01234567")
+
+
 class Import(unittest.TestCase):
     """The importer replays a finished run into a throwaway tracking store."""
 
@@ -251,7 +386,9 @@ class Import(unittest.TestCase):
         cls.dataset = Path(cls.tmp.name) / "dataset"
         write_dataset(cls.dataset, make_volume(), two_class_labels())
         cls.run_dir = cls.dataset / "runs" / "1234"
-        result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, seed="7")
+        code, commit = clone_with_entry_script(Path(cls.tmp.name))
+        script = stage_run_dir(cls.run_dir, code, commit)
+        result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, seed="7", script=script, code=code)
         assert result.returncode == 0, result.stderr
         cls.metrics = json.loads((cls.run_dir / "metrics.json").read_text())
         cls.dataset_record = json.loads((cls.run_dir / "dataset.json").read_text())
@@ -304,6 +441,44 @@ class Import(unittest.TestCase):
         self.assertEqual(tags["job_id"], "1234")
         self.assertEqual(tags["run_dir"], str(self.run_dir.resolve()))
 
+    def test_an_unedited_run_is_tagged_not_edited_with_its_run_py_and_empty_run_diff(self):
+        run = self.only_run()
+        self.assertEqual(run.data.tags["iris.edited"], "false")
+        self.assertEqual(artifact_texts(self.client, run), {
+            "run.diff": "", "run.py": (self.run_dir / "run.py").read_text()})
+
+    def test_an_edited_run_is_tagged_edited_with_its_run_py_and_run_diff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "iris"
+            run_dir = Path(tmp) / "4444"
+            write_run_dir(run_dir, "edited", "4444", 0.01)
+            run = json.loads((run_dir / "run.json").read_text())
+            (run_dir / "run.json").write_text(json.dumps(dict(run, edited=True)))
+            (run_dir / "run.py").write_text("print('edited')\n")
+            (run_dir / "run.diff").write_text("-print('as committed')\n+print('edited')\n")
+            (home / "run-index").mkdir(parents=True)
+            (home / "run-index" / "4444").write_text(str(run_dir) + "\n")
+            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+            client, run = only_run(home, "edited")
+            self.assertEqual(run.data.tags["iris.edited"], "true")
+            self.assertEqual(artifact_texts(client, run), {
+                "run.diff": "-print('as committed')\n+print('edited')\n", "run.py": "print('edited')\n"})
+
+    def test_a_run_whose_edits_are_unknown_is_tagged_unknown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "iris"
+            run_dir = Path(tmp) / "5555"
+            write_run_dir(run_dir, "unknown", "5555", 0.01)
+            run = json.loads((run_dir / "run.json").read_text())
+            (run_dir / "run.json").write_text(json.dumps(dict(run, edited="unknown")))
+            (run_dir / "run.py").write_text("print('maybe edited')\n")  # no run.diff
+            (home / "run-index").mkdir(parents=True)
+            (home / "run-index" / "5555").write_text(str(run_dir) + "\n")
+            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+            client, run = only_run(home, "unknown")
+            self.assertEqual(run.data.tags["iris.edited"], "unknown")
+            self.assertEqual(artifact_texts(client, run), {"run.py": "print('maybe edited')\n"})
+
     def test_the_dataset_record_is_the_runs_dataset_input(self):
         inputs = self.only_run().inputs.dataset_inputs
         self.assertEqual(len(inputs), 1)
@@ -327,6 +502,19 @@ class Import(unittest.TestCase):
             self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
             _, run = only_run(home, "bare")
             self.assertEqual(run.inputs.dataset_inputs, [])
+
+    def test_a_run_recorded_before_edited_runs_imports_with_no_edited_tag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "iris"
+            run_dir = Path(tmp) / "666"
+            write_run_dir(run_dir, "older", "666", 0.01)  # no edited field, run.py or run.diff
+            (home / "run-index").mkdir(parents=True)
+            (home / "run-index" / "666").write_text(str(run_dir) + "\n")
+            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+            client, run = only_run(home, "older")
+            self.assertNotIn("iris.edited", run.data.tags)
+            self.assertEqual(run.data.params["lr"], "0.01")
+            self.assertEqual(artifact_texts(client, run), {})
 
     def test_importing_again_adds_no_run(self):
         self.assertEqual(import_runs(self.iris_home), {"imported": 0, "pending": 0})
@@ -519,6 +707,13 @@ def only_run(iris_home, experiment="microct-2d-segmentation"):
     client = mlflow.MlflowClient(store_uri(iris_home))
     [run] = client.search_runs([client.get_experiment_by_name(experiment).experiment_id])
     return client, run
+
+
+def artifact_texts(client, run):
+    """{name: text} for each top-level artifact the run has."""
+    with tempfile.TemporaryDirectory() as tmp:
+        return {a.path: Path(client.download_artifacts(run.info.run_id, a.path, tmp)).read_text()
+                for a in client.list_artifacts(run.info.run_id)}
 
 
 def logged_histories(run_dir):
