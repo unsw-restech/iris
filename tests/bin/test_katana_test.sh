@@ -66,7 +66,8 @@ grep -qF 'workflows/*/tests/test_form.rb' "$fake/args" || fail "doesn't run the 
 grep -qF 'module/tests/test_module.sh' "$fake/args" || fail "doesn't run the module test"
 grep -qF 'git init -q' "$fake/args" || fail "doesn't make the tree a repo for the job-library test"
 grep -qF 'tests/katana/job_lib.pbs' "$fake/args" || fail "doesn't submit the job-library test"
-grep -qF 'qsub -W block=true -m abe' "$fake/args" || fail "doesn't wait on the job-library test, with -m abe"
+grep -q 'qsub .*-W block=true' "$fake/args" || fail "doesn't wait on the job-library test"
+grep -q 'qsub .*-m abe' "$fake/args" || fail "submits the job-library test without -m abe"
 
 # A failing test on Katana fails the script.
 echo 1 > "$fake/exit-code"
