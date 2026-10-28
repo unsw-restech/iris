@@ -448,24 +448,32 @@ citation_cff() {
 }
 check "CITATION.cff and workflow pages list the same citable versions" citation_cff
 
-# One site name: every page's top-bar logo reads the same, and README's
-# citation example gives CITATION.cff's title, so a rename can't stop
-# halfway. tests/bin/test_site_name.sh runs it on fixture trees.
+# A rename reaches every copy of the name: each page's top-bar logo reads
+# the same (and has one), and the citation example in README's quoted
+# lines gives CITATION.cff's title, which must be a double-quoted title:.
+# The logo is read with line breaks removed, so it may wrap.
+# tests/bin/test_site_name.sh runs it on fixture trees.
 site_name() {
-    local f names title
-    names=$(for f in index.html guide/index.html contribute/index.html workflows/*/index.html; do
-        [ -f "$f" ] && tr -d '\r' < "$f" | grep -o 'nav-logo-text">[^<]*' | sed "s|^nav-logo-text\">|$f: |"
-    done)
-    if [ "$(sed 's/^[^:]*: //' <<< "$names" | sort -u | grep -c .)" -gt 1 ]; then
+    local f logo logos="" title
+    for f in index.html guide/index.html contribute/index.html workflows/*/index.html; do
+        [ -f "$f" ] || continue
+        logo=$(tr -d '\r\n' < "$f" | grep -o 'nav-logo-text">[^<]*' | head -1 |
+            sed 's/^nav-logo-text">//; s/^[[:space:]]*//; s/[[:space:]]*$//')
+        if [ -z "$logo" ]; then echo "$f has no nav-logo-text logo"; else logos+="$f: $logo"$'\n'; fi
+    done
+    if [ "$(sed 's/^[^:]*: //' <<< "$logos" | grep . | sort -u | wc -l)" -gt 1 ]; then
         echo "the pages' logos differ; make them read the same:"
-        echo "$names"
+        printf '%s' "$logos"
     fi
     [ -f CITATION.cff ] && [ -f README.md ] || return 0
     title=$(tr -d '\r' < CITATION.cff | sed -n 's/^title: *"\(.*\)" *$/\1/p')
-    [ -z "$title" ] || grep -qF -- "*$title*" README.md ||
-        echo "README.md's citation example doesn't give CITATION.cff's title, *$title*"
+    if [ -z "$title" ]; then
+        echo "CITATION.cff has no double-quoted title: line"
+    elif ! tr -d '\r' < README.md | grep -E '^[[:space:]]*>' | grep -qF -- "*$title*"; then
+        echo "README.md's citation example (a > quoted line) doesn't give CITATION.cff's title, *$title*"
+    fi
 }
-check "one site name across pages, README and CITATION.cff" site_name
+check "page logos match; README cites CITATION.cff's title" site_name
 
 # Researchers reach iris-view and iris-compare with `module load iris`
 # (ADR-0003), so no page, form or README gives a full path to either: a
@@ -552,7 +560,7 @@ check "citable versions test" bash tests/bin/test_citable_versions.sh
 check "CITATION.cff test" bash tests/bin/test_citation_cff.sh
 # The module-paths check, against throwaway trees.
 check "module paths test" bash tests/bin/test_module_paths.sh
-# The site-name check, against throwaway trees.
+# The logo and title check, against throwaway trees.
 check "site name test" bash tests/bin/test_site_name.sh
 # The module command folder check, against throwaway repos.
 check "module command folder test" bash tests/bin/test_module_commands.sh

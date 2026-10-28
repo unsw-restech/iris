@@ -130,8 +130,7 @@ code { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--blue2); 
 .col h3 { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 10px; }
 .col p { font-size: 14px; line-height: 1.6; color: var(--muted); margin-bottom: 10px; }
 .col p:last-child { margin-bottom: 0; }
-/* Text links; a .run-btn keeps its white text wherever it sits. */
-:is(.col, details, .prose, .run-note, .wf-owner) a:not(.run-btn) { color: var(--blue2); }
+.col a, details a, .prose a, .run-note a, .wf-owner a { color: var(--blue2); }
 /* Expandable sections. */
 details { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; margin-bottom: 10px; }
 details summary { cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: #fff; }
@@ -174,6 +173,10 @@ footer {
 }
 footer a { color: var(--muted); text-decoration: none; }
 footer a:hover { color: var(--blue2); }
+/* After every link rule, so a Run-style button keeps its white text
+   inside any of them (.prose a, footer a and so on tie with it on
+   specificity and come earlier). */
+a.run-btn, a.run-btn:hover { color: #fff; }
 @media (max-width: 768px) {
   body > nav { padding: 0 20px; }
   .page { padding: 90px 20px 60px; }
