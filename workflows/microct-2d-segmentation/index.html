@@ -95,6 +95,16 @@
   </details>
 
   <details>
+    <summary>Editing the workflow code for one run</summary>
+    <p>The form's script pane holds this workflow's code, <code>run.py</code>, below the comment <code># Workflow code: edit below.</code> To try a different model architecture, loss, augmentation or training loop, edit it there before you submit: the job runs the code exactly as it appears in the pane. The change belongs to that run alone, which makes it an <strong>edited run</strong>; the workflow itself is unchanged. Record keeping and reading and writing volumes stay in IRIS, out of the pane, and an edited run uses the same Python packages.</p>
+    <ul>
+      <li><strong>Set the fields first and edit the code last.</strong> Changing a field after editing rewrites the whole pane and discards your edits. The form warns you first, so you can cancel, but after it refuses to submit that warning no longer appears: your edits are kept, and the next field change discards them without asking.</li>
+      <li><strong>To rerun an edited run</strong>, use <strong>Load parameters</strong> in the form's job history: it restores the fields and your edited code, and the job output says the run is edited.</li>
+      <li>Every run directory keeps the code its run ran as <code>run.py</code> and your changes as <code>run.diff</code>, written before the code starts, so a run that crashes still shows them. The job output prints the diff near the top.</li>
+    </ul>
+  </details>
+
+  <details>
     <summary>What a run writes and how to view it</summary>
     <p>Each run writes into your dataset, in <code>runs/&lt;job number&gt;/</code>:</p>
     <table class="param-table">
@@ -105,8 +115,10 @@
         <tr><td><code>params.json</code></td><td>Every form field, and the seed used</td></tr>
         <tr><td><code>metrics.json</code></td><td>Training loss and per-class Dice and IoU, per epoch and final</td></tr>
         <tr><td><code>dataset.json</code></td><td>What the run read: folder paths, file counts, the volume's shape, type, voxel size and intensity statistics</td></tr>
-        <tr><td><code>run.json</code></td><td>The experiment, job ID and how the run ended</td></tr>
-        <tr><td><code>commit.txt</code></td><td>The IRIS commit that ran</td></tr>
+        <tr><td><code>run.json</code></td><td>The experiment, job ID, how the run ended and whether it is an edited run</td></tr>
+        <tr><td><code>commit.txt</code></td><td>The IRIS commit that ran, as the form showed it</td></tr>
+        <tr><td><code>run.py</code></td><td>The workflow code the run ran, as submitted from the form</td></tr>
+        <tr><td><code>run.diff</code></td><td>Your changes to that code against the commit in <code>commit.txt</code>; empty unless the run is edited</td></tr>
       </tbody>
     </table>
     <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. When the job succeeds, the output ends with the commands to run in a terminal in a Virtual Desktop: <code>module load iris</code>, then <code>iris-view</code> with the run directory, which shows the label volume over your volume in napari, and <code>iris-compare</code>, which opens your runs in MLflow. Fiji and ParaView open the label volume too. The <a href="../../guide/#view">guide</a> covers the Virtual Desktop to start, all four, and copying a run directory home.</p>
@@ -121,7 +133,7 @@
       <!-- Mint one as CONTRIBUTING.md says, add its DOI to CITATION.cff, then add one line per citable version above the newest, never a version number (bin/check "citable versions"):
       <li><a href="https://doi.org/DOI" target="_blank">DOI</a> · YYYY-MM-DD · commit <code>SHORT-SHA</code></li> -->
     </ul>
-    <p>If you publish results from a run, cite the latest citable version at or before the commit in the run's <code>commit.txt</code>, and give that commit. If none is listed, or every one listed is newer than your commit, cite IRIS with this workflow's name and that commit instead. Either way, acknowledge Katana and cite its DOI. <a href="https://github.com/unsw-restech/iris#citing-iris" target="_blank">The exact wording</a></p>
+    <p>If you publish results from a run, cite the latest citable version at or before the commit in the run's <code>commit.txt</code>, and give that commit. If none is listed, or every one listed is newer than your commit, cite IRIS with this workflow's name and that commit instead. For an edited run, cite the same citable version and commit, and publish the run's <code>run.py</code> or <code>run.diff</code> alongside. Either way, acknowledge Katana and cite its DOI. <a href="https://github.com/unsw-restech/iris#citing-iris" target="_blank">The exact wording</a></p>
   </details>
 
   <details>
