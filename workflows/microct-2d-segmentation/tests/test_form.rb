@@ -97,21 +97,15 @@ class FormTest < Minitest::Test
   SYSTEM_APPS_DIR = "/srv/scratch/katana_ai/iris/code/workflows"
   CLONE = File.expand_path("../../..", __dir__)
 
-  # The job script split at the training command: what the job prints
-  # before training, and what it prints after.
-  def before_and_after_training(form)
-    script = FormHelper.script(form, FormHelper.defaults(form, dataset: @ds))
-    script.split(%(\npython "$CODE/src/run.py"), 2)
-  end
-
-  def test_from_the_system_clone_the_job_prints_the_module_lines
-    before, after = before_and_after_training(FormHelper.render(SYSTEM_APPS_DIR))
-    [before, after].each do |part|
-      assert_includes part, %(\necho "module load iris"\necho "iris-view $RUN_DIR"\n)
-      assert_includes part, %(\necho "iris-compare"\n)
-      refute_includes part, "/bin/iris-"
+  # The job library prints the iris-view and iris-compare lines, per clone
+  # (test_job_lib.py); the script only asks for them once training is done.
+  def test_the_job_library_prints_the_view_lines_after_training
+    [FormHelper.render(SYSTEM_APPS_DIR), @form].each do |form|
+      script = FormHelper.script(form, FormHelper.defaults(form, dataset: @ds))
+      refute_includes script, "iris-view"
+      refute_includes script, "iris-compare"
+      assert_match(/\npython "\$RUN_DIR\/run.py" \\\n.*\niris_done\n\z/m, script.split("\nIRIS_RUN_PY_END\n", 2)[1])
     end
-    assert_match(/\necho "module load iris"\necho "iris-view \$RUN_DIR"\n.*\necho "iris-compare"\n\z/m, after)
   end
 
   def test_from_the_system_clone_experiment_help_names_the_module
@@ -121,29 +115,20 @@ class FormTest < Minitest::Test
     refute_includes help, "/bin/iris-"
   end
 
-  def test_from_another_clone_the_job_prints_the_clones_full_paths
-    before, after = before_and_after_training(@form)
-    [before, after].each do |part|
-      assert_includes part, %(\necho "#{CLONE}/bin/iris-view $RUN_DIR"\n)
-      assert_includes part, %(\necho "#{CLONE}/bin/iris-compare"\n)
-      refute_includes part, "module load iris"
-    end
-    assert_match(/\necho "#{Regexp.escape(CLONE)}\/bin\/iris-compare"\n\z/, after)
-  end
-
   def test_from_another_clone_experiment_help_names_the_clones_iris_compare
     help = @form["form"]["experiment"]["help"]
     assert_includes help, " #{CLONE}/bin/iris-compare "
     refute_includes help, "module load iris"
   end
 
-  def test_both_clones_run_their_own_code_and_never_load_the_module
+  def test_both_clones_embed_their_own_entry_script_and_never_load_the_module
     { SYSTEM_APPS_DIR => "#{SYSTEM_APPS_DIR}/microct-2d-segmentation", File.dirname(FormHelper::WORKFLOW) => FormHelper::WORKFLOW }.each do |apps_dir, code|
       form = FormHelper.render(apps_dir)
       script = FormHelper.script(form, FormHelper.defaults(form, dataset: @ds))
       assert_includes script, %(\nCODE="#{code}"\n)
       assert_includes script, %(\nsource "$CODE/../../lib/iris-job.sh"\n)
-      assert_includes script, %(\npython "$CODE/src/run.py" \\\n)
+      assert_includes script, %(<<'IRIS_RUN_PY_END'\n#{File.read(File.join(code, "src", "run.py"))}IRIS_RUN_PY_END\n)
+      assert_includes script, %(\npython "$RUN_DIR/run.py" \\\n)
       refute_match(/^\s*module load iris/, script)
     end
   end
@@ -176,5 +161,67 @@ class FormTest < Minitest::Test
   def test_mail_on_end_and_abnormal_end_by_default
     script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds))
     assert_includes script, "#PBS -m ae\n"
+  end
+end
+
+# The script pane carries the entry script, which the job writes into the
+# run directory and runs (ADR-0006). Rendered from a throwaway clone with
+# one commit, so the render-time commit is known; needs only Ruby and git.
+class EntryScriptTest < Minitest::Test
+  BANNER = "# Workflow code: edit below. Set the form fields first; changing a field afterwards discards these edits.\n"
+
+  def setup
+    @clone = Dir.mktmpdir("iris-entry-test-")
+    @code = File.join(@clone, "workflows", "microct-2d-segmentation")
+    FileUtils.mkdir_p(File.join(@code, "src"))
+    FileUtils.cp(File.join(FormHelper::WORKFLOW, "src", "run.py"), File.join(@code, "src"))
+    git("init", "-q")
+    git("add", ".")
+    git("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-qm", "one")
+    @head = git("rev-parse", "HEAD").strip
+    form = FormHelper.render(File.join(@clone, "workflows"))
+    @script = FormHelper.script(form, FormHelper.defaults(form, dataset: "/srv/scratch/z1234567/ds"))
+  end
+
+  def teardown
+    FileUtils.rm_rf(@clone)
+  end
+
+  def git(*args)
+    out = IO.popen(["git", "-C", @clone, *args], &:read)
+    raise "git #{args.join(" ")} failed" unless $?.success?
+    out
+  end
+
+  def test_the_script_holds_the_entry_script_byte_for_byte_after_the_banner
+    entry = File.binread(File.join(@code, "src", "run.py"))
+    opener = %(cat > "$RUN_DIR/run.py" <<'IRIS_RUN_PY_END'\n)
+    assert_includes @script, "\n#{BANNER}"
+    after_banner = @script.split("\n#{BANNER}", 2)[1]
+    assert_includes after_banner, "\n#{opener}#{entry}IRIS_RUN_PY_END\n"
+    assert_equal 1, @script.scan(opener).size
+  end
+
+  def test_the_script_carries_the_render_time_commit_for_commit_txt
+    setup_part = @script.split(%(\nsource "$CODE/../../lib/iris-job.sh"\n), 2)[0]
+    assert_includes setup_part, %(\nCOMMIT="#{@head}"\n)
+  end
+
+  def test_the_script_writes_run_py_before_the_python_call_and_runs_that_file
+    write = @script.index(%(\ncat > "$RUN_DIR/run.py" <<'IRIS_RUN_PY_END'\n))
+    call = @script.index(%(\npython "$RUN_DIR/run.py" \\\n))
+    refute_nil write
+    refute_nil call
+    assert_operator write, :<, call
+    assert_operator @script.index("\nIRIS_RUN_PY_END\n"), :<, call
+    refute_includes @script, "src/run.py"
+  end
+
+  def test_the_pane_holds_header_setup_banner_code_and_call_in_order
+    marks = ["#PBS -A iris-microct-2d-segmentation\n", %(\nsource "$CODE/../../lib/iris-job.sh"\n),
+             "\n#{BANNER}", "<<'IRIS_RUN_PY_END'\n", %(\npython "$RUN_DIR/run.py" \\\n)]
+    positions = marks.map { |m| @script.index(m) }
+    refute_includes positions, nil
+    assert_equal positions.sort, positions
   end
 end

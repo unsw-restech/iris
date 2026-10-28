@@ -22,13 +22,22 @@ JOB_LIB = REPO / "lib" / "iris-job.sh"
 ON_KATANA = Path("/etc/profile.d/modules.sh").exists()
 
 
-def source_job_lib(env_dir, run_dir, then="echo AFTER"):
+SYSTEM_CODE = Path("/srv/scratch/katana_ai/iris/code/workflows/microct-2d-segmentation")
+
+
+def head(code=WORKFLOW):
+    return subprocess.run(["git", "-C", str(code), "rev-parse", "HEAD"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+def source_job_lib(env_dir, run_dir, then="echo AFTER", commit="", code=WORKFLOW):
     """Run a job script's opening lines as the form writes them: set CODE,
-    ENV_DIR and RUN_DIR, turn on set -eo pipefail, source the library, then
-    run `then`."""
+    COMMIT (the clone's commit when the form rendered), ENV_DIR and RUN_DIR,
+    turn on set -eo pipefail, source the library, then run `then`."""
     script = (
         'set -eo pipefail\n'
-        f'CODE="{WORKFLOW}"\n'
+        f'CODE="{code}"\n'
+        f'COMMIT="{commit}"\n'
         f'ENV_DIR="{env_dir}"\n'
         f'RUN_DIR="{run_dir}"\n'
         f'source "{JOB_LIB}"\n'
@@ -78,9 +87,78 @@ class FullSequence(unittest.TestCase):
         self.assertIn("IMPORTS OK", self.result.stdout)
 
     def test_records_the_clone_commit_in_the_run_directory(self):
-        head = subprocess.run(["git", "-C", str(WORKFLOW), "rev-parse", "HEAD"],
-                              capture_output=True, text=True, check=True).stdout.strip()
-        self.assertEqual((self.run_dir / "commit.txt").read_text().strip(), head)
+        self.assertEqual((self.run_dir / "commit.txt").read_text().strip(), head())
+
+    def test_exports_the_workflow_folder_for_the_entry_script(self):
+        result = source_job_lib(sys.prefix, self.run_dir.with_name("1235"), then='echo "IRIS_CODE=$(printenv IRIS_CODE)"')
+        self.assertIn(f"IRIS_CODE={WORKFLOW}\n", result.stdout)
+
+
+@unittest.skipUnless(ON_KATANA, "needs Katana's module system")
+class RenderTimeCommit(unittest.TestCase):
+    """The embedded code dates from when the form rendered, lib/ from when
+    the job starts (ADR-0006)."""
+
+    def run_with(self, commit):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp, "dataset", "runs", "1")
+            result = source_job_lib(sys.prefix, run_dir, commit=commit)
+            files = {p.name: p.read_text().strip() for p in run_dir.iterdir()}
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result, files
+
+    def test_the_render_time_commit_goes_to_commit_txt(self):
+        result, files = self.run_with(head())
+        self.assertEqual(files["commit.txt"], head())
+        self.assertNotIn("lib_commit.txt", files)
+        self.assertNotIn("WARNING", result.stdout + result.stderr)
+
+    def test_a_clone_that_moved_since_rendering_is_recorded_as_lib_commit_with_a_warning(self):
+        rendered = "0" * 40
+        result, files = self.run_with(rendered)
+        self.assertEqual(files["commit.txt"], rendered)
+        self.assertEqual(files["lib_commit.txt"], head())
+        self.assertIn("WARNING", result.stderr)
+        self.assertIn(head(), result.stderr)
+
+    def test_with_no_render_time_commit_the_clone_commit_at_job_start_is_recorded(self):
+        _, files = self.run_with("")
+        self.assertEqual(files["commit.txt"], head())
+        self.assertNotIn("lib_commit.txt", files)
+
+
+@unittest.skipUnless(ON_KATANA, "needs Katana's module system")
+class ViewLines(unittest.TestCase):
+    """The iris-view and iris-compare lines the job prints before and after
+    training: the short forms `module load iris` gives from the system
+    clone (ADR-0003), that clone's bin/ in full from any other."""
+
+    def output(self, code):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp, "dataset", "runs", "1")
+            result = source_job_lib(sys.prefix, run_dir, code=code, then="echo TRAINING; iris_done")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        before, after = result.stdout.split("TRAINING\n", 1)
+        return before, after, run_dir
+
+    def test_from_another_clone_the_job_prints_the_clones_full_paths(self):
+        before, after, run_dir = self.output(WORKFLOW)
+        for part in (before, after):
+            self.assertIn(f"\n{REPO}/bin/iris-view {run_dir}\n", part)
+            self.assertIn(f"\n{REPO}/bin/iris-compare\n", part)
+            self.assertNotIn("module load iris", part)
+        self.assertTrue(after.startswith("\nDone. "), after)
+        self.assertTrue(after.endswith(f"\n{REPO}/bin/iris-compare\n"), after)
+
+    @unittest.skipUnless(SYSTEM_CODE.is_dir(), "needs the system clone")
+    def test_from_the_system_clone_the_job_prints_the_module_lines(self):
+        before, after, run_dir = self.output(SYSTEM_CODE)
+        for part in (before, after):
+            self.assertIn(f"\nmodule load iris\niris-view {run_dir}\n", part)
+            self.assertIn("\niris-compare\n", part)
+            self.assertNotIn("/bin/iris-", part)
+        self.assertTrue(after.endswith("\nmodule load iris\n" f"iris-view {run_dir}\n"
+                                       "and compare your runs with:\niris-compare\n"), after)
 
 
 if __name__ == "__main__":

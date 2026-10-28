@@ -22,6 +22,7 @@ script does this).
 """
 
 import argparse
+import os
 import secrets
 import sys
 import time
@@ -38,7 +39,10 @@ from iris.labels import MAX_CLASSES, write_label_volume
 from iris.record import RunRecord
 from iris.volume import open_volume, to_intensity
 
-CODE = Path(__file__).resolve().parents[1]  # this workflow's folder; its name is the slug
+# This workflow's folder in the clone, whose name is the slug. A job runs a
+# copy of this script from the run directory, so lib/iris-job.sh names the
+# folder in IRIS_CODE (ADR-0006).
+CODE = Path(os.environ.get("IRIS_CODE") or Path(__file__).resolve().parents[1])
 
 DOWNSAMPLE = 16  # the U-Net halves the image four times
 TILE = 1024      # inference tile edge; bounds GPU memory whatever the slice size

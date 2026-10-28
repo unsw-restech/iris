@@ -159,7 +159,18 @@ form:
 # script rendered here, so the fallback never reaches a job.
 # PBS writes the job output beside the run directory, as
 # runs/<full job ID>.OU (runs/9544829.kman.restech.unsw.edu.au.OU).
+#
+# The script carries the entry script, read here at render time, so a
+# researcher can edit it for one run; the job writes it into the run
+# directory as run.py and runs it from there, while lib/ stays in the clone
+# (ADR-0006). It must hold no OpenComposer field or ERB tag, which bin/check
+# enforces. COMMIT is
+# the clone's commit at render time, the commit the embedded code is from:
+# the job records it in commit.txt, and warns if the clone has moved since.
 <% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>
+<%- entry_script = "src/run.py" -%>
+<%- entry_code = code.empty? ? "" : File.read(File.join(code, entry_script)).gsub(/^(?=.)/, "  ") -%>
+<%- commit = code.empty? ? "" : (IO.popen(["git", "-C", code, "rev-parse", "HEAD"], err: File::NULL, &:read).strip rescue "") -%>
 script: |
   #!/bin/bash
   #PBS -N #{job_name}
@@ -172,6 +183,7 @@ script: |
   #PBS -o #{dataset}/runs/
 
   CODE="<%= code %>"
+  COMMIT="<%= commit %>"
   [ -n "$CODE" ] || { echo "ERROR: the form could not locate its IRIS clone."; exit 1; }
   ENV_DIR=/srv/scratch/katana_ai/iris/envs/imaging/1
   DATASET="#{dataset}"
@@ -180,16 +192,14 @@ script: |
   set -eo pipefail
   source "$CODE/../../lib/iris-job.sh"
 
-  echo "When this job has finished, in a terminal in a Virtual Desktop, view the result with:"
-  <%- if load_iris -%>
-  echo "<%= load_iris %>"
-  <%- end -%>
-  echo "<%= iris_view %> $RUN_DIR"
-  echo "and compare your runs with:"
-  echo "<%= iris_compare %>"
-  echo ""
+  # ----------------------------------------------------------------------
+  # Workflow code: edit below. Set the form fields first; changing a field afterwards discards these edits.
+  # ----------------------------------------------------------------------
+  cat > "$RUN_DIR/run.py" <<'IRIS_RUN_PY_END'
+<%= entry_code -%>
+  IRIS_RUN_PY_END
 
-  python "$CODE/src/run.py" \
+  python "$RUN_DIR/run.py" \
     --dataset "$DATASET" --run-dir "$RUN_DIR" \
     --experiment "#{:experiment}" \
     --epochs #{epochs} --patch-size #{patch_size} --lr #{learning_rate} \
@@ -198,14 +208,7 @@ script: |
     --field walltime=#{time_1}:#{zeropadding(time_2, 2)}:00 \
     --field "job_name=#{:job_name}" --field "mail_events=#{:mail_events}"
 
-  echo ""
-  echo "Done. In a terminal in a Virtual Desktop, view the result with:"
-  <%- if load_iris -%>
-  echo "<%= load_iris %>"
-  <%- end -%>
-  echo "<%= iris_view %> $RUN_DIR"
-  echo "and compare your runs with:"
-  echo "<%= iris_compare %>"
+  iris_done
 
 check: |
   scratch = "/srv/scratch/" + ENV['USER']

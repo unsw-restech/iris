@@ -109,19 +109,56 @@ env_dir_pins() {
 }
 check "one imaging environment across forms and bin/ wrappers" env_dir_pins
 
+# The heredoc opener that carries an imaging form's entry script.
+entry_opener="  cat > \"\$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'"
+
 # Print form lines that break a rule, by top-level section: no heredoc in
-# script: (every line there stays indented), no Ruby #{} in check: (it
-# collides with OpenComposer's own substitution).
+# script: but the one carrying the entry script (every line there stays
+# indented), no Ruby #{} in check: (it collides with OpenComposer's own
+# substitution).
 form_sections() {
     local f
     for f in workflows/*/form.yml.erb; do
-        tr -d '\r' < "$f" | awk -v f="$f" '
+        tr -d '\r' < "$f" | awk -v f="$f" -v opener="$entry_opener" '
             /^[A-Za-z_]+:/ { sec = $1 }
-            sec == "script:" && /<</ { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
+            sec == "script:" && /<</ && $0 != opener { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
             sec == "check:" && /#\{/ { print f ":" NR ": #{} in check: (use + concatenation)" }'
     done
 }
 check "form script: and check: sections" form_sections
+
+# Every imaging form (every form but hello-world) embeds its entry script
+# in script: (ADR-0006): it names the script in entry_script, reads it at
+# render time into entry_code, and puts that between the quoted heredoc
+# opener and IRIS_RUN_PY_END, so the job writes and runs exactly what the
+# pane holds. The script holds no #{ (OpenComposer would substitute a
+# field, or drop the line when the field is empty) and no <% (ERB).
+# tests/bin/test_entry_script.sh runs it on fixture trees.
+embedded_entry_script() {
+    local f d entry
+    for f in workflows/*/form.yml.erb; do
+        d="$(dirname "$f")"
+        [ "$(basename "$d")" = hello-world ] && continue
+        entry="$(tr -d '\r' < "$f" | sed -nE 's/^<%- entry_script = "([^"]+)" -%>$/\1/p' | head -1)"
+        if [ -z "$entry" ] ||
+            ! tr -d '\r' < "$f" | grep -qxF '<%- entry_code = code.empty? ? "" : File.read(File.join(code, entry_script)).gsub(/^(?=.)/, "  ") -%>' ||
+            ! tr -d '\r' < "$f" | awk -v opener="$entry_opener" '
+                /^[A-Za-z_]+:/ { sec = $1 }
+                sec == "script:" && step == 0 && $0 == opener { step = 1; next }
+                step == 1 { step = ($0 == "<%= entry_code -%>") ? 2 : 0; next }
+                step == 2 { if ($0 == "  IRIS_RUN_PY_END") found = 1; step = 0 }
+                END { exit !found }'; then
+            echo "$f: does not embed its entry script (see the microCT form and ADR-0006)"
+            continue
+        fi
+        if [ ! -f "$d/$entry" ]; then
+            echo "$f: no entry script at $d/$entry"
+            continue
+        fi
+        tr -d '\r' < "$d/$entry" | grep -nE '#\{|<%' | sed "s|^|$d/$entry:|; s|\$|  (#{ or <% in an embedded entry script)|"
+    done
+}
+check "imaging forms embed their entry script" embedded_entry_script
 
 # The job runs its own clone's code: CODE comes from @apps_dir, guarded
 # because OpenComposer re-reads the form on submit with @apps_dir unset.
@@ -562,6 +599,8 @@ check "CITATION.cff test" bash tests/bin/test_citation_cff.sh
 check "module paths test" bash tests/bin/test_module_paths.sh
 # The logo and title check, against throwaway trees.
 check "site name test" bash tests/bin/test_site_name.sh
+# The embedded entry script check, against throwaway trees.
+check "entry script test" bash tests/bin/test_entry_script.sh
 # The module command folder check, against throwaway repos.
 check "module command folder test" bash tests/bin/test_module_commands.sh
 
