@@ -148,7 +148,7 @@ The OpenComposer forms reach Katana separately: OpenComposer's `apps_dir` points
 
 IRIS is in a **pilot**. The "Run on Katana" buttons point at the system OnDemand instance (`/pun/sys/OpenComposer/...`), whose workflows only pilot testers (members of `katana_ai_ro`) can reach. At launch, remove every pre-launch notice: the pilot notices in the README and on the landing page, and the line saying proposals open at launch on the contribute page, in step 1 of [From proposal to DOI](#from-proposal-to-doi) and in the proposal form. `bin/check` fails if only some are gone.
 
-The catalogue is **imaging only**, grouped into one section per lab. Each card carries a modality tag and a compute tag; Planned cards are dimmed, labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**, which has no workflows at present. `hello-world` sits outside the catalogue as onboarding.
+The catalogue is **imaging only**, grouped into one section per lab. Each card carries a modality tag and a compute tag; Planned cards are labelled Planned and have no Run button. A card reads Active only in the **Run and verified** tier, and Testing in **Run, browser run pending**, which has no workflows at present. `hello-world` sits outside the catalogue as onboarding.
 
 | Tier | Workflows | What exists |
 |---|---|---|

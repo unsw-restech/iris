@@ -55,7 +55,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 - **No `CLAUDE.md`**, in the repo or in `IRIS_github_pages\`: `AGENTS.md` is the only instructions file (Patrick, 2026-10-26). Claude Code loads it on the first Read of a file in the repo, so read with the Read tool before working through Bash.
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
-- **Planned cards still link to their pages**, keeping the dimmed `.planned` style with no hover lift.
+- **Planned cards still link to their pages**, keeping the `.planned` style: full colour like Active cards, with no hover lift (Patrick, 2026-10-28).
 - **No version tags** on cards: nothing versions a workflow, and each run's `commit.txt` records the code it ran (Patrick, 2026-10-22). A workflow page lists its citable versions by DOI, date and commit, never as a version number (ADR-0002).
 
 **Adding a modality** takes a `.card-domain.<x>` rule in `index.html` and `<span class="card-domain <x>">` as the modality tag on the card. Cards sit in one section per lab (`<div class="lab" id="<x>">`); adding a lab takes a new section, and the lab in each of its pages' breadcrumbs. There is no filter bar or tabs: with this few cards, every lab shows at once.
