@@ -7,6 +7,9 @@ in its run directory and a pointer in /srv/scratch/$USER/iris/run-index/
 with its artifact root, artifacts/, next to it. Each becomes one MLflow run
 named by its job ID, under its experiment, with its params, metrics history
 and tags, and its dataset.json, if it wrote one, as its dataset input.
+A run whose run.json says whether it is an edited run is tagged
+iris.edited (true, false or unknown), and the run.py and run.diff it kept
+are attached as artifacts; a run recorded before edited runs has neither.
 
 Runs with no run.json yet are left for the next import. A run is marked
 complete only once everything is logged; one whose import fails is deleted
@@ -38,6 +41,8 @@ from mlflow.store.tracking.sqlalchemy_store import SqlAlchemyStore  # noqa: E402
 from iris.record import indexed_runs, iris_home, run_index  # noqa: E402
 
 IMPORT_TAG = "iris_import"  # "incomplete" until every value is logged, then "complete"
+EDITED_TAG = "iris.edited"  # whether it is an edited run: true, false or unknown
+CODE_ARTIFACTS = ("run.py", "run.diff")  # the code the run ran and its diff, if it kept them
 PARAMS_TAGS_PER_CALL = 100  # MLflow's caps per log_batch call
 METRICS_PER_CALL = 1000
 STORE = "tracking.db"
@@ -122,6 +127,11 @@ def dataset_input(record):
     ))
 
 
+def edited_value(edited):
+    """run.json's `edited` as the iris.edited tag: true, false or unknown."""
+    return json.dumps(edited) if isinstance(edited, bool) else str(edited)
+
+
 def read_json(path, empty):
     """`path`'s contents, or `empty` if the run ended before writing it."""
     try:
@@ -158,6 +168,11 @@ def replay(client, home, run_dir, record):
                         for epoch in epochs for name, value in metric_values(epoch)], METRICS_PER_CALL)
         if dataset is not None:
             client.log_inputs(run_id, datasets=[dataset_input(dataset)])
+        if "edited" in record:
+            client.set_tag(run_id, EDITED_TAG, edited_value(record["edited"]))
+        for name in CODE_ARTIFACTS:
+            if (run_dir / name).is_file():
+                client.log_artifact(run_id, str(run_dir / name))
         client.set_terminated(run_id, record["status"], int(record["end_time"] * 1000))
         client.set_tag(run_id, IMPORT_TAG, "complete")
     except Exception:

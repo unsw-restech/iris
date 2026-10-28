@@ -6,20 +6,26 @@ A job never opens the tracking store (docs/adr/0001). Instead it writes:
   metrics.json  {"epochs": [{"epoch", "time", <metric>: number or
                 {<class>: number or null}}...], "final": <last epoch>}
   dataset.json  which dataset the run read (iris.dataset)
-  run.json      written last: experiment, job ID, the run's tags (venv,
-                commit, slug, job ID, GPU, queue, run directory) and how
-                the run ended
+  run.diff      written first, by record_edits(): how the run.py this run
+                ran differs from the entry script at the commit in
+                commit.txt; empty for an unedited run
+  run.json      written last: experiment, job ID, whether the run is an
+                edited run, the run's tags (venv, commit, slug, job ID, GPU,
+                queue, run directory) and how the run ended
 
 and then the pointer file /srv/scratch/$USER/iris/run-index/<job ID>, one
 line naming the run directory ($IRIS_HOME replaces /srv/scratch/$USER/iris
-in tests). Every file is written atomically. Only dataset.json, run.json
-and the pointer can fail without failing the run: they warn instead.
+in tests). Every file is written atomically. Only dataset.json, run.diff,
+run.json and the pointer can fail without failing the run: they warn
+instead.
 
-    with RunRecord(run_dir, experiment, code_dir) as record:
+    edited = record_edits(run_dir, __file__, code_dir, "src/run.py")
+    with RunRecord(run_dir, experiment, code_dir, edited=edited) as record:
         record.write_params(params)
         record.log_epoch(1, train_loss=0.4, dice={"1": 0.9})
 """
 
+import difflib
 import json
 import os
 import signal
@@ -66,6 +72,44 @@ def write_json(path, obj):
     write_atomic(path, json.dumps(obj, indent=2) + "\n")
 
 
+def record_edits(run_dir, script, code_dir, entry):
+    """Compare `script`, the entry script this run is running, with `entry`
+    (a path in `code_dir`, such as src/run.py) at the commit in
+    run_dir/commit.txt. Writes the unified diff to run_dir/run.diff, empty
+    for an unedited run, prints it, and returns whether the run is edited:
+    True, False, or "unknown" when there is no commit to compare with. That
+    only warns: the run goes on, and run.diff is not written."""
+    run_dir = Path(run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        commit = (run_dir / "commit.txt").read_text().strip()
+        if not commit:
+            raise ValueError("commit.txt is empty")
+        committed = _git(code_dir, "show", f"{commit}:./{entry}")
+        path = _git(code_dir, "rev-parse", "--show-prefix").strip() + entry
+    except (OSError, ValueError, subprocess.CalledProcessError) as e:
+        detail = e.stderr.strip() if isinstance(e, subprocess.CalledProcessError) else e
+        print(f"WARNING: could not compare run.py with {entry} at the commit this run recorded, "
+              f"so whether it was edited is unknown: {detail}", file=sys.stderr)
+        return "unknown"
+    diff = "".join(difflib.unified_diff(
+        committed.splitlines(keepends=True), Path(script).read_text().splitlines(keepends=True),
+        f"a/{path}", f"b/{path}"))
+    try:
+        write_atomic(run_dir / "run.diff", diff)
+    except OSError as e:
+        print(f"WARNING: could not write {run_dir / 'run.diff'}: {e}", file=sys.stderr)
+    if diff:
+        print(f"EDITED RUN: run.py differs from {entry} at commit {commit}:\n{diff}", flush=True)
+    else:
+        print(f"run.py is {entry} at commit {commit}, unedited.", flush=True)
+    return bool(diff)
+
+
+def _git(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True).stdout
+
+
 class Killed(BaseException):
     """PBS sent SIGTERM: the walltime ran out or the job was deleted."""
 
@@ -76,14 +120,17 @@ def _on_sigterm(signum, frame):
 
 class RunRecord:
     """One run's record. Use it as a context manager around the run: on exit
-    it writes run.json with how the run ended, then the pointer file."""
+    it writes run.json with how the run ended, then the pointer file.
+    `edited` is what record_edits() returned; left None, run.json has no
+    `edited` field."""
 
-    def __init__(self, run_dir, experiment, code_dir, tags=None):
+    def __init__(self, run_dir, experiment, code_dir, tags=None, edited=None):
         self.run_dir = Path(run_dir).resolve()
         self.experiment = experiment
         self.code_dir = Path(code_dir)
         self.job_id = job_id() or self.run_dir.name
         self.tags = dict(tags or {})
+        self.edited = edited
         self.epochs = []
 
     def __enter__(self):
@@ -166,6 +213,8 @@ class RunRecord:
             "end_time": time.time(),
             "tags": self.run_tags(),
         }
+        if self.edited is not None:
+            run["edited"] = self.edited
         write_json(self.run_dir / "run.json", run)
 
     def write_pointer(self):
