@@ -64,6 +64,9 @@ grep -qF 'mktemp -d "/srv/scratch/$USER/' "$fake/args" || fail "doesn't make its
 grep -qF 'trap' "$fake/args" && grep -qF 'rm -rf "$d"' "$fake/args" || fail "doesn't delete its folder on exit"
 grep -qF 'workflows/*/tests/test_form.rb' "$fake/args" || fail "doesn't run the form tests"
 grep -qF 'module/tests/test_module.sh' "$fake/args" || fail "doesn't run the module test"
+grep -qF 'git init -q' "$fake/args" || fail "doesn't make the tree a repo for the job-library test"
+grep -qF 'tests/katana/job_lib.pbs' "$fake/args" || fail "doesn't submit the job-library test"
+grep -qF 'qsub -W block=true -m abe' "$fake/args" || fail "doesn't wait on the job-library test, with -m abe"
 
 # A failing test on Katana fails the script.
 echo 1 > "$fake/exit-code"

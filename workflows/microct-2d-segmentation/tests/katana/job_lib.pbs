@@ -6,7 +6,7 @@
 #PBS -j oe
 # test_job_lib needs Katana's modules. T is the scratch test folder holding
 # the copy of the tree in T/iris (docs/agents/katana-test-run.md). 5 tests
-# took 11 s (job 9571402).
+# took 11 s (job 9571402). bin/katana-test submits it; by hand:
 #
 #   qsub -m abe -v T=/srv/scratch/$USER/iris-test-<n>,PYTHONUNBUFFERED=1 job_lib.pbs
 ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
@@ -14,4 +14,6 @@ ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
 echo "host $(hostname) $(date +%T)"
 cd "${T:?pass T=<scratch test folder> with qsub -v}/iris/workflows/microct-2d-segmentation/tests" || exit 1
 "$ENV_DIR/bin/python" -X faulthandler -m unittest -v test_job_lib 2>&1
-echo "exit $? $(date +%T)"
+s=$?
+echo "exit $s $(date +%T)"
+exit $s

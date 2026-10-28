@@ -1,8 +1,14 @@
 #!/bin/bash
-# Run the tests that only run on Katana, every form test and the module
-# test, on this clone's tracked files, uncommitted edits included. The tree
-# goes to a folder of its own in /srv/scratch/$USER, deleted when the run
-# ends, so no clone on Katana is touched and nothing is left behind.
+# Run the tests that only run on Katana, every form test, the module test
+# and each workflow's job-library test, on this clone's tracked files,
+# uncommitted edits included. No push needed: run it from any clone or
+# worktree before committing. The tree goes to a folder of its own in
+# /srv/scratch/$USER, deleted when the run ends, so no clone on Katana is
+# touched and nothing is left behind.
+#
+# The job-library test needs Katana's modules, so it runs as a small PBS
+# job (tests/katana/job_lib.pbs: 1 CPU, 4 GB, 10 min) that qsub -W block
+# waits for, queue time included, keeping the login node light.
 #
 #   bin/katana-test
 #
@@ -26,11 +32,20 @@ echo "Testing ${tree:+uncommitted edits on }$(git log -1 --format='%h %s') on Ka
 git archive --format=tar "${tree:-HEAD}" | ssh katana '
     d=$(mktemp -d "/srv/scratch/$USER/katana-test.XXXXXX") || exit 1
     trap '\''chmod -R u+rwx "$d"; rm -rf "$d"'\'' EXIT
-    cd "$d" && tar xf - || exit 1
+    mkdir "$d/iris" && cd "$d/iris" && tar xf - || exit 1
+    # The job library records the clone'\''s commit, so the tree is a repo.
+    git init -q && git add -A && git -c user.name=katana-test -c user.email=- commit -qm tree || exit 1
     . /etc/profile.d/modules.sh && module load ruby/3.2.0 || exit 1
     s=0
     for t in workflows/*/tests/test_form.rb; do
         echo "== $t"; ruby "$t" || s=1
     done
     echo "== module/tests/test_module.sh"; bash module/tests/test_module.sh || s=1
+    for j in workflows/*/tests/katana/job_lib.pbs; do
+        [ -e "$j" ] || continue
+        echo "== $j"
+        qsub -W block=true -m abe -j oe -o "$d/job_lib.log" \
+            -v "T=$d,PYTHONUNBUFFERED=1" "$j" || s=1
+        cat "$d/job_lib.log"
+    done
     exit $s'
