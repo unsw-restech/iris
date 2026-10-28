@@ -17,7 +17,8 @@ body::before {
     linear-gradient(90deg, rgba(74,143,212,0.03) 1px, transparent 1px);
   background-size: 48px 48px; pointer-events: none; z-index: 0;
 }
-nav {
+/* The top bar: body > nav, so a <nav> inside a page stays in the flow. */
+body > nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 48px; height: 64px;
@@ -129,7 +130,8 @@ code { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--blue2); 
 .col h3 { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 10px; }
 .col p { font-size: 14px; line-height: 1.6; color: var(--muted); margin-bottom: 10px; }
 .col p:last-child { margin-bottom: 0; }
-.col a, details a, .prose a, .run-note a, .wf-owner a { color: var(--blue2); }
+/* Text links; a .run-btn keeps its white text wherever it sits. */
+:is(.col, details, .prose, .run-note, .wf-owner) a:not(.run-btn) { color: var(--blue2); }
 /* Expandable sections. */
 details { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 20px; margin-bottom: 10px; }
 details summary { cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: #fff; }
@@ -157,8 +159,6 @@ h3.sub { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; col
 .section-step { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
 .guide-section h2 { font-size: 28px; font-weight: 800; margin: 0 0 16px; border-top: none; padding-top: 0; }
 .guide-section h3.sub { font-size: 20px; margin: 32px 0 12px; }
-/* A Run-style button in prose keeps its white text, not the prose link colour. */
-.prose a.run-btn { color: #fff; }
 /* A dataset folder layout. */
 .tree {
   background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
@@ -175,7 +175,7 @@ footer {
 footer a { color: var(--muted); text-decoration: none; }
 footer a:hover { color: var(--blue2); }
 @media (max-width: 768px) {
-  nav { padding: 0 20px; }
+  body > nav { padding: 0 20px; }
   .page { padding: 90px 20px 60px; }
   .meta-grid { grid-template-columns: 1fr; }
   .launch, .cols { grid-template-columns: 1fr; }
