@@ -121,10 +121,35 @@ class RenderTimeCommit(unittest.TestCase):
         self.assertIn("WARNING", result.stderr)
         self.assertIn(head(), result.stderr)
 
-    def test_with_no_render_time_commit_the_clone_commit_at_job_start_is_recorded(self):
-        _, files = self.run_with("")
+    def test_with_no_render_time_commit_the_clone_commit_at_job_start_is_recorded_with_a_warning(self):
+        result, files = self.run_with("")
         self.assertEqual(files["commit.txt"], head())
         self.assertNotIn("lib_commit.txt", files)
+        self.assertIn("WARNING", result.stderr)
+        self.assertIn("edited is unknown", result.stderr)
+
+
+@unittest.skipUnless(ON_KATANA, "needs Katana's module system")
+class RecordEdits(unittest.TestCase):
+    """iris_record_edits, which the script calls between writing run.py and
+    running it, so a run.py Python cannot even parse leaves its diff."""
+
+    def test_a_run_py_with_a_syntax_error_leaves_run_py_and_run_diff_and_fails_the_job(self):
+        broken = (WORKFLOW / "src" / "run.py").read_text() + "def broken(:\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp, "dataset", "runs", "1")
+            script = Path(tmp, "run.py")
+            script.write_text(broken)
+            result = source_job_lib(sys.prefix, run_dir, commit=head(), then=(
+                f'cp "{script}" "$RUN_DIR/run.py"\n'
+                'iris_record_edits src/run.py\n'
+                'python "$RUN_DIR/run.py" --help'))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("SyntaxError", result.stderr)
+            self.assertEqual((run_dir / "run.py").read_text(), broken)
+            self.assertIn("+def broken(:\n", (run_dir / "run.diff").read_text())
+            self.assertIn("EDITED RUN", result.stdout)
+            self.assertIn("+def broken(:\n", result.stdout)
 
 
 @unittest.skipUnless(ON_KATANA, "needs Katana's module system")

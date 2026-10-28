@@ -131,9 +131,10 @@ check "form script: and check: sections" form_sections
 # in script: (ADR-0006): it names the script in entry_script, reads it at
 # render time into entry_code, and puts that between the quoted heredoc
 # opener and IRIS_RUN_PY_END, so the job writes and runs exactly what the
-# pane holds. The script holds no #{ (OpenComposer would substitute a
-# field, or drop the line when the field is empty) and no <% (ERB).
-# tests/bin/test_entry_script.sh runs it on fixture trees.
+# pane holds. The next line runs iris_record_edits, so run.diff exists even
+# if Python cannot start run.py. The script holds no #{ (OpenComposer would
+# substitute a field, or drop the line when the field is empty) and no <%
+# (ERB). tests/bin/test_entry_script.sh runs it on fixture trees.
 embedded_entry_script() {
     local f d entry
     for f in workflows/*/form.yml.erb; do
@@ -146,9 +147,10 @@ embedded_entry_script() {
                 /^[A-Za-z_]+:/ { sec = $1 }
                 sec == "script:" && step == 0 && $0 == opener { step = 1; next }
                 step == 1 { step = ($0 == "<%= entry_code -%>") ? 2 : 0; next }
-                step == 2 { if ($0 == "  IRIS_RUN_PY_END") found = 1; step = 0 }
+                step == 2 { step = ($0 == "  IRIS_RUN_PY_END") ? 3 : 0; next }
+                step == 3 { if ($0 == "  iris_record_edits <%= entry_script %>") found = 1; step = 0 }
                 END { exit !found }'; then
-            echo "$f: does not embed its entry script (see the microCT form and ADR-0006)"
+            echo "$f: does not embed its entry script and then run iris_record_edits (see the microCT form and ADR-0006)"
             continue
         fi
         if [ ! -f "$d/$entry" ]; then

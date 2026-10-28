@@ -6,12 +6,14 @@ A job never opens the tracking store (docs/adr/0001). Instead it writes:
   metrics.json  {"epochs": [{"epoch", "time", <metric>: number or
                 {<class>: number or null}}...], "final": <last epoch>}
   dataset.json  which dataset the run read (iris.dataset)
-  run.diff      written first, by record_edits(): how the run.py this run
-                ran differs from the entry script at the commit in
-                commit.txt; empty for an unedited run
+  run.diff      written before Python runs run.py, by record_edits(): how
+                the run.py the job wrote differs from the entry script at
+                the commit the form rendered from; empty for an unedited
+                run, absent if there was no commit to compare with
   run.json      written last: experiment, job ID, whether the run is an
-                edited run, the run's tags (venv, commit, slug, job ID, GPU,
-                queue, run directory) and how the run ended
+                edited run (from run.diff), the run's tags (venv, commit,
+                lib_commit if the clone moved, slug, job ID, GPU, queue,
+                run directory) and how the run ended
 
 and then the pointer file /srv/scratch/$USER/iris/run-index/<job ID>, one
 line naming the run directory ($IRIS_HOME replaces /srv/scratch/$USER/iris
@@ -19,8 +21,14 @@ in tests). Every file is written atomically. Only dataset.json, run.diff,
 run.json and the pointer can fail without failing the run: they warn
 instead.
 
-    edited = record_edits(run_dir, __file__, code_dir, "src/run.py")
-    with RunRecord(run_dir, experiment, code_dir, edited=edited) as record:
+lib/iris-job.sh's iris_record_edits runs record_edits() in a Python of its
+own, so a run.py that cannot even start still leaves run.diff:
+
+    python -m iris.record <run dir> <workflow folder> src/run.py <commit>
+
+and the entry script then records the run:
+
+    with RunRecord(run_dir, experiment, code_dir) as record:
         record.write_params(params)
         record.log_epoch(1, train_loss=0.4, dice={"1": 0.9})
 """
@@ -72,38 +80,50 @@ def write_json(path, obj):
     write_atomic(path, json.dumps(obj, indent=2) + "\n")
 
 
-def record_edits(run_dir, script, code_dir, entry):
-    """Compare `script`, the entry script this run is running, with `entry`
-    (a path in `code_dir`, such as src/run.py) at the commit in
-    run_dir/commit.txt. Writes the unified diff to run_dir/run.diff, empty
-    for an unedited run, prints it, and returns whether the run is edited:
-    True, False, or "unknown" when there is no commit to compare with. That
-    only warns: the run goes on, and run.diff is not written."""
+def record_edits(run_dir, code_dir, entry, commit):
+    """Compare run_dir/run.py, which the job wrote from the form's script
+    pane, with `entry` (a path in `code_dir`, such as src/run.py) at
+    `commit`, the clone's commit when the form rendered. Writes the unified
+    diff to run_dir/run.diff, empty for an unedited run, and prints it.
+    A record step: with no commit, or one git cannot read, it warns that
+    whether the run is edited is unknown and writes no run.diff; it never
+    raises."""
     run_dir = Path(run_dir)
-    run_dir.mkdir(parents=True, exist_ok=True)
     try:
-        commit = (run_dir / "commit.txt").read_text().strip()
         if not commit:
-            raise ValueError("commit.txt is empty")
+            raise ValueError("the form recorded no commit")
         committed = _git(code_dir, "show", f"{commit}:./{entry}")
         path = _git(code_dir, "rev-parse", "--show-prefix").strip() + entry
-    except (OSError, ValueError, subprocess.CalledProcessError) as e:
+        diff = "".join(difflib.unified_diff(
+            committed.splitlines(keepends=True), (run_dir / "run.py").read_text().splitlines(keepends=True),
+            f"a/{path}", f"b/{path}"))
+    except Exception as e:  # noqa: BLE001 - the record must never fail the run
         detail = e.stderr.strip() if isinstance(e, subprocess.CalledProcessError) else e
-        print(f"WARNING: could not compare run.py with {entry} at the commit this run recorded, "
-              f"so whether it was edited is unknown: {detail}", file=sys.stderr)
-        return "unknown"
-    diff = "".join(difflib.unified_diff(
-        committed.splitlines(keepends=True), Path(script).read_text().splitlines(keepends=True),
-        f"a/{path}", f"b/{path}"))
+        print(f"WARNING: could not compare run.py with {entry} at the commit the form was opened at, "
+              f"so whether this run is edited is unknown: {detail}", file=sys.stderr)
+        return
     try:
         write_atomic(run_dir / "run.diff", diff)
     except OSError as e:
-        print(f"WARNING: could not write {run_dir / 'run.diff'}: {e}", file=sys.stderr)
+        print(f"WARNING: could not write {run_dir / 'run.diff'}, so whether this run is edited "
+              f"is unknown: {e}", file=sys.stderr)
     if diff:
-        print(f"EDITED RUN: run.py differs from {entry} at commit {commit}:\n{diff}", flush=True)
+        print(f"EDITED RUN: the workflow code in this job's script was edited on the form, or restored "
+              f"with its edits by Load parameters, so run.py differs from {entry} at commit {commit}. "
+              f"To change a field for another run, set the form's fields first and edit the code last: "
+              f"changing a field rewrites the script and discards the edits. The edits, also in run.diff:\n"
+              f"{diff}", flush=True)
     else:
         print(f"run.py is {entry} at commit {commit}, unedited.", flush=True)
-    return bool(diff)
+
+
+def edited(run_dir):
+    """Whether the run is an edited run, from the run.diff record_edits()
+    left: True or False, or "unknown" with no run.diff to read."""
+    try:
+        return bool((Path(run_dir) / "run.diff").read_text())
+    except OSError:
+        return "unknown"
 
 
 def _git(repo, *args):
@@ -120,17 +140,14 @@ def _on_sigterm(signum, frame):
 
 class RunRecord:
     """One run's record. Use it as a context manager around the run: on exit
-    it writes run.json with how the run ended, then the pointer file.
-    `edited` is what record_edits() returned; left None, run.json has no
-    `edited` field."""
+    it writes run.json with how the run ended, then the pointer file."""
 
-    def __init__(self, run_dir, experiment, code_dir, tags=None, edited=None):
+    def __init__(self, run_dir, experiment, code_dir, tags=None):
         self.run_dir = Path(run_dir).resolve()
         self.experiment = experiment
         self.code_dir = Path(code_dir)
         self.job_id = job_id() or self.run_dir.name
         self.tags = dict(tags or {})
-        self.edited = edited
         self.epochs = []
 
     def __enter__(self):
@@ -184,15 +201,18 @@ class RunRecord:
             return None
 
     def run_tags(self):
-        return {
+        tags = {
             "slug": self.code_dir.name,
             "job_id": self.job_id,
             "commit": self._commit(),
             "venv": sys.prefix,
             "queue": os.environ.get("PBS_QUEUE", "none"),
             "run_dir": str(self.run_dir),
-            **self.tags,
         }
+        moved = self.run_dir / "lib_commit.txt"  # written by lib/iris-job.sh if the clone moved
+        if moved.exists():
+            tags["lib_commit"] = moved.read_text().strip()
+        return {**tags, **self.tags}
 
     def _commit(self):
         recorded = self.run_dir / "commit.txt"  # written by lib/iris-job.sh
@@ -212,12 +232,15 @@ class RunRecord:
             "start_time": self.start_time,
             "end_time": time.time(),
             "tags": self.run_tags(),
+            "edited": edited(self.run_dir),
         }
-        if self.edited is not None:
-            run["edited"] = self.edited
         write_json(self.run_dir / "run.json", run)
 
     def write_pointer(self):
         index = run_index(iris_home())
         index.mkdir(parents=True, exist_ok=True)
         write_atomic(index / self.job_id, str(self.run_dir) + "\n")
+
+
+if __name__ == "__main__":
+    record_edits(*sys.argv[1:5])  # run dir, workflow folder, entry script, commit

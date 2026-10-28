@@ -100,7 +100,7 @@
     <ul>
       <li><strong>Set the fields first and edit the code last.</strong> Changing a field after editing rewrites the whole pane and discards your edits. The form warns you first, so you can cancel, but after it refuses to submit that warning no longer appears: your edits are kept, and the next field change discards them without asking.</li>
       <li><strong>To rerun an edited run</strong>, use <strong>Load parameters</strong> in the form's job history: it restores the fields and your edited code, and the job output says the run is edited.</li>
-      <li>Every run directory keeps the code its run ran as <code>run.py</code> and your changes as <code>run.diff</code>, written before the code starts, so a run that crashes still shows them. The job output prints the diff near the top.</li>
+      <li>Every run directory keeps the code its run ran as <code>run.py</code>, and your changes as <code>run.diff</code>. The job writes both and prints the diff near the top of its output before the code starts, so a run whose code crashes, even one Python cannot read, still shows them. In the rare case the job cannot tell which commit the form showed, it warns, writes no <code>run.diff</code>, and <code>run.json</code> records that whether the run is edited is unknown.</li>
     </ul>
   </details>
 
@@ -118,7 +118,8 @@
         <tr><td><code>run.json</code></td><td>The experiment, job ID, how the run ended and whether it is an edited run</td></tr>
         <tr><td><code>commit.txt</code></td><td>The IRIS commit that ran, as the form showed it</td></tr>
         <tr><td><code>run.py</code></td><td>The workflow code the run ran, as submitted from the form</td></tr>
-        <tr><td><code>run.diff</code></td><td>Your changes to that code against the commit in <code>commit.txt</code>; empty unless the run is edited</td></tr>
+        <tr><td><code>run.diff</code></td><td>Your changes to that code against the commit in <code>commit.txt</code>; empty unless the run is edited, and missing if the job could not tell which commit the form showed</td></tr>
+        <tr><td><code>lib_commit.txt</code></td><td>Only if IRIS was updated between opening the form and the job starting: the commit of the IRIS code outside the pane that the run used</td></tr>
       </tbody>
     </table>
     <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. When the job succeeds, the output ends with the commands to run in a terminal in a Virtual Desktop: <code>module load iris</code>, then <code>iris-view</code> with the run directory, which shows the label volume over your volume in napari, and <code>iris-compare</code>, which opens your runs in MLflow. Fiji and ParaView open the label volume too. The <a href="../../guide/#view">guide</a> covers the Virtual Desktop to start, all four, and copying a run directory home.</p>
