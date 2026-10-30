@@ -348,6 +348,37 @@ card_status() {
 }
 check "card status matches the CONTRIBUTING tier table" card_status
 
+# The catalogue groups cards by lab: each card sits in a
+# <div class="lab" id="<lab>"> section, which ends at the </div> indented
+# as its opening tag, and its page's breadcrumb links that section
+# (../../#<lab>).
+# tests/bin/test_lab_sections.sh runs it on fixture trees.
+lab_sections() {
+    local cards slug lab
+    cards=$(tr -d '\r' < index.html | awk '
+        lab != "" && $0 == lab_end { lab = "" }
+        /class="lab[" ]/ {
+            lab_end = $0; sub(/<.*/, "</div>", lab_end)
+            lab = $0
+            if (!sub(/.* id="/, "", lab)) { print "index.html:" NR ": a lab section with no id"; lab = "?" }
+            else sub(/".*/, "", lab)
+        }
+        match($0, /href="workflows\/[a-z0-9-]+\/" class="workflow-card/) {
+            slug = $0; sub(/.*href="workflows\//, "", slug); sub(/\/".*/, "", slug)
+            if (lab == "") print "index.html:" NR ": " slug "'"'"'s card is outside every lab section"
+            else print "card", slug, lab
+        }')
+    grep -v '^card ' <<< "$cards" | grep .
+    grep '^card ' <<< "$cards" | while read -r _ slug lab; do
+        [ "$lab" = "?" ] && continue
+        [ -f "workflows/$slug/index.html" ] &&
+            tr -d '\r' < "workflows/$slug/index.html" | grep 'class="breadcrumb"' |
+            grep -qF "href=\"../../#$lab\"" ||
+            echo "workflows/$slug/index.html: the breadcrumb doesn't link its card's lab (../../#$lab)"
+    done
+}
+check "cards sit in a lab section their page's breadcrumb links" lab_sections
+
 # Run and verified means a real job ran from a clone (#53: two forms sat in
 # this tier without one), so a line outside the table cites a job for each
 # of them: "`<slug>`", then "(job <ID>" with no backtick between. A renamed
@@ -589,6 +620,8 @@ check "attribution test" bash tests/bin/test_attribution.sh
 check "conflict-list test" bash tests/bin/test_conflict_lists.sh
 # The unmaintained-workflow check, against throwaway site trees.
 check "unmaintained-workflow test" bash tests/bin/test_unmaintained.sh
+# The lab-section check, against throwaway site trees.
+check "lab-section test" bash tests/bin/test_lab_sections.sh
 # The pre-launch pairing, against copies of the site.
 check "pre-launch pairing test" bash tests/bin/test_prelaunch.sh
 # The workflow-owner check, against throwaway repo trees.

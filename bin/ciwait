@@ -1,6 +1,8 @@
 #!/bin/bash
 # Wait for the `check` CI run of one pushed commit, then show how it ended,
-# with the failed steps' log if it failed.
+# with the failed steps' log if it failed. The last line is the verdict,
+# "ciwait: check <sha> passed" or "... failed (run <id>)", so a tail of the
+# output still carries it.
 #
 #   bin/ciwait [<commit>]        (default HEAD)
 #
@@ -33,5 +35,8 @@ gh run view "$id"
 if [ $status -ne 0 ]; then
     gh run view "$id" --log-failed | cut -f3- | sed 's/^\xEF\xBB\xBF//; s/^[0-9T:.-]*Z //' | tail -40
     status=1
+    echo "ciwait: check ${sha:0:7} failed (run $id)"
+else
+    echo "ciwait: check ${sha:0:7} passed"
 fi
 exit $status
