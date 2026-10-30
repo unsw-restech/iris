@@ -68,6 +68,10 @@ _Avoid_: Demo, example workflow
 The OpenComposer definition of a workflow on Katana OnDemand, where the researcher sets parameters and submits.
 _Avoid_: App, template
 
+**Imaging form**:
+A form whose script carries its workflow's entry script, so a researcher can edit it for one run, and runs it in an environment. The `hello-world` form is not one.
+_Avoid_: Python form, real form
+
 **Two-click launch**:
 The path from catalogue to running job: one click on the workflow's IRIS page, one click to submit its form.
 _Avoid_: One-click run
