@@ -16,11 +16,9 @@ trap 'rm -rf "$scratch"' EXIT
 # $scratch/<name> whose one workflow page holds that cite block.
 page() {
     local tree="$scratch/$2"
-    mkdir -p "$tree/bin" "$tree/workflows/some-workflow"
-    cp bin/check "$tree/bin/check"
-    printf '%s\n' '<div class="page">' '  <h1 class="wf-title">Some workflow</h1>' \
-        '  <details id="cite">' '    <summary>Cite this workflow</summary>' \
-        "$3" '  </details>' '</div>' > "$tree/workflows/some-workflow/index.html"
+    site_tree "$tree" some-workflow:ct-lab:active
+    printf '%s\n' '  <details id="cite">' '    <summary>Cite this workflow</summary>' \
+        "$3" '  </details>' >> "$tree/workflows/some-workflow/index.html"
     expect "$1" "$scratch/$2" "citable versions on"
 }
 

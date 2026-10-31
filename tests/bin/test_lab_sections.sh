@@ -12,46 +12,24 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
-# make_tree <name> [<flag>...]: a site in $scratch/<name> with two labs,
-# ct-lab holding seg and mr-lab holding tumour, each page's breadcrumb
-# linking its lab. Each flag breaks one part.
-make_tree() {
-    local tree="$scratch/$1" flag ct_open='<div class="lab" id="ct-lab">' tumour_lab=mr-lab outside="" after=""
-    shift
-    for flag in "$@"; do
-        case "$flag" in
-            no-id) ct_open='<div class="lab">' ;;
-            wrong-crumb) tumour_lab=ct-lab ;;
-            outside) outside='    <a href="workflows/seg/" class="workflow-card">Seg</a>' ;;
-            after-last) after='    <a href="workflows/seg/" class="workflow-card">Seg</a>' ;;
-        esac
-    done
-    mkdir -p "$tree/bin" "$tree/workflows/seg" "$tree/workflows/tumour"
-    cp bin/check "$tree/bin/check"
-    printf '%s\n' '<section id="workflows">' "$outside" "  $ct_open" \
-        '    <a href="workflows/seg/" class="workflow-card">Seg</a>' '  </div>' \
-        '  <div class="lab" id="mr-lab">' \
-        '    <a href="workflows/tumour/" class="workflow-card planned">Tumour</a>' '  </div>' \
-        "$after" '</section>' > "$tree/index.html"
-    echo '<div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#ct-lab">CT</a> / Seg</div>' \
-        > "$tree/workflows/seg/index.html"
-    echo "<div class=\"breadcrumb\"><a href=\"../../\">IRIS</a> / <a href=\"../../#$tumour_lab\">MR</a> / Tumour</div>" \
-        > "$tree/workflows/tumour/index.html"
-    [[ " $* " != *" no-page "* ]] || rm "$tree/workflows/tumour/index.html"
-}
+card='    <a href="workflows/seg/" class="workflow-card">Seg</a>'
 
-# labs <pass|fail> <name> [<flag>...]: the check over a tree built with
-# those flags.
+# labs <pass|fail> <name> [<sed script> <file>]: the check over a site with
+# two labs, ct-lab holding seg and mr-lab holding tumour, with the sed
+# script applied to <file>.
 labs() {
-    local want="$1" name="$2"
-    shift 2
-    make_tree "$name" "$@"
-    expect "$want" "$scratch/$name" "cards sit in a lab section"
+    local want="$1" tree="$scratch/$2"
+    site_tree "$tree" seg:ct-lab:active tumour:mr-lab:planned
+    [ $# -lt 4 ] || sed -i "$3" "$tree/$4"
+    expect "$want" "$tree" "cards sit in a lab section"
 }
 
 labs pass grouped
-labs fail no-id no-id
-labs fail wrong-crumb wrong-crumb
-labs fail outside outside
-labs fail after-last after-last
-labs fail no-page no-page
+labs fail no-id 's/<div class="lab" id="ct-lab">/<div class="lab">/' index.html
+labs fail wrong-crumb 's/#mr-lab/#ct-lab/' workflows/tumour/index.html
+labs fail outside "/<section id=\"workflows\">/a\\$card" index.html
+labs fail after-last "/<\\/section>/i\\$card" index.html
+
+site_tree "$scratch/no-page" seg:ct-lab:active tumour:mr-lab:planned
+rm "$scratch/no-page/workflows/tumour/index.html"
+expect fail "$scratch/no-page" "cards sit in a lab section"

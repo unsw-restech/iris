@@ -43,18 +43,17 @@ form() {
 # guide and README, and the wrappers' full paths in maintainer text.
 make_tree() {
     local tree="$scratch/$1"
-    mkdir -p "$tree/bin" "$tree/guide" "$tree/workflows/seg" "$tree/_archive/old"
-    cp bin/check "$tree/bin/check"
+    site_tree "$tree" seg:ct-lab:active
+    mkdir -p "$tree/_archive/old"
     printf '%s\n' '<p>Run <code>module load iris</code>, then <code>iris-view</code>.</p>' \
-        "<p>If it is lost, run <code>$full/iris-rebuild</code>.</p>" > "$tree/guide/index.html"
-    echo '<p>Run <code>iris-compare</code>.</p>' > "$tree/workflows/seg/index.html"
+        "<p>If it is lost, run <code>$full/iris-rebuild</code>.</p>" >> "$tree/guide/index.html"
+    echo '<p>Run <code>iris-compare</code>.</p>' >> "$tree/workflows/seg/index.html"
     form > "$tree/workflows/seg/form.yml.erb"
-    printf '%s\n' '| `bin/` | `module load iris` gives you `iris-view` and `iris-compare`.' \
-        "If your tracking store is lost, \`$full/iris-rebuild\` rebuilds it |" > "$tree/README.md"
-    printf '%s\n' '├── bin/' '│   ├── iris-view    # bin/iris-view, the wrapper' > "$tree/CONTRIBUTING.md"
+    printf '%s\n' '| `module/bin/` | `module load iris` gives you `iris-view` and `iris-compare`.' \
+        "If your tracking store is lost, \`$full/iris-rebuild\` rebuilds it |" >> "$tree/README.md"
+    printf '%s\n' '├── bin/' '│   ├── iris-view    # bin/iris-view, the wrapper' >> "$tree/CONTRIBUTING.md"
     printf '%s\n' '#!/bin/bash' '# bin/iris-compare runs the importer first.' > "$tree/bin/iris-import"
     echo "help: \"run $full/iris-compare\"" > "$tree/_archive/old/form.yml.erb"
-    git init -q "$tree"
 }
 
 # site <pass|fail> <name> [<file> <line>]: the check over a tree from

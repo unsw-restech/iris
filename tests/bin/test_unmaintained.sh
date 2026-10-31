@@ -13,39 +13,34 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
+run_button() {
+    echo "  <a href=\"https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/$1\" class=\"run-btn\" target=\"_blank\">Run on Katana</a>"
+}
+
 # make_tree <name> [<flag>...]: a site in $scratch/<name> with two
 # workflows: live-seg, in service, and old-seg, wholly demoted to
 # Unmaintained. Each flag leaves one step of the demotion undone.
 make_tree() {
-    local tree="$scratch/$1" flag card="" run="" form=archive row='`old-seg` (microCT)' owners=""
-    local banner='  <div class="unmaintained-banner"><strong>Unmaintained.</strong> This workflow cannot be run.</div>'
+    local tree="$scratch/$1" flag form=_archive
     shift
+    site_tree "$tree" live-seg:ct-lab:active old-seg:ct-lab:unmaintained
+    run_button live-seg >> "$tree/workflows/live-seg/index.html"
+    echo 'title: Live seg' > "$tree/workflows/live-seg/form.yml.erb"
+    mkdir -p "$tree/.github"
+    echo '/workflows/live-seg/ @jdoe' > "$tree/.github/CODEOWNERS"
     for flag in "$@"; do
         case "$flag" in
-            tier-row) row=None ;;
-            codeowners-line) owners='/workflows/old-seg/ @jdoe' ;;
-            banner) banner='  <h1 class="wf-title">Old seg</h1>' ;;
-            card) card='    <a href="workflows/old-seg/" class="workflow-card">Old seg</a>' ;;
-            run-button) run='  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/old-seg" class="run-btn" target="_blank">Run on Katana</a>' ;;
+            tier-row) sed -i '/^| \*\*Unmaintained\*\*/d' "$tree/CONTRIBUTING.md" ;;
+            codeowners-line) echo '/workflows/old-seg/ @jdoe' >> "$tree/.github/CODEOWNERS" ;;
+            banner) sed -i '/unmaintained-banner/d' "$tree/workflows/old-seg/index.html" ;;
+            card) sed -i '/^  <\/div>/i\    <a href="workflows/old-seg/" class="workflow-card">Old seg</a>' "$tree/index.html" ;;
+            run-button) run_button old-seg >> "$tree/workflows/old-seg/index.html" ;;
             form-in-place) form=workflows ;;
+            page) rm "$tree/workflows/old-seg/index.html" ;;
         esac
     done
-    mkdir -p "$tree/bin" "$tree/.github" "$tree/workflows/old-seg" "$tree/workflows/live-seg" "$tree/$form/old-seg"
-    cp bin/check "$tree/bin/check"
-    printf '%s\n' '| Tier | Workflows | What exists |' '|---|---|---|' \
-        '| **Run and verified** | `live-seg` (microCT) | Page, form, job script |' \
-        "| **Unmaintained** | $row | Page only, with the banner |" > "$tree/CONTRIBUTING.md"
-    printf '%s\n' '<div class="grid">' \
-        '    <a href="workflows/live-seg/" class="workflow-card">Live seg</a>' \
-        "$card" '</div>' > "$tree/index.html"
-    printf '%s\n' '<div class="page">' "$banner" "$run" '</div>' > "$tree/workflows/old-seg/index.html"
-    printf '%s\n' '<div class="page">' \
-        '  <a href="https://kod.restech.unsw.edu.au/pun/dev/OpenComposer/live-seg" class="run-btn">Run on Katana</a>' \
-        '</div>' > "$tree/workflows/live-seg/index.html"
+    mkdir -p "$tree/$form/old-seg"
     echo 'title: Old seg' > "$tree/$form/old-seg/form.yml.erb"
-    echo 'title: Live seg' > "$tree/workflows/live-seg/form.yml.erb"
-    printf '%s\n' '/workflows/live-seg/ @jdoe' "$owners" > "$tree/.github/CODEOWNERS"
-    [[ " $* " != *" page "* ]] || rm "$tree/workflows/old-seg/index.html"
 }
 
 # demotion <pass|fail> <name> [<flag>...]: the check over a tree built

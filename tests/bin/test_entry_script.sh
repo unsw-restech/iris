@@ -45,8 +45,8 @@ imaging_form() {
 # embeds nothing.
 make_tree() {
     local tree="$scratch/$1"
-    mkdir -p "$tree/bin" "$tree/workflows/seg/src" "$tree/workflows/hello-world"
-    cp bin/check "$tree/bin/check"
+    site_tree "$tree" seg:ct-lab:active
+    mkdir -p "$tree/workflows/seg/src" "$tree/workflows/hello-world"
     imaging_form > "$tree/workflows/seg/form.yml.erb"
     printf '%s\n' 'import sys' '' 'print(f"{sys.argv}")  # a dict: {"a": 1}' > "$tree/workflows/seg/src/run.py"
     printf '%s\n' 'script: |' '  #!/bin/bash' '  #PBS -A iris-hello-world' '  echo "Hello #{name}"' > "$tree/workflows/hello-world/form.yml.erb"
