@@ -1,20 +1,21 @@
 #!/bin/bash
 # Run the tests that only run on Katana, every form test, the module test
-# and each workflow's job-library test, on this clone's tracked files,
+# and the library's job-library test, on this clone's tracked files,
 # uncommitted edits included. No push needed: run it from any clone or
 # worktree before committing. The tree goes to a folder of its own in
 # /srv/scratch/$USER, deleted when the run ends, so no clone on Katana is
 # touched and nothing is left behind.
 #
 # The job-library test needs Katana's modules, so it runs as a small PBS
-# job (tests/katana/job_lib.pbs, sized in its header) that qsub -W block
-# waits for, queue time included, keeping the login node light.
+# job (lib/tests/katana/job_lib.pbs, sized in its header) that qsub -W block
+# waits for, queue time included, keeping the login node light. It tests
+# the shared library, so it is submitted once, however many workflows.
 #
 #   bin/katana-test
 #
 # Exits 0 only if every test passed. Files git doesn't track stay behind,
-# so it names any under workflows/ or module/: `git add` a new test first.
-# The module test needs katana_ai_ro membership. `git archive` keeps
+# so it names any under workflows/, module/ or lib/: `git add` a new test
+# first. The module test needs katana_ai_ro membership. `git archive` keeps
 # module/bin's links, which a desktop clone with core.symlinks off checks
 # out as plain files. Over `ssh katana`.
 
@@ -23,7 +24,7 @@ set -o pipefail
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 # A commit holding the working tree's tracked files; empty when it's clean.
 tree="$(git stash create)" || { echo "katana-test: git stash create failed; finish the merge or rebase first" >&2; exit 1; }
-untracked="$(git ls-files --others --exclude-standard workflows module)"
+untracked="$(git ls-files --others --exclude-standard workflows module lib)"
 [ -z "$untracked" ] || printf 'Not sent, since git does not track them:\n%s\n' "$untracked"
 echo "Testing ${tree:+uncommitted edits on }$(git log -1 --format='%h %s') on Katana"
 
@@ -41,12 +42,8 @@ git archive --format=tar "${tree:-HEAD}" | ssh katana '
         echo "== $t"; ruby "$t" || s=1
     done
     echo "== module/tests/test_module.sh"; bash module/tests/test_module.sh || s=1
-    for j in workflows/*/tests/katana/job_lib.pbs; do
-        [ -e "$j" ] || continue
-        echo "== $j"
-        w="${j#workflows/}"; log="$d/job_lib.${w%%/*}.log"
-        qsub -W block=true -m abe -j oe -o "$log" \
-            -v "T=$d,PYTHONUNBUFFERED=1" "$j" || s=1
-        cat "$log" 2>/dev/null
-    done
+    echo "== lib/tests/katana/job_lib.pbs"
+    qsub -W block=true -m abe -j oe -o "$d/job_lib.log" \
+        -v "T=$d,PYTHONUNBUFFERED=1" lib/tests/katana/job_lib.pbs || s=1
+    cat "$d/job_lib.log" 2>/dev/null
     exit $s'

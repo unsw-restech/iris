@@ -4,9 +4,10 @@ Asserts only on what a job shows: its exit status, its output and the run
 directory. The missing-environment case runs anywhere. The full sequence
 needs Katana's module system, so it runs only there, against the
 environment whose Python runs the tests (the CPU job in the README of
-envs/imaging/):
+envs/imaging/). CODE is the reference workflow's folder, the clone's
+workflow folder a job sets it to:
 
-    ~/.venvs/iris-imaging/bin/python -m unittest discover -s workflows/microct-2d-segmentation/tests
+    ~/.venvs/iris-imaging/bin/python -m unittest discover -s lib/tests
 """
 
 import os
@@ -16,8 +17,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-WORKFLOW = Path(__file__).resolve().parents[1]
-REPO = WORKFLOW.parents[1]
+REPO = Path(__file__).resolve().parents[2]
+WORKFLOW = REPO / "workflows" / "microct-2d-segmentation"
 JOB_LIB = REPO / "lib" / "iris-job.sh"
 ON_KATANA = Path("/etc/profile.d/modules.sh").exists()
 
