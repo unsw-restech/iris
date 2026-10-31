@@ -20,6 +20,7 @@ import dask
 import dask.array as da
 import tifffile
 
+from iris import rundir
 from iris.record import indexed_runs, iris_home, run_index
 from iris.volume import open_volume
 
@@ -29,8 +30,8 @@ def load_run(run_dir):
     (z, y, x) dask arrays. The dataset is the folder holding runs/. The
     label BigTIFF stays open while the arrays are in use."""
     run_dir = Path(run_dir)
-    raw = open_volume(run_dir.parents[1]).data
-    tif = tifffile.TiffFile(run_dir / "labels.tif")
+    raw = open_volume(rundir.dataset_of(run_dir)).data
+    tif = tifffile.TiffFile(run_dir / rundir.LABELS)
     pages = tif.pages
     lock = threading.Lock()  # one file handle, so one seek and read at a time
 
@@ -52,7 +53,7 @@ def recent_runs(home, limit=10):
     runs = []
     for _, run_dir in indexed_runs(run_index(home)):
         try:
-            run = json.loads((run_dir / "run.json").read_text())
+            run = json.loads((run_dir / rundir.RUN_JSON).read_text())
         except (OSError, ValueError):
             continue
         if run.get("status") == "FINISHED":
@@ -87,7 +88,7 @@ def intensity_range(run_dir):
     """The volume's (min, max) from the run's dataset record, so napari
     need not read the volume to set its contrast, or None."""
     try:
-        intensity = json.loads((Path(run_dir) / "dataset.json").read_text())["intensity"]
+        intensity = json.loads((Path(run_dir) / rundir.DATASET).read_text())["intensity"]
         return intensity["min"], intensity["max"]
     except (OSError, ValueError, KeyError, TypeError):
         return None
@@ -111,8 +112,8 @@ def main():
                         help="a run directory, <dataset>/runs/<job ID>; without one, pick from recent runs")
     args = parser.parse_args()
     run_dir = (args.run_dir or pick_run(iris_home())).resolve()
-    if not (run_dir / "labels.tif").is_file():
-        sys.exit(f"No label volume at {run_dir / 'labels.tif'}: is the run still going, or did it fail?"
+    if not (run_dir / rundir.LABELS).is_file():
+        sys.exit(f"No label volume at {run_dir / rundir.LABELS}: is the run still going, or did it fail?"
                  " Its log is next to it in runs/.")
     print(f"Opening {run_dir} in napari. Close its window to quit.")
     show(run_dir)

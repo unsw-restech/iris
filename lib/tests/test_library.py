@@ -1,14 +1,16 @@
-"""The shared library's tests on a synthetic dataset: the importer, the
-store rebuild, iris-view's recent runs, the volume reader and a run whose
-run index can't be written.
+"""The shared library's tests: the importer, the store rebuild, iris-view's
+recent runs, the volume reader and a run whose run index can't be written.
 
-Their runs come from the reference workflow's entry script, staged and run
-by its tests' helpers, so this imports those. Run from the repo root in the
-desktop CPU venv (envs/imaging/desktop.sh):
+Their run directories are built as a job builds them, through the run
+directory module and RunRecord (run_dirs.py). Only the volume reader's
+synthetic dataset comes from the reference workflow's tests. Run from the
+repo root in the desktop CPU venv (envs/imaging/desktop.sh):
 
     ~/.venvs/iris-imaging/bin/python -m unittest discover -s lib/tests
 """
 
+import contextlib
+import io
 import json
 import socket
 import subprocess
@@ -19,10 +21,11 @@ from pathlib import Path
 
 import numpy as np
 
+from run_dirs import clone_with_entry, finished_run  # noqa: E402  (it puts lib/ on the path)
+
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "workflows" / "microct-2d-segmentation" / "tests"))
-from test_synthetic import (  # noqa: E402  (it puts lib/ on the path)
-    clone_with_entry_script, make_volume, only_run, run_entry, stage_run_dir, two_class_labels, write_dataset)
+from test_synthetic import make_volume, two_class_labels, write_dataset  # noqa: E402
 
 from iris.compare import start_ui  # noqa: E402
 from iris.tracking import StoreExists, import_runs, rebuild, store_uri  # noqa: E402
@@ -31,6 +34,27 @@ from iris.volume import open_volume  # noqa: E402
 
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
 
+EXPERIMENT = "microct-2d-segmentation"
+DATASET_RECORD = {  # as iris.dataset describes a dataset, intensity added
+    "train": {"images": {"files": 3}, "labels": {"files": 3}},
+    "volume": {"shape": [6, 70, 50], "dtype": "uint16"},
+    "intensity": {"min": 1000, "max": 65535, "mean": 20000.0, "std": 100.0},
+}
+
+
+def only_run(iris_home, experiment):
+    """A client on `iris_home`'s tracking store and the one run in `experiment`."""
+    client = mlflow.MlflowClient(store_uri(iris_home))
+    [run] = client.search_runs([client.get_experiment_by_name(experiment).experiment_id])
+    return client, run
+
+
+def rewrite_run_json(run_dir, change):
+    """Apply `change` to the run.json RunRecord wrote, as a run recorded
+    differently would have it."""
+    path = run_dir / "run.json"
+    path.write_text(json.dumps(change(json.loads(path.read_text()))))
+
 
 class Import(unittest.TestCase):
     """The importer replays a finished run into a throwaway tracking store."""
@@ -38,16 +62,15 @@ class Import(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
-        cls.iris_home = Path(cls.tmp.name) / "iris"
-        cls.dataset = Path(cls.tmp.name) / "dataset"
-        write_dataset(cls.dataset, make_volume(), two_class_labels())
-        cls.run_dir = cls.dataset / "runs" / "1234"
-        code, commit = clone_with_entry_script(Path(cls.tmp.name))
-        script, _ = stage_run_dir(cls.run_dir, code, commit)
-        result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, seed="7", script=script, code=code)
-        assert result.returncode == 0, result.stderr
+        cls.root = Path(cls.tmp.name)
+        cls.iris_home = cls.root / "iris"
+        cls.dataset = cls.root / "dataset"
+        cls.code, cls.commit = clone_with_entry(cls.root)
+        cls.dataset_record = dict(DATASET_RECORD, path=str(cls.dataset))
+        cls.run_dir = finished_run(cls.iris_home, cls.dataset / "runs" / "1234", cls.code, cls.commit,
+                                   experiment=EXPERIMENT, lr=0.001, dataset=cls.dataset_record,
+                                   tags={"gpu": "none"})
         cls.metrics = json.loads((cls.run_dir / "metrics.json").read_text())
-        cls.dataset_record = json.loads((cls.run_dir / "dataset.json").read_text())
         cls.first = import_runs(cls.iris_home)
         cls.client = mlflow.MlflowClient(store_uri(cls.iris_home))
 
@@ -56,11 +79,20 @@ class Import(unittest.TestCase):
         cls.tmp.cleanup()
 
     def only_run(self):
-        experiment = self.client.get_experiment_by_name("microct-2d-segmentation")
+        experiment = self.client.get_experiment_by_name(EXPERIMENT)
         self.assertIsNotNone(experiment)
         runs = self.client.search_runs([experiment.experiment_id])
         self.assertEqual(len(runs), 1)
         return runs[0]
+
+    def another_run(self, job_id, experiment, **kwargs):
+        """A home of its own holding one finished run, `job_id`, imported."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        home = Path(tmp.name) / "iris"
+        run_dir = finished_run(home, Path(tmp.name) / "dataset" / "runs" / job_id, self.code, self.commit,
+                               experiment=experiment, **kwargs)
+        return home, run_dir
 
     def test_one_run_named_by_job_id_under_its_experiment(self):
         self.assertEqual(self.first, {"imported": 1, "pending": 0})
@@ -69,71 +101,54 @@ class Import(unittest.TestCase):
         self.assertEqual(run.info.status, "FINISHED")
 
     def test_artifacts_go_next_to_the_store(self):
-        experiment = self.client.get_experiment_by_name("microct-2d-segmentation")
+        experiment = self.client.get_experiment_by_name(EXPERIMENT)
         self.assertEqual(experiment.artifact_location, (self.iris_home / "artifacts").as_uri())
 
     def test_params_are_the_recorded_params(self):
-        params = self.only_run().data.params
-        self.assertEqual(params["seed"], "7")
-        self.assertEqual(params["epochs"], "2")
-        self.assertEqual(params["patch_size"], "32")
-        self.assertEqual(params["experiment"], "microct-2d-segmentation")
+        self.assertEqual(self.only_run().data.params, {"experiment": EXPERIMENT, "lr": "0.001", "epochs": "2"})
 
     def test_metrics_history_replays_every_epoch(self):
         run = self.only_run()
         loss = self.client.get_metric_history(run.info.run_id, "train_loss")
-        self.assertEqual([(m.step, m.value) for m in loss],
-                         [(e["epoch"], e["train_loss"]) for e in self.metrics["epochs"]])
-        for name in ("dice", "iou"):
-            for cls_ in ("1", "2"):
-                history = self.client.get_metric_history(run.info.run_id, f"{name}/{cls_}")
-                expected = [e["epoch"] for e in self.metrics["epochs"] if e[name][cls_] is not None]
-                self.assertEqual([m.step for m in history], expected)
+        self.assertEqual([(m.step, m.value) for m in loss], [(1, 0.6), (2, 0.4)])
+        self.assertEqual([m.timestamp for m in loss], [int(e["time"] * 1000) for e in self.metrics["epochs"]])
+        self.assertEqual([(m.step, m.value) for m in self.client.get_metric_history(run.info.run_id, "dice/1")],
+                         [(1, 0.5), (2, 0.7)])
+        self.assertEqual([(m.step, m.value) for m in self.client.get_metric_history(run.info.run_id, "dice/2")],
+                         [(2, 0.2)])
 
     def test_tags_carry_the_environment(self):
         tags = self.only_run().data.tags
         for key in ("slug", "job_id", "commit", "venv", "gpu", "queue", "run_dir"):
             self.assertIn(key, tags)
         self.assertEqual(tags["job_id"], "1234")
+        self.assertEqual(tags["commit"], self.commit)
         self.assertEqual(tags["run_dir"], str(self.run_dir.resolve()))
 
     def test_an_unedited_run_is_tagged_not_edited_with_its_run_py_and_empty_run_diff(self):
         run = self.only_run()
         self.assertEqual(run.data.tags["iris.edited"], "false")
-        self.assertEqual(artifact_texts(self.client, run), {
-            "run.diff": "", "run.py": (self.run_dir / "run.py").read_text()})
+        self.assertEqual(artifact_texts(self.client, run), {"run.diff": "", "run.py": "print('as committed')\n"})
 
     def test_an_edited_run_is_tagged_edited_with_its_run_py_and_run_diff(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp) / "iris"
-            run_dir = Path(tmp) / "4444"
-            write_run_dir(run_dir, "edited", "4444", 0.01)
-            run = json.loads((run_dir / "run.json").read_text())
-            (run_dir / "run.json").write_text(json.dumps(dict(run, edited=True)))
-            (run_dir / "run.py").write_text("print('edited')\n")
-            (run_dir / "run.diff").write_text("-print('as committed')\n+print('edited')\n")
-            (home / "run-index").mkdir(parents=True)
-            (home / "run-index" / "4444").write_text(str(run_dir) + "\n")
-            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
-            client, run = only_run(home, "edited")
-            self.assertEqual(run.data.tags["iris.edited"], "true")
-            self.assertEqual(artifact_texts(client, run), {
-                "run.diff": "-print('as committed')\n+print('edited')\n", "run.py": "print('edited')\n"})
+        home, run_dir = self.another_run("4444", "edited", run_py="print('edited')\n")
+        self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+        client, run = only_run(home, "edited")
+        self.assertEqual(run.data.tags["iris.edited"], "true")
+        artifacts = artifact_texts(client, run)
+        self.assertEqual(artifacts["run.py"], "print('edited')\n")
+        self.assertTrue(artifacts["run.diff"].endswith("-print('as committed')\n+print('edited')\n"), artifacts)
 
     def test_a_run_whose_edits_are_unknown_is_tagged_unknown(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp) / "iris"
-            run_dir = Path(tmp) / "5555"
-            write_run_dir(run_dir, "unknown", "5555", 0.01)
-            run = json.loads((run_dir / "run.json").read_text())
-            (run_dir / "run.json").write_text(json.dumps(dict(run, edited="unknown")))
-            (run_dir / "run.py").write_text("print('maybe edited')\n")  # no run.diff
-            (home / "run-index").mkdir(parents=True)
-            (home / "run-index" / "5555").write_text(str(run_dir) + "\n")
-            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
-            client, run = only_run(home, "unknown")
-            self.assertEqual(run.data.tags["iris.edited"], "unknown")
-            self.assertEqual(artifact_texts(client, run), {"run.py": "print('maybe edited')\n"})
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        home = Path(tmp.name) / "iris"
+        finished_run(home, Path(tmp.name) / "dataset" / "runs" / "5555", self.code, None, experiment="unknown",
+                     run_py="print('maybe edited')\n")  # no commit, so no run.diff
+        self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+        client, run = only_run(home, "unknown")
+        self.assertEqual(run.data.tags["iris.edited"], "unknown")
+        self.assertEqual(artifact_texts(client, run), {"run.py": "print('maybe edited')\n"})
 
     def test_the_dataset_record_is_the_runs_dataset_input(self):
         inputs = self.only_run().inputs.dataset_inputs
@@ -141,36 +156,27 @@ class Import(unittest.TestCase):
         dataset = inputs[0].dataset
         self.assertEqual(dataset.name, "dataset")
         self.assertEqual(dataset.source_type, "local")
-        self.assertEqual(json.loads(dataset.source), {"uri": str(self.dataset.resolve())})
+        self.assertEqual(json.loads(dataset.source), {"uri": str(self.dataset)})
         self.assertEqual(json.loads(dataset.profile), self.dataset_record)
-        self.assertEqual(sorted(self.dataset_record), ["intensity", "path", "train", "volume"])
         self.assertRegex(dataset.digest, r"^[0-9a-f]{8}$")
 
     def test_a_run_without_dataset_json_imports_without_a_dataset(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            home, bare = Path(tmp) / "iris", Path(tmp) / "777"
-            bare.mkdir()
-            (bare / "run.json").write_text(json.dumps({
-                "experiment": "bare", "job_id": "777", "status": "FINISHED",
-                "start_time": 1.0, "end_time": 2.0, "tags": {"job_id": "777"}}))
-            (home / "run-index").mkdir(parents=True)
-            (home / "run-index" / "777").write_text(str(bare) + "\n")
-            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
-            _, run = only_run(home, "bare")
-            self.assertEqual(run.inputs.dataset_inputs, [])
+        home, run_dir = self.another_run("777", "bare")
+        (run_dir / "dataset.json").unlink()
+        self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+        _, run = only_run(home, "bare")
+        self.assertEqual(run.inputs.dataset_inputs, [])
 
     def test_a_run_recorded_before_edited_runs_imports_with_no_edited_tag(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp) / "iris"
-            run_dir = Path(tmp) / "666"
-            write_run_dir(run_dir, "older", "666", 0.01)  # no edited field, run.py or run.diff
-            (home / "run-index").mkdir(parents=True)
-            (home / "run-index" / "666").write_text(str(run_dir) + "\n")
-            self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
-            client, run = only_run(home, "older")
-            self.assertNotIn("iris.edited", run.data.tags)
-            self.assertEqual(run.data.params["lr"], "0.01")
-            self.assertEqual(artifact_texts(client, run), {})
+        home, run_dir = self.another_run("666", "older")
+        for name in ("run.py", "run.diff"):
+            (run_dir / name).unlink()
+        rewrite_run_json(run_dir, lambda run: {k: v for k, v in run.items() if k != "edited"})
+        self.assertEqual(import_runs(home), {"imported": 1, "pending": 0})
+        client, run = only_run(home, "older")
+        self.assertNotIn("iris.edited", run.data.tags)
+        self.assertEqual(run.data.params["lr"], "0.01")
+        self.assertEqual(artifact_texts(client, run), {})
 
     def test_importing_again_adds_no_run(self):
         self.assertEqual(import_runs(self.iris_home), {"imported": 0, "pending": 0})
@@ -187,13 +193,9 @@ class Import(unittest.TestCase):
         self.only_run()
 
     def test_a_run_that_fails_to_import_leaves_no_run_behind(self):
-        broken = self.dataset / "runs" / "999"
-        broken.mkdir()
-        (broken / "run.json").write_text(json.dumps({
-            "experiment": "broken", "job_id": "999", "status": "FINISHED",
-            "start_time": 1.0, "end_time": 2.0, "tags": {"job_id": "999"}}))
+        broken = finished_run(self.iris_home, self.dataset / "runs" / "999", self.code, self.commit,
+                              experiment="broken")
         (broken / "metrics.json").write_text('{"epochs": [{"epoch": 1, "train_loss": 0.5}]}')  # no time
-        (self.iris_home / "run-index" / "999").write_text(str(broken) + "\n")
         try:
             self.assertEqual(import_runs(self.iris_home), {"imported": 0, "pending": 0})
             experiment = self.client.get_experiment_by_name("broken")
@@ -202,12 +204,7 @@ class Import(unittest.TestCase):
             (self.iris_home / "run-index" / "999").unlink()
 
     def test_an_import_that_will_not_wait_leaves_a_held_store_alone(self):
-        ready = self.dataset / "runs" / "4321"
-        ready.mkdir()
-        (ready / "run.json").write_text(json.dumps({
-            "experiment": "held", "job_id": "4321", "status": "FINISHED",
-            "start_time": 1.0, "end_time": 2.0, "tags": {"job_id": "4321"}}))
-        (self.iris_home / "run-index" / "4321").write_text(str(ready) + "\n")
+        finished_run(self.iris_home, self.dataset / "runs" / "4321", self.code, self.commit, experiment="held")
         holder = subprocess.Popen(  # lockf locks belong to a process, so hold it from another
             [sys.executable, "-c", HOLD_LOCK, str(self.iris_home / "import.lock")],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
@@ -224,7 +221,7 @@ class Import(unittest.TestCase):
         try:
             self.assertTrue(url.startswith("http://127.0.0.1:"), url)
             client = mlflow.MlflowClient(url)
-            experiment = client.get_experiment_by_name("microct-2d-segmentation")
+            experiment = client.get_experiment_by_name(EXPERIMENT)
             [run] = client.search_runs([experiment.experiment_id])
             self.assertEqual(run.info.run_name, "1234")
             address = outward_address()
@@ -258,21 +255,6 @@ with open(sys.argv[1], "w") as lock:
 """
 
 
-def write_run_dir(run_dir, experiment, job_id, lr):
-    """A finished run's record, written by hand as RunRecord would leave it."""
-    run_dir.mkdir(parents=True)
-    (run_dir / "params.json").write_text(json.dumps({"experiment": experiment, "lr": lr, "epochs": 2}))
-    (run_dir / "metrics.json").write_text(json.dumps({"epochs": [
-        {"epoch": 1, "time": 10.0, "train_loss": 0.6, "dice": {"1": 0.5, "2": None}},
-        {"epoch": 2, "time": 20.0, "train_loss": 0.4, "dice": {"1": 0.7, "2": 0.2}},
-    ]}))
-    (run_dir / "dataset.json").write_text(json.dumps({"path": str(run_dir.parents[1]), "volume": {"shape": [6, 70, 50]}}))
-    (run_dir / "run.json").write_text(json.dumps({
-        "experiment": experiment, "job_id": job_id, "status": "FINISHED",
-        "start_time": 5.0, "end_time": 25.0,
-        "tags": {"job_id": job_id, "slug": "microct-2d-segmentation", "run_dir": str(run_dir)}}))
-
-
 class Rebuild(unittest.TestCase):
     """Rebuilding a lost tracking store from run directories alone."""
 
@@ -281,13 +263,15 @@ class Rebuild(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        self.tmp = Path(tmp.name)
+        self.tmp = Path(tmp.name).resolve()
         self.iris_home = self.tmp / "iris"
-        (self.iris_home / "run-index").mkdir(parents=True)
+        self.code, self.commit = clone_with_entry(self.tmp)
         for job_id, (experiment, dataset, lr) in self.RUNS.items():
-            run_dir = self.tmp / dataset / "runs" / job_id
-            write_run_dir(run_dir, experiment, job_id, lr)
-            (self.iris_home / "run-index" / job_id).write_text(str(run_dir) + "\n")
+            self.finished(job_id, experiment, dataset, lr)
+
+    def finished(self, job_id, experiment, dataset, lr):
+        return finished_run(self.iris_home, self.tmp / dataset / "runs" / job_id, self.code, self.commit,
+                            experiment=experiment, lr=lr)
 
     def assert_every_run_is_back(self, store):
         client = mlflow.MlflowClient(store_uri(store))
@@ -303,6 +287,8 @@ class Rebuild(unittest.TestCase):
             self.assertEqual(run.data.params, {"experiment": experiment, "lr": str(lr), "epochs": "2"})
             self.assertEqual(run.data.tags["job_id"], job_id)
             self.assertEqual(run.data.tags["slug"], "microct-2d-segmentation")
+            self.assertEqual(run.data.tags["commit"], self.commit)
+            self.assertEqual(run.data.tags["iris.edited"], "false")
             self.assertEqual(run.data.tags["run_dir"], str(self.tmp / dataset / "runs" / job_id))
             self.assertEqual([(m.step, m.value) for m in client.get_metric_history(run.info.run_id, "train_loss")],
                              [(1, 0.6), (2, 0.4)])
@@ -327,8 +313,7 @@ class Rebuild(unittest.TestCase):
 
     def test_refuses_to_write_into_an_existing_store(self):
         import_runs(self.iris_home)
-        write_run_dir(self.tmp / "a" / "runs" / "1004", "bone", "1004", 0.1)
-        (self.iris_home / "run-index" / "1004").write_text(str(self.tmp / "a" / "runs" / "1004") + "\n")
+        self.finished("1004", "bone", "a", 0.1)
         with self.assertRaises(StoreExists):
             rebuild(self.iris_home)
         with self.assertRaises(StoreExists):
@@ -371,43 +356,38 @@ class RecentRuns(unittest.TestCase):
     def test_finished_runs_newest_first_from_the_run_index_once_each_skipping_runs_since_deleted(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            index = tmp / "iris" / "run-index"
-            index.mkdir(parents=True)
+            home = tmp / "iris"
+            code, commit = clone_with_entry(tmp)
             for job_id, end_time in (("1001", 30.0), ("1002", 10.0), ("1003", 20.0), ("1004", 40.0)):
-                run_dir = tmp / "dataset" / "runs" / job_id
-                write_run_dir(run_dir, "bone", job_id, 0.01)
-                run = json.loads((run_dir / "run.json").read_text())
-                (run_dir / "run.json").write_text(json.dumps(dict(run, end_time=end_time)))
-                (index / job_id).write_text(str(run_dir) + "\n")
+                run_dir = finished_run(home, tmp / "dataset" / "runs" / job_id, code, commit)
+                rewrite_run_json(run_dir, lambda run: dict(run, end_time=end_time))
+            index = home / "run-index"
             (index / "1005").write_text(str(tmp / "deleted" / "runs" / "1005") + "\n")
-            failed = tmp / "dataset" / "runs" / "1006"  # newest, but with no label volume to show
-            write_run_dir(failed, "bone", "1006", 0.01)
-            run = json.loads((failed / "run.json").read_text())
-            (failed / "run.json").write_text(json.dumps(dict(run, status="FAILED", end_time=50.0)))
-            (index / "1006").write_text(str(failed) + "\n")
+            # Newest, but failed, so with no label volume to show.
+            failed = finished_run(home, tmp / "dataset" / "runs" / "1006", code, commit, status="FAILED")
+            rewrite_run_json(failed, lambda run: dict(run, end_time=50.0))
             (index / "1004.tmp").write_text(str(tmp / "dataset" / "runs" / "1004") + "\n")  # a pointer mid-write
-            recent = recent_runs(tmp / "iris", limit=3)
+            recent = recent_runs(home, limit=3)
             self.assertEqual([run_dir.name for run_dir, _ in recent], ["1004", "1001", "1003"])
-            self.assertEqual([run_dir.name for run_dir, _ in recent_runs(tmp / "iris")], ["1004", "1001", "1003", "1002"])
+            self.assertEqual([run_dir.name for run_dir, _ in recent_runs(home)], ["1004", "1001", "1003", "1002"])
             self.assertEqual(recent[0][1]["experiment"], "bone")
             self.assertEqual(recent_runs(tmp / "nowhere"), [])
 
 
 class UnwritableRunIndex(unittest.TestCase):
 
-    def test_the_run_succeeds_with_every_json_file_written(self):
+    def test_the_run_ends_cleanly_with_every_json_file_written(self):
         with tempfile.TemporaryDirectory() as tmp:
-            dataset = Path(tmp) / "dataset"
-            write_dataset(dataset, make_volume(), two_class_labels())
+            code, commit = clone_with_entry(Path(tmp))
             blocker = Path(tmp) / "not-a-folder"
             blocker.write_text("")  # the IRIS home can't be created under a file
-            run_dir = dataset / "runs" / "1234"
-            result = run_entry(dataset, run_dir, blocker / "iris")
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("WARNING", result.stderr)
-            for name in ("params.json", "metrics.json", "run.json"):
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                run_dir = finished_run(blocker / "iris", Path(tmp) / "dataset" / "runs" / "1234", code, commit)
+            self.assertIn("WARNING: could not add this run to the run index", stderr.getvalue())
+            for name in ("params.json", "metrics.json", "dataset.json"):
                 json.loads((run_dir / name).read_text())
-            self.assertTrue((run_dir / "labels.tif").exists())
+            self.assertEqual(json.loads((run_dir / "run.json").read_text())["status"], "FINISHED")
 
 
 class VolumeReader(unittest.TestCase):

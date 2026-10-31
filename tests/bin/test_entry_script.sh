@@ -34,7 +34,7 @@ imaging_form() {
         "  cat > \"\$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'" \
         '<%= entry_code -%>' \
         '  IRIS_RUN_PY_END' \
-        '  iris_record_edits <%= entry_script %>' \
+        '  iris_record_code <%= entry_script %>' \
         '  python "$RUN_DIR/run.py" --epochs #{epochs}' \
         'check: |' \
         '  oc_assert(@epochs.to_i > 0, "Epochs must be positive.")'
@@ -89,9 +89,9 @@ make_tree other-heredoc
 sed -i "s|^  python |  cat > x <<EOF\n  EOF\n  python |" "$scratch/other-heredoc/workflows/seg/form.yml.erb"
 expect fail "$scratch/other-heredoc" "form script: and check: sections"
 
-# The job must record the edits between writing run.py and running it, so a
-# run.py that Python cannot start still leaves its diff.
+# The job must record the run's code between writing run.py and running it,
+# so a run.py that Python cannot start still leaves its diff.
 make_tree no-record
-grep -v 'iris_record_edits' "$scratch/no-record/workflows/seg/form.yml.erb" > "$scratch/no-record.erb"
+grep -v 'iris_record_code' "$scratch/no-record/workflows/seg/form.yml.erb" > "$scratch/no-record.erb"
 mv "$scratch/no-record.erb" "$scratch/no-record/workflows/seg/form.yml.erb"
 embeds fail no-record

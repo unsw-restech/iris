@@ -218,13 +218,13 @@ class EntryScriptTest < Minitest::Test
   end
 
   # So a run.py that Python cannot even start still leaves its diff.
-  def test_the_script_records_the_edits_after_writing_run_py_and_before_python_runs_it
-    assert_includes @script, "\nIRIS_RUN_PY_END\niris_record_edits src/run.py\n\npython \"$RUN_DIR/run.py\" \\\n"
+  def test_the_script_records_its_code_after_writing_run_py_and_before_python_runs_it
+    assert_includes @script, "\nIRIS_RUN_PY_END\niris_record_code src/run.py\n\npython \"$RUN_DIR/run.py\" \\\n"
   end
 
   def test_the_pane_holds_header_setup_banner_code_and_call_in_order
     marks = ["#PBS -A iris-microct-2d-segmentation\n", %(\nsource "$CODE/../../lib/iris-job.sh"\n),
-             "\n#{BANNER}", "<<'IRIS_RUN_PY_END'\n", "\niris_record_edits src/run.py\n", %(\npython "$RUN_DIR/run.py" \\\n)]
+             "\n#{BANNER}", "<<'IRIS_RUN_PY_END'\n", "\niris_record_code src/run.py\n", %(\npython "$RUN_DIR/run.py" \\\n)]
     positions = marks.map { |m| @script.index(m) }
     refute_includes positions, nil
     assert_equal positions.sort, positions

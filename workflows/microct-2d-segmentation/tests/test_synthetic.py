@@ -32,6 +32,7 @@ LIB = REPO / "lib"
 ENTRY = WORKFLOW / "src" / "run.py"
 
 sys.path.insert(0, str(LIB))
+from iris import rundir  # noqa: E402
 from iris.tracking import import_runs, store_uri  # noqa: E402
 from iris.view import load_run  # noqa: E402
 from iris.volume import open_volume  # noqa: E402
@@ -115,25 +116,34 @@ def clone_with_entry_script(root):
     return code, git(clone, "rev-parse", "HEAD")
 
 
-def stage_run_dir(run_dir, code, commit, edit=None):
-    """Lay out `run_dir` as the job does before it runs run.py: `commit`,
-    the render-time commit (None for none), in commit.txt; the entry script
-    from `code` as run.py, changed by `edit` (old, new) if given; then the
-    record step lib/iris-job.sh's iris_record_edits runs, which writes
-    run.diff. Returns run.py's path and the record step's result."""
+def move_clone(code):
+    """Commit something else in `code`'s clone, as a bin/syspull between the
+    form rendering and the job starting does. Returns the new commit."""
+    clone = code.parents[1]
+    (clone / "lib.txt").write_text("a newer library\n")
+    git(clone, "add", ".")
+    git(clone, "-c", "user.name=IRIS test", "-c", "user.email=iris@example.org",
+        "commit", "--quiet", "-m", "A newer library")
+    return git(clone, "rev-parse", "HEAD")
+
+
+def record_run_code(run_dir, code, commit, edit=None):
+    """Do what the job does before it runs run.py: write the entry script
+    from `code` into `run_dir` as run.py, changed by `edit` (old, new) if
+    given, then record the run's code as lib/iris-job.sh's iris_record_code
+    does, through iris.rundir run as a module. `commit` is the form's COMMIT,
+    None for none. Returns run.py's path and the record step's result."""
     run_dir.mkdir(parents=True)
-    if commit is not None:
-        (run_dir / "commit.txt").write_text(commit + "\n")
     script = (code / "src" / "run.py").read_text()
     if edit is not None:
         old, new = edit
         assert old in script, old
         script = script.replace(old, new, 1)
-    (run_dir / "run.py").write_text(script)
+    (run_dir / rundir.RUN_PY).write_text(script)
     recorded = subprocess.run(
-        [sys.executable, "-m", "iris.record", str(run_dir), str(code), "src/run.py", commit or ""],
+        [sys.executable, "-m", "iris.rundir", str(run_dir), str(code), "src/run.py", commit or ""],
         env=dict(os.environ, PYTHONPATH=str(LIB)), capture_output=True, text=True, timeout=60)
-    return run_dir / "run.py", recorded
+    return run_dir / rundir.RUN_PY, recorded
 
 
 def run_entry(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au", **overrides):
@@ -179,7 +189,7 @@ class SyntheticRun(unittest.TestCase):
         cls.iris_home = Path(cls.tmp.name) / "iris"
         cls.run_dir = cls.dataset / "runs" / "1234"
         cls.code, commit = clone_with_entry_script(Path(cls.tmp.name))
-        script, _ = stage_run_dir(cls.run_dir, cls.code, commit)
+        script, _ = record_run_code(cls.run_dir, cls.code, commit)
         cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, epochs=2, script=script, code=cls.code)
 
     @classmethod
@@ -310,9 +320,8 @@ class EditedRun(unittest.TestCase):
         cls.iris_home = Path(cls.tmp.name) / "iris"
         cls.run_dir = cls.dataset / "runs" / "1234"
         cls.code, cls.commit = clone_with_entry_script(Path(cls.tmp.name))
-        script, cls.recorded = stage_run_dir(cls.run_dir, cls.code, cls.commit, edit=cls.EDIT)
-        # As the job leaves it when the clone moved after the form rendered.
-        (cls.run_dir / "lib_commit.txt").write_text("f" * 40 + "\n")
+        cls.moved = move_clone(cls.code)  # after the form rendered
+        script, cls.recorded = record_run_code(cls.run_dir, cls.code, cls.commit, edit=cls.EDIT)
         cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, script=script, code=cls.code)
 
     @classmethod
@@ -340,6 +349,7 @@ class EditedRun(unittest.TestCase):
         self.assertIn("EDITED RUN", out)
         self.assertIn(self.commit, out)
         self.assertIn("+" + self.EDIT[1], out)
+        self.assertIn("WARNING: the IRIS clone moved", self.recorded.stderr)
 
     def test_the_output_says_the_script_was_edited_and_to_set_the_fields_first(self):
         out = self.recorded.stdout
@@ -347,7 +357,9 @@ class EditedRun(unittest.TestCase):
         self.assertIn("set the form's fields first and edit the code last", out)
 
     def test_run_json_records_the_lib_commit(self):
-        self.assertEqual(json.loads((self.run_dir / "run.json").read_text())["tags"]["lib_commit"], "f" * 40)
+        tags = json.loads((self.run_dir / "run.json").read_text())["tags"]
+        self.assertEqual(tags["commit"], self.commit)
+        self.assertEqual(tags["lib_commit"], self.moved)
 
     def test_a_run_py_that_python_cannot_parse_still_leaves_run_py_and_run_diff(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -356,7 +368,7 @@ class EditedRun(unittest.TestCase):
             run_dir = dataset / "runs" / "1234"
             code, commit = clone_with_entry_script(Path(tmp))
             breaks = ("    model.train()\n", "    model.train(\n")
-            script, recorded = stage_run_dir(run_dir, code, commit, edit=breaks)
+            script, recorded = record_run_code(run_dir, code, commit, edit=breaks)
             result = run_entry(dataset, run_dir, Path(tmp) / "iris", script=script, code=code)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("SyntaxError", result.stderr)
@@ -371,7 +383,7 @@ class EditedRun(unittest.TestCase):
             run_dir = dataset / "runs" / "1234"
             code, commit = clone_with_entry_script(Path(tmp))
             breaks = ("    model.train()\n", "    model.train()\n    raise RuntimeError('broken by the edit')\n")
-            script, _ = stage_run_dir(run_dir, code, commit, edit=breaks)
+            script, _ = record_run_code(run_dir, code, commit, edit=breaks)
             result = run_entry(dataset, run_dir, Path(tmp) / "iris", script=script, code=code)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("broken by the edit", result.stderr)
@@ -393,7 +405,7 @@ class UnknownEdits(unittest.TestCase):
             write_dataset(dataset, make_volume(), two_class_labels())
             run_dir = dataset / "runs" / "1234"
             code, _ = clone_with_entry_script(Path(tmp))
-            script, recorded = stage_run_dir(run_dir, code, commit)
+            script, recorded = record_run_code(run_dir, code, commit)
             self.assertEqual(recorded.returncode, 0, recorded.stderr)
             self.assertIn("WARNING", recorded.stderr)
             self.assertIn("edited is unknown", recorded.stderr)

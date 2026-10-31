@@ -10,9 +10,11 @@ description: |
   matching names, 0 = unlabelled). The job runs in the pre-built IRIS
   imaging environment, so nothing is installed.
 
-  Everything lands in `<dataset>/runs/<job ID>/`: `labels.tif` (the label
-  volume), `model.pt`, `params.json`, `metrics.json` and `commit.txt` (the
-  IRIS commit that ran). The job output, `runs/<job ID>.OU`, ends with the
+  Everything lands in `<dataset>/runs/<job ID>/`: the label volume, the
+  trained weights, the run's record and the IRIS commit that ran, as the
+  workflow page lists them:
+  https://docs.restech.unsw.edu.au/iris/workflows/microct-2d-segmentation/#run-directory
+  The job output, `runs/<job ID>.OU`, ends with the
   `iris-view` line that opens the result in a Virtual Desktop.
 
   Documentation: https://docs.restech.unsw.edu.au/iris/workflows/microct-2d-segmentation/

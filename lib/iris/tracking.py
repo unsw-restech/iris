@@ -38,11 +38,12 @@ from mlflow import MlflowClient  # noqa: E402
 from mlflow.entities import Dataset, DatasetInput, Metric, Param, RunTag, ViewType  # noqa: E402
 from mlflow.store.tracking.sqlalchemy_store import SqlAlchemyStore  # noqa: E402
 
+from iris import rundir  # noqa: E402
 from iris.record import indexed_runs, iris_home, run_index  # noqa: E402
 
 IMPORT_TAG = "iris_import"  # "incomplete" until every value is logged, then "complete"
 EDITED_TAG = "iris.edited"  # whether it is an edited run: true, false or unknown
-CODE_ARTIFACTS = ("run.py", "run.diff")  # the code the run ran and its diff, if it kept them
+CODE_ARTIFACTS = (rundir.RUN_PY, rundir.RUN_DIFF)  # the code the run ran and its diff, if it kept them
 PARAMS_TAGS_PER_CALL = 100  # MLflow's caps per log_batch call
 METRICS_PER_CALL = 1000
 STORE = "tracking.db"
@@ -127,11 +128,6 @@ def dataset_input(record):
     ))
 
 
-def edited_value(edited):
-    """run.json's `edited` as the iris.edited tag: true, false or unknown."""
-    return json.dumps(edited) if isinstance(edited, bool) else str(edited)
-
-
 def read_json(path, empty):
     """`path`'s contents, or `empty` if the run ended before writing it."""
     try:
@@ -148,9 +144,9 @@ def log_in_batches(client, run_id, kind, values, per_call):
 def replay(client, home, run_dir, record):
     """Log one run directory into the store as a single MLflow run. If any
     step fails, the half-logged run is deleted."""
-    params = read_json(run_dir / "params.json", {})
-    epochs = read_json(run_dir / "metrics.json", {"epochs": []})["epochs"]
-    dataset = read_json(run_dir / "dataset.json", None)
+    params = read_json(run_dir / rundir.PARAMS, {})
+    epochs = read_json(run_dir / rundir.METRICS, {"epochs": []})["epochs"]
+    dataset = read_json(run_dir / rundir.DATASET, None)
     run = client.create_run(
         experiment_id(client, record["experiment"], home),
         start_time=int(record["start_time"] * 1000),
@@ -169,7 +165,7 @@ def replay(client, home, run_dir, record):
         if dataset is not None:
             client.log_inputs(run_id, datasets=[dataset_input(dataset)])
         if "edited" in record:
-            client.set_tag(run_id, EDITED_TAG, edited_value(record["edited"]))
+            client.set_tag(run_id, EDITED_TAG, rundir.edited_text(rundir.edited_from_record(record["edited"])))
         for name in CODE_ARTIFACTS:
             if (run_dir / name).is_file():
                 client.log_artifact(run_id, str(run_dir / name))
@@ -230,7 +226,7 @@ def rebuild(home, datasets=(), index_home=None):
     an engine open per store URI for the life of the process."""
     home = Path(home)
     if datasets:
-        sources = [Path(d) / "runs" for d in datasets]
+        sources = [rundir.runs_folder(d) for d in datasets]
         run_dirs = dataset_runs(sources)
     else:
         sources = [run_index(Path(index_home) if index_home else home)]
@@ -268,7 +264,7 @@ def import_run_dirs(client, home, run_dirs):
         if job_id is not None and job_id in done:
             continue
         try:
-            record = json.loads((run_dir / "run.json").read_text())
+            record = json.loads((run_dir / rundir.RUN_JSON).read_text())
         except FileNotFoundError:
             pending += 1
             continue
