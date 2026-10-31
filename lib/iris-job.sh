@@ -9,7 +9,7 @@
 #            script embeds dates from (ADR-0006)
 #
 # It creates runs/, stops the job with one line if the environment is
-# missing, then loads the Python module, activates the environment, puts
+# missing, then loads the Python module lib/katana.sh names, activates the environment, puts
 # lib/ on PYTHONPATH, exports CODE as IRIS_CODE for the entry script, which
 # runs from the run directory, and creates the run directory. It then prints
 # what the job runs with, the commit being COMMIT or else the clone's HEAD,
@@ -32,11 +32,13 @@ if [ ! -x "$ENV_DIR/bin/python" ]; then
     exit 1
 fi
 
+IRIS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$IRIS_LIB/katana.sh"
+
 . /etc/profile.d/modules.sh
-module load python/3.13.2
+module load "$IRIS_PYTHON_MODULE"
 . "$ENV_DIR/bin/activate"
 
-IRIS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PYTHONPATH="$IRIS_LIB${PYTHONPATH:+:$PYTHONPATH}"
 export IRIS_CODE="$CODE"
 
@@ -46,7 +48,7 @@ mkdir -p "$RUN_DIR"
 # puts on the PATH when CODE is in the system clone (ADR-0003), else that
 # clone's bin/ in full, so a dev run is viewed with the code that ran it.
 IRIS_CLONE="$(cd "$CODE/../.." && pwd)"
-if [ "$IRIS_CLONE" = /srv/scratch/katana_ai/iris/code ]; then
+if iris_in_system_clone "$CODE"; then
     IRIS_LOAD="module load iris" IRIS_VIEW=iris-view IRIS_COMPARE=iris-compare
 else
     IRIS_LOAD="" IRIS_VIEW="$IRIS_CLONE/bin/iris-view" IRIS_COMPARE="$IRIS_CLONE/bin/iris-compare"

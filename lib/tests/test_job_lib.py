@@ -23,7 +23,9 @@ JOB_LIB = REPO / "lib" / "iris-job.sh"
 ON_KATANA = Path("/etc/profile.d/modules.sh").exists()
 
 
-SYSTEM_CODE = Path("/srv/scratch/katana_ai/iris/code/workflows/microct-2d-segmentation")
+SYSTEM_CODE = Path(subprocess.run(
+    ["bash", "-c", '. "$1" && echo "$IRIS_SYSTEM_CLONE"', "-", str(REPO / "lib" / "katana.sh")],
+    capture_output=True, text=True, check=True).stdout.strip(), "workflows", "microct-2d-segmentation")
 
 
 def head(code=WORKFLOW):

@@ -12,12 +12,15 @@
 # tracking.db. Exits 1 if the second import imports anything or a run isn't
 # in the store. 32 s for #111's two runs (job 9631629).
 #
-#   qsub -m abe -v JOBS=<job>:<job>,PYTHONUNBUFFERED=1 inspect.pbs
+#   qsub -m abe -v CLONE=<system clone>,JOBS=<job>:<job>,PYTHONUNBUFFERED=1 inspect.pbs
 #
-# Add IRIS_HOME=<home> to -v for another tracking store.
+# CLONE is the clone whose iris-import and lib/katana.sh it uses: the system
+# clone, which ran the runs. Add IRIS_HOME=<home> to -v for another
+# tracking store.
 : "${JOBS:?pass JOBS=<job>:<job> with qsub -v}"
-CODE=/srv/scratch/katana_ai/iris/code
-ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
+CODE="${CLONE:?pass CLONE=<system clone> with qsub -v}"
+. "$CODE/lib/katana.sh" || exit 1
+ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
 "$CODE/bin/iris-import" || exit 1
 second=$("$CODE/bin/iris-import") || exit 1
 echo "$second"
@@ -26,7 +29,7 @@ case "$second" in
     *) echo "FAIL: the second import imported runs"; exit 1 ;;
 esac
 . /etc/profile.d/modules.sh
-module load python/3.13.2
+module load "$IRIS_PYTHON_MODULE"
 MLFLOW_DISABLE_AGENT_HINT=1 PYTHONPATH=$CODE/lib "$ENV_DIR/bin/python" - "$JOBS" <<'PY'
 import sys
 from mlflow import MlflowClient

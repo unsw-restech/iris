@@ -10,6 +10,9 @@
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
+# The system clone, which the fake's logs name, as bin/qwait reads it.
+. lib/katana.sh
+export IRIS_SYSTEM_CLONE
 
 # Job IDs pick the fake's answer: a number finished with exit 0, fail
 # finished with exit 3, slow is running on the first poll, dev's and
@@ -26,7 +29,7 @@ if [ "$1" = -n ] && [[ "$3" = grep* ]]; then
         *dev.OU*) echo "Code: /home/u/iris/workflows/x" ;;
         *other.OU*) echo "Code: /srv/scratch/u/fork/workflows/x" ;;
         *nocode.OU*) exit 1 ;;
-        *) echo "Code        : /srv/scratch/katana_ai/iris/code/workflows/x" ;;
+        *) echo "Code        : $IRIS_SYSTEM_CLONE/workflows/x" ;;
     esac
     exit 0
 fi
@@ -74,7 +77,7 @@ expect 0 "" 1
 
 # Each finished job names the clone its log's Code: line points at.
 out="$(PATH="$fake:$PATH" QWAIT_INTERVAL=0 timeout 20 bin/qwait 1 dev other nocode 2>/dev/null)"
-for want in "clone: system (/srv/scratch/katana_ai/iris/code/workflows/x)" \
+for want in "clone: system ($IRIS_SYSTEM_CLONE/workflows/x)" \
     "clone: dev (/home/u/iris/workflows/x)" \
     "clone: other (/srv/scratch/u/fork/workflows/x)" \
     "clone: unknown, the log has no Code: line"; do

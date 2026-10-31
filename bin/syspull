@@ -14,8 +14,10 @@
 # tester can't read in the clone (bin/pilot-readable.py), and --apply exits
 # 1 if anything is listed, since the deploy has happened. Over `ssh katana`.
 
-# The system clone (Patrick, 2026-10-23; see AGENTS.md).
-sys=/srv/scratch/katana_ai/iris/code
+# The system clone, from lib/katana.sh.
+# shellcheck source=lib/katana.sh
+. "$(dirname "$(readlink -f "$0")")/../lib/katana.sh" || exit 2
+sys="$IRIS_SYSTEM_CLONE"
 usage() { echo "usage: bin/syspull [--apply <sha>]" >&2; exit 2; }
 # Lists what a pilot tester can't read in the clone; fails if anything.
 readable() {

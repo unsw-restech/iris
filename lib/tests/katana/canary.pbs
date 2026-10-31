@@ -8,9 +8,14 @@
 # about 20 s (job 9571395); exit 124 means it hung past 120 s, so stop
 # submitting and tell Patrick (docs/agents/katana-test-run.md).
 #
-#   qsub -m abe -v PYTHONUNBUFFERED=1 canary.pbs
-ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
-. /etc/profile.d/modules.sh; module load python/3.13.2
+#   qsub -m abe -v CLONE=<clone>,PYTHONUNBUFFERED=1 canary.pbs
+#
+# CLONE is the clone whose lib/katana.sh names the environment and its
+# Python module: the system clone, or a test folder's copy, T/iris.
+: "${CLONE:?pass CLONE=<clone> with qsub -v}"
+. "$CLONE/lib/katana.sh" || exit 1
+ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
+. /etc/profile.d/modules.sh; module load "$IRIS_PYTHON_MODULE"
 echo "host $(hostname) $(date +%T)"
 time timeout 120 "$ENV_DIR/bin/python" -X faulthandler -c 'import mlflow; print("mlflow", mlflow.__version__)'
 echo "exit $? $(date +%T)"
