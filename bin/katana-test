@@ -8,8 +8,10 @@
 #
 # The job-library test needs Katana's modules, so it runs as a small PBS
 # job (lib/tests/katana/job_lib.pbs, sized in its header) that qsub -W block
-# waits for, queue time included, keeping the login node light. It tests
-# the shared library, so it is submitted once, however many workflows.
+# waits for, queue time included, keeping the login node light. PBS copies
+# its log into place a little after that, so the run waits up to 2 minutes
+# for the log's last line and fails if it never comes. It tests the shared
+# library, so it is submitted once, however many workflows.
 #
 #   bin/katana-test
 #
@@ -43,7 +45,13 @@ git archive --format=tar "${tree:-HEAD}" | ssh katana '
     done
     echo "== module/tests/test_module.sh"; bash module/tests/test_module.sh || s=1
     echo "== lib/tests/katana/job_lib.pbs"
-    qsub -W block=true -m abe -j oe -o "$d/job_lib.log" \
+    log="$d/job_lib.log" log_wait=120
+    qsub -W block=true -m abe -j oe -o "$log" \
         -v "T=$d,PYTHONUNBUFFERED=1" lib/tests/katana/job_lib.pbs || s=1
-    cat "$d/job_lib.log" 2>/dev/null
+    # PBS copies the log into place after the blocking submit returns, so
+    # wait for the job'\''s last line, "exit <status>", before showing it.
+    while ! grep -q "^exit [0-9]" "$log" 2> /dev/null && [ $((log_wait--)) -gt 0 ]; do sleep 1; done
+    cat "$log" 2> /dev/null
+    grep -q "^exit [0-9]" "$log" 2> /dev/null ||
+        { echo "katana-test: $log has no last line, exit <status>, so the job-library test output is missing" >&2; s=1; }
     exit $s'
