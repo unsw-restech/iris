@@ -4,8 +4,8 @@
 #PBS -l walltime=00:20:00
 #PBS -j oe
 
-# Step 4 of a build, alongside the smoke tests: run the reference workflow's
-# tests on CPU against the real environment. On Katana this includes the
+# Step 4 of a build, alongside the smoke tests: run the shared library's
+# tests, then each workflow's, on CPU against the real environment. On Katana this includes the
 # lib/iris-job.sh tests the desktop skips.
 #
 # Submit from this folder in a clone on Katana:
@@ -23,4 +23,10 @@ module load python/3.13.2
 cd "$RECIPE/../.."
 echo "Commit      : $(git rev-parse HEAD)"
 echo "Environment : $ENV_DIR"
-"$ENV_DIR/bin/python" -m unittest discover -v -s workflows/microct-2d-segmentation/tests
+s=0
+for dir in lib/tests workflows/*/tests; do
+    ls "$dir"/test_*.py > /dev/null 2>&1 || continue
+    echo "== $dir"
+    "$ENV_DIR/bin/python" -m unittest discover -v -s "$dir" || s=1
+done
+exit $s

@@ -51,7 +51,8 @@ iris/
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
-│   └── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
+│   ├── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
+│   └── tests/                        # The library's tests, run once (bin/check), and its Katana jobs in katana/ (bin/katana-test submits job_lib.pbs)
 ├── module/                           # `module load iris` (ADR-0003)
 │   ├── modulefiles/iris              # The modulefile: puts the system clone's module/bin on the PATH
 │   ├── bin/iris-view, iris-compare   # Links to the bin/ scripts: all the module exposes
@@ -67,7 +68,7 @@ iris/
         ├── index.html
         ├── form.yml.erb, manifest.yml  # OpenComposer form
         ├── src/run.py                # Entry point: train, then segment into a run directory
-        └── tests/                    # Synthetic-dataset, job-library and form tests (see AGENTS.md)
+        └── tests/                    # This workflow's own tests: its synthetic-dataset run and its form tests (see AGENTS.md)
 ```
 
 Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the workflow detail pages and the guide share `assets/iris.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
@@ -92,7 +93,7 @@ Opening `index.html` directly over `file://` will not reproduce the real base pa
 
 The workflow-author checklist. Work on a branch of your fork, cloned on Katana as well as wherever you edit; the maintainer's dev clone fetches your PR's branch for the browser run.
 
-1. **Copy the reference folder**, `workflows/microct-2d-segmentation/`, to `workflows/<slug>/`. To build a Planned workflow, extend its existing folder instead, so its URL never changes.
+1. **Copy the reference folder**, `workflows/microct-2d-segmentation/`, to `workflows/<slug>/`. Its `tests/` holds only that workflow's own tests: the entry script's end-to-end synthetic run (`test_synthetic.py`) and the form tests (`test_form.rb`, on `form_helper.rb`). The shared library's tests, and the Katana jobs for the library, the module and the environment, are in `lib/tests/` and `lib/tests/katana/`, so the copy carries none of them, and `bin/check` and `bin/katana-test` run them once for every workflow. To build a Planned workflow, extend its existing folder instead, so its URL never changes.
 2. **Change the slug everywhere**: the folder name, `#PBS -A iris-<slug>` in the form's script header, the Experiment name default and the job name default. The folder name is also the OpenComposer URL segment.
 3. **Set the environment version** in the form's `ENV_DIR`. If the workflow needs packages the environment lacks, request them ([Requesting packages](#requesting-packages)); never change a built version.
 4. **Set the fields and `check:` rules** in `form.yml.erb`, and the entry point under `src/`. Add a synthetic-dataset test under `tests/`, as the reference workflow's `tests/test_synthetic.py` does, so `bin/check` runs your workflow end to end on made-up data. Defaults for memory, walltime and epochs cite the timing run that measured them.

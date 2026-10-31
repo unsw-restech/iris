@@ -67,7 +67,11 @@ grep -qF 'trap' "$fake/args" && grep -qF 'rm -rf "$d"' "$fake/args" || fail "doe
 grep -qF 'workflows/*/tests/test_form.rb' "$fake/args" || fail "doesn't run the form tests"
 grep -qF 'module/tests/test_module.sh' "$fake/args" || fail "doesn't run the module test"
 grep -qF 'git init -q' "$fake/args" || fail "doesn't make the tree a repo for the job-library test"
-grep -qF 'tests/katana/job_lib.pbs' "$fake/args" || fail "doesn't submit the job-library test"
+# The library's Katana job is submitted once, from lib/tests, never once per
+# workflow.
+grep -qF 'lib/tests/katana/job_lib.pbs' "$fake/args" || fail "doesn't submit lib/tests/katana/job_lib.pbs"
+! grep -qF 'workflows/*/tests/katana' "$fake/args" || fail "submits a Katana job once per workflow"
+[ "$(grep -c 'qsub ' "$fake/args")" = 1 ] || fail "has $(grep -c 'qsub ' "$fake/args") qsub lines, expected 1"
 grep -q 'qsub .*-W block=true' "$fake/args" || fail "doesn't wait on the job-library test"
 grep -q 'qsub .*-m abe' "$fake/args" || fail "submits the job-library test without -m abe"
 
