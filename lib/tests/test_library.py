@@ -2,9 +2,10 @@
 recent runs, the volume reader and a run whose run index can't be written.
 
 Their run directories are built as a job builds them, through the run
-directory module and RunRecord (run_dirs.py). Only the volume reader's
-synthetic dataset comes from the reference workflow's tests. Run from the
-repo root in the desktop CPU venv (envs/imaging/desktop.sh):
+directory module and RunRecord (run_dirs.py), and the volume reader's
+synthetic dataset by datasets.py, so nothing here depends on a workflow's
+folder. Run from the repo root in the desktop CPU venv
+(envs/imaging/desktop.sh):
 
     ~/.venvs/iris-imaging/bin/python -m unittest discover -s lib/tests
 """
@@ -21,11 +22,8 @@ from pathlib import Path
 
 import numpy as np
 
+from datasets import make_volume, two_class_labels, write_dataset
 from run_dirs import clone_with_entry, finished_run  # noqa: E402  (it puts lib/ on the path)
-
-REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "workflows" / "microct-2d-segmentation" / "tests"))
-from test_synthetic import make_volume, two_class_labels, write_dataset  # noqa: E402
 
 from iris.compare import start_ui  # noqa: E402
 from iris.tracking import StoreExists, import_runs, rebuild, store_uri  # noqa: E402

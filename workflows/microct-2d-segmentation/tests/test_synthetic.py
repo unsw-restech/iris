@@ -7,12 +7,13 @@ in the desktop CPU venv (envs/imaging/desktop.sh):
     ~/.venvs/iris-imaging/bin/python -m unittest discover -s workflows/microct-2d-segmentation/tests
 
 The shared library's tests are in lib/tests, so copying this folder for a
-new workflow copies none of them.
+new workflow copies none of them. The dataset and the clone come from the
+library's test helpers there (datasets.py, run_dirs.py), so a job's run
+directory is built here the way the library's tests build it.
 """
 
 import json
 import os
-import shutil
 import signal
 import subprocess
 import sys
@@ -22,7 +23,6 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 
-import netCDF4
 import numpy as np
 import tifffile
 
@@ -31,7 +31,10 @@ REPO = WORKFLOW.parents[1]
 LIB = REPO / "lib"
 ENTRY = WORKFLOW / "src" / "run.py"
 
-sys.path.insert(0, str(LIB))
+sys.path.insert(0, str(LIB / "tests"))
+import run_dirs  # noqa: E402  (it puts lib/ on the path)
+from datasets import NX, NY, SHAPE, VOXEL_SIZE_XYZ, make_volume, two_class_labels, write_dataset  # noqa: E402
+
 from iris import rundir  # noqa: E402
 from iris.tracking import import_runs, store_uri  # noqa: E402
 from iris.view import load_run  # noqa: E402
@@ -39,111 +42,27 @@ from iris.volume import open_volume  # noqa: E402
 
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
 
-BLOCK_SLICES = 3
-N_BLOCKS = 2
-NY, NX = 70, 50  # not a multiple of the patch size or of the U-Net's stride
-SHAPE = (BLOCK_SLICES * N_BLOCKS, NY, NX)
-VOXEL_SIZE_XYZ = [0.5, 0.5, 0.25]
-
-
-def make_volume():
-    """Unsigned 16-bit intensities, most of them above 32767.
-
-    32769 is netCDF's default fill value for `short` once stored (-32767),
-    so a reader that masks fill values would lose it."""
-    rng = np.random.default_rng(0)
-    vol = rng.integers(1000, 4000, size=SHAPE, dtype=np.uint16)
-    vol[:, :, NX // 2:] = rng.integers(40000, 60000, size=(SHAPE[0], NY, NX - NX // 2), dtype=np.uint16)
-    vol[0, 0, 0] = 32769
-    vol[-1, -1, -1] = 65535
-    return vol
-
-
-def write_dataset(root, vol, labels):
-    """Lay out <root>/volume/*.nc and <root>/train/{images,labels}/*.tif."""
-    (root / "volume").mkdir(parents=True)
-    for b in range(N_BLOCKS):
-        block = vol[b * BLOCK_SLICES:(b + 1) * BLOCK_SLICES]
-        with netCDF4.Dataset(root / "volume" / f"block{b:08d}.nc", "w", format="NETCDF3_CLASSIC") as nc:
-            nc.createDimension("tomo_zdim", block.shape[0])
-            nc.createDimension("tomo_ydim", NY)
-            nc.createDimension("tomo_xdim", NX)
-            nc.createDimension("md5_dim", 16)
-            nc.data_description = "Raw reconstructed tomogram data <ushort>"
-            nc.voxel_size_xyz = np.array(VOXEL_SIZE_XYZ, dtype=np.float32)  # as the sample has them
-            nc.voxel_unit = "mm"
-            var = nc.createVariable("tomo", "i2", ("tomo_zdim", "tomo_ydim", "tomo_xdim"), fill_value=False)
-            var.set_auto_maskandscale(False)
-            var[:] = block.view(np.int16)  # stored as `short`, like the sample volume
-            nc.createVariable("md5_checksum", "i1", ("md5_dim",))[:] = np.arange(16) + b
-    (root / "train" / "images").mkdir(parents=True)
-    (root / "train" / "labels").mkdir(parents=True)
-    for z, lab in labels.items():
-        name = f"slice{z:04d}.tif"
-        tifffile.imwrite(root / "train" / "images" / name, vol[z].view(np.int16))  # same dtype as the volume
-        tifffile.imwrite(root / "train" / "labels" / name, lab)
-
-
-def two_class_labels():
-    """Three training pairs: class 1 on the dim half, class 2 on the bright
-    half, with a band of 0 (unlabelled) pixels between them."""
-    labels = {}
-    for z in (0, 2, 5):
-        lab = np.zeros((NY, NX), dtype=np.uint8)
-        lab[:, :NX // 2 - 3] = 1
-        lab[:, NX // 2 + 3:] = 2
-        lab[: NY // 4] = 0
-        labels[z] = lab
-    return labels
-
-
-def git(repo, *args):
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True).stdout.strip()
-
 
 def clone_with_entry_script(root):
     """A throwaway clone holding the workflow's entry script as it is now,
-    committed. Returns its workflow folder, which the job sets as CODE, and
-    the commit, which the job records in commit.txt."""
-    clone = root / "clone"
-    code = clone / "workflows" / WORKFLOW.name
-    (code / "src").mkdir(parents=True)
-    shutil.copy(ENTRY, code / "src" / "run.py")
-    git(clone, "init", "--quiet")
-    git(clone, "add", ".")
-    git(clone, "-c", "user.name=IRIS test", "-c", "user.email=iris@example.org",
-        "commit", "--quiet", "-m", "The entry script")
-    return code, git(clone, "rev-parse", "HEAD")
-
-
-def move_clone(code):
-    """Commit something else in `code`'s clone, as a bin/syspull between the
-    form rendering and the job starting does. Returns the new commit."""
-    clone = code.parents[1]
-    (clone / "lib.txt").write_text("a newer library\n")
-    git(clone, "add", ".")
-    git(clone, "-c", "user.name=IRIS test", "-c", "user.email=iris@example.org",
-        "commit", "--quiet", "-m", "A newer library")
-    return git(clone, "rev-parse", "HEAD")
+    committed (run_dirs.clone_with_entry). Returns its workflow folder,
+    which the job sets as CODE, and the commit, which the form records."""
+    return run_dirs.clone_with_entry(root, ENTRY.read_text(), WORKFLOW.name)
 
 
 def record_run_code(run_dir, code, commit, edit=None):
-    """Do what the job does before it runs run.py: write the entry script
-    from `code` into `run_dir` as run.py, changed by `edit` (old, new) if
-    given, then record the run's code as lib/iris-job.sh's iris_record_code
-    does, through iris.rundir run as a module. `commit` is the form's COMMIT,
-    None for none. Returns run.py's path and the record step's result."""
-    run_dir.mkdir(parents=True)
-    script = (code / "src" / "run.py").read_text()
+    """Do what the job does before it runs run.py, through
+    run_dirs.record_code: write the entry script from `code` into `run_dir`
+    as run.py, changed by `edit` (old, new) if given, then record the run's
+    code as lib/iris-job.sh's iris_record_code does. `commit` is the form's
+    COMMIT, None for none. Returns run.py's path and the record step's
+    result."""
+    script = (code / run_dirs.ENTRY).read_text()
     if edit is not None:
         old, new = edit
         assert old in script, old
         script = script.replace(old, new, 1)
-    (run_dir / rundir.RUN_PY).write_text(script)
-    recorded = subprocess.run(
-        [sys.executable, "-m", "iris.rundir", str(run_dir), str(code), "src/run.py", commit or ""],
-        env=dict(os.environ, PYTHONPATH=str(LIB)), capture_output=True, text=True, timeout=60)
-    return run_dir / rundir.RUN_PY, recorded
+    return run_dir / rundir.RUN_PY, run_dirs.record_code(run_dir, code, commit, run_py=script)
 
 
 def run_entry(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.edu.au", **overrides):
@@ -320,7 +239,7 @@ class EditedRun(unittest.TestCase):
         cls.iris_home = Path(cls.tmp.name) / "iris"
         cls.run_dir = cls.dataset / "runs" / "1234"
         cls.code, cls.commit = clone_with_entry_script(Path(cls.tmp.name))
-        cls.moved = move_clone(cls.code)  # after the form rendered
+        cls.moved = run_dirs.move_clone(cls.code)  # after the form rendered
         script, cls.recorded = record_run_code(cls.run_dir, cls.code, cls.commit, edit=cls.EDIT)
         cls.result = run_entry(cls.dataset, cls.run_dir, cls.iris_home, script=script, code=cls.code)
 
