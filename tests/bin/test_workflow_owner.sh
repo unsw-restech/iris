@@ -5,6 +5,8 @@
 # it.
 #
 #   tests/bin/test_workflow_owner.sh
+#
+# bin/check name: workflow owner test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"
@@ -17,12 +19,11 @@ trap 'rm -rf "$scratch"' EXIT
 # which has a page and no form.
 make_tree() {
     local tree="$scratch/$1"
-    mkdir -p "$tree/bin" "$tree/.github" "$tree/workflows/seg" "$tree/workflows/hello-world" "$tree/workflows/later"
-    cp bin/check "$tree/bin/check"
+    site_tree "$tree" seg:ct-lab:active later:ct-lab:planned
+    mkdir -p "$tree/.github" "$tree/workflows/hello-world"
     touch "$tree/workflows/seg/form.yml.erb" "$tree/workflows/hello-world/form.yml.erb"
-    owner_line jdoe "Jane Doe" > "$tree/workflows/seg/index.html"
+    owner_line jdoe "Jane Doe" >> "$tree/workflows/seg/index.html"
     echo '<h1 class="wf-title">Hello world</h1>' > "$tree/workflows/hello-world/index.html"
-    echo '<h1 class="wf-title">Later</h1>' > "$tree/workflows/later/index.html"
     printf '%s\n' '# Workflow owners' '/workflows/seg/ @jdoe' > "$tree/.github/CODEOWNERS"
 }
 
@@ -41,7 +42,7 @@ make_tree clean
 owners pass clean
 
 make_tree no-owner-on-page
-echo '<h1 class="wf-title">Seg</h1>' > "$scratch/no-owner-on-page/workflows/seg/index.html"
+sed -i '/wf-owner/d' "$scratch/no-owner-on-page/workflows/seg/index.html"
 owners fail no-owner-on-page
 
 make_tree no-codeowners-line

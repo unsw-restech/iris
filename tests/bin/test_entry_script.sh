@@ -4,6 +4,8 @@
 # case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_entry_script.sh
+#
+# bin/check name: entry script test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"
@@ -43,8 +45,8 @@ imaging_form() {
 # embeds nothing.
 make_tree() {
     local tree="$scratch/$1"
-    mkdir -p "$tree/bin" "$tree/workflows/seg/src" "$tree/workflows/hello-world"
-    cp bin/check "$tree/bin/check"
+    site_tree "$tree" seg:ct-lab:active
+    mkdir -p "$tree/workflows/seg/src" "$tree/workflows/hello-world"
     imaging_form > "$tree/workflows/seg/form.yml.erb"
     printf '%s\n' 'import sys' '' 'print(f"{sys.argv}")  # a dict: {"a": 1}' > "$tree/workflows/seg/src/run.py"
     printf '%s\n' 'script: |' '  #!/bin/bash' '  #PBS -A iris-hello-world' '  echo "Hello #{name}"' > "$tree/workflows/hello-world/form.yml.erb"
@@ -65,9 +67,10 @@ make_tree no-embed
 imaging_form | grep -v 'entry_' > "$scratch/no-embed/workflows/seg/form.yml.erb"
 embeds fail no-embed
 
-make_tree no-heredoc
-imaging_form | grep -v 'IRIS_RUN_PY_END' > "$scratch/no-heredoc/workflows/seg/form.yml.erb"
-embeds fail no-heredoc
+# The opener makes it an imaging form, so a heredoc that never ends fails.
+make_tree no-end-marker
+imaging_form | grep -vx '  IRIS_RUN_PY_END' > "$scratch/no-end-marker/workflows/seg/form.yml.erb"
+embeds fail no-end-marker
 
 make_tree missing-entry-script
 rm "$scratch/missing-entry-script/workflows/seg/src/run.py"

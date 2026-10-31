@@ -4,6 +4,8 @@
 # nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_conflict_lists.sh
+#
+# bin/check name: conflict-list test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

@@ -4,33 +4,35 @@
 # failed case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_site_name.sh
+#
+# bin/check name: site name test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
-# logo <text>: a top bar holding <text> as its logo ("" for none).
+# logo <text> <page>: makes <text> the logo in <page>'s top bar, or with
+# "" drops the top bar.
 logo() {
-    [ -z "$1" ] || echo "<nav><a href=\"./\"><span class=\"nav-logo-text\">$1</span></a></nav>"
+    if [ -z "$1" ]; then sed -i '/nav-logo-text/d' "$2"; else sed -i "s|nav-logo-text\">[^<]*<|nav-logo-text\">$1<|" "$2"; fi
 }
 
 # site <pass|fail> <name> <landing logo> <workflow page logo>
 #      <CITATION.cff title line> <README text>: the check over a tree in
-# $scratch/<name> with a landing page, a guide page, a contribute page and
-# one workflow page. The guide and contribute pages carry the landing logo,
-# the guide's wrapped over CRLF lines. CITATION.cff and README.md hold the
-# given lines ("" leaves the file out).
+# $scratch/<name>, a site_tree with one workflow page. The guide and
+# contribute pages carry the landing logo, the guide's wrapped over CRLF
+# lines. CITATION.cff holds its title line, and README.md ends with the
+# README text ("" leaves either file out).
 site() {
     local dir="$scratch/$2"
-    mkdir -p "$dir/bin" "$dir/guide" "$dir/contribute" "$dir/workflows/some-workflow"
-    cp bin/check "$dir/bin/check"
-    logo "$3" > "$dir/index.html"
+    site_tree "$dir" some-workflow:ct-lab:active
+    logo "$3" "$dir/index.html"
     printf '<nav>\r\n  <span class="nav-logo-text">\r\n    %s\r\n  </span>\r\n</nav>\r\n' "$3" > "$dir/guide/index.html"
-    logo "$3" > "$dir/contribute/index.html"
-    logo "$4" > "$dir/workflows/some-workflow/index.html"
+    logo "$3" "$dir/contribute/index.html"
+    logo "$4" "$dir/workflows/some-workflow/index.html"
     [ -z "$5" ] || printf 'cff-version: 1.2.0\n%s\ntype: software\n' "$5" > "$dir/CITATION.cff"
-    [ -z "$6" ] || printf '# IRIS\n\n%s\n' "$6" > "$dir/README.md"
+    if [ -z "$6" ]; then rm "$dir/README.md"; else printf '%s\n' "$6" >> "$dir/README.md"; fi
     expect "$1" "$dir" "page logos match"
 }
 
