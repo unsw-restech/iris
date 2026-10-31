@@ -18,7 +18,8 @@
 #   - on the next line, the call that records the run's code, naming the
 #     entry script, so a run.py Python cannot start still leaves its diff
 #   - the python call on the run directory's run.py
-# The entry script holds neither #{ (OpenComposer would substitute a field,
+# No other line holds a heredoc: script: builds files with printf. The
+# entry script holds neither #{ (OpenComposer would substitute a field,
 # or drop the line when the field is empty) nor <% (ERB).
 #
 # These constants are the only test-side copy of the lines a script must
@@ -56,6 +57,7 @@ module ImagingForm
       @entry = (@lines.find { |l| l.start_with?("#{RECORD} ") } || "#{RECORD} src/run.py").split(" ", 2)[1].strip
       entry_text
       ordered_parts
+      other_heredocs
       unrendered = render(@path, nil)
       @problems << %(rendered without @apps_dir, CODE is not "", so the guard cannot stop the job) if unrendered && !unrendered.lines.include?(%(CODE=""\n))
       @problems
@@ -117,6 +119,17 @@ module ImagingForm
         ["#{RECORD} #{@entry}, on the line after the heredoc", line.("#{RECORD} #{@entry}")],
         [PYTHON, ->(i) { @lines[i].match?(/\A#{Regexp.escape(PYTHON)}( |\n)/) ? i + 1 : nil }],
       ]
+    end
+
+    # Any heredoc in the script but the entry script's: script: builds
+    # other files with printf '%s\n'.
+    def other_heredocs
+      opener = @lines.index(OPENER + "\n")
+      last = opener && (@lines[(opener + 1)..].index(END_MARKER + "\n") || @lines.size) + opener + 1
+      @lines.each_with_index do |l, i|
+        next if opener && (opener..last).cover?(i)
+        @problems << "line #{i + 1}: a heredoc besides the entry script's (build files with printf '%s\\n'): #{l.strip}" if l.include?("<<")
+      end
     end
 
     def ordered_parts

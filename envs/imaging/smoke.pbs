@@ -6,9 +6,12 @@
 
 # Step 3 of a build: check the environment on a real GPU.
 #
-# Submit once on a V100 and once on another GPU type, choosing the model
-# with gpu_model (V100, A100, H100, H200, L40S):
+# Submit from this folder in a clone on Katana, once on a V100 and once on
+# another GPU type, choosing the model with gpu_model (V100, A100, H100,
+# H200, L40S):
 #   qsub -v VERSION=<n> -l select=1:ncpus=2:ngpus=1:mem=8gb:gpu_model=V100 smoke.pbs
+# The Python module is the clone's lib/katana.sh's; for a version built on
+# another, add PYTHON_MODULE=<module> to -v, as for every build step.
 #
 # Passes if sm_70 is in torch.cuda.get_arch_list() and a small conv forward
 # pass on the GPU matches the same pass on the CPU.
@@ -16,10 +19,12 @@
 set -eo pipefail
 
 : "${VERSION:?submit with qsub -v VERSION=<n> smoke.pbs}"
-ENV_DIR="/srv/scratch/katana_ai/iris/envs/imaging/$VERSION"
+RECIPE="${PBS_O_WORKDIR:?submit with qsub from envs/imaging}"
+. "$RECIPE/../../lib/katana.sh"
+ENV_DIR="${IRIS_ENV_DIR%/*}/$VERSION"
 
 . /etc/profile.d/modules.sh
-module load python/3.13.2
+module load "${PYTHON_MODULE:-$IRIS_PYTHON_MODULE}"
 
 nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
 

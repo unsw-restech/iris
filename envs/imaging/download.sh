@@ -7,12 +7,15 @@
 #
 # Uses requirements.lock if it exists, so a rebuild gets exactly the built
 # versions. The first build of a version has no lock yet and resolves
-# requirements.in; build.pbs then freezes the result into the lock.
+# requirements.in; build.pbs then freezes the result into the lock. It
+# downloads for the clone's lib/katana.sh's Python module; for another, run
+# it as PYTHON_MODULE=<module> ./download.sh <version>.
 
 set -euo pipefail
 
 VERSION="${1:?usage: download.sh <version>}"
 RECIPE="$(cd "$(dirname "$0")" && pwd)"
+. "$RECIPE/../../lib/katana.sh"
 WHEELHOUSE="/srv/scratch/katana_ai/iris/wheelhouse/imaging/$VERSION"
 
 if [ "$(hostname -s)" != "kdm" ]; then
@@ -25,7 +28,7 @@ REQS="$RECIPE/requirements.lock"
 
 set +u
 . /etc/profile.d/modules.sh
-module load python/3.13.2
+module load "${PYTHON_MODULE:-$IRIS_PYTHON_MODULE}"
 set -u
 
 # pip stages every download in TMPDIR, and the data mover's /tmp (4 GB) is

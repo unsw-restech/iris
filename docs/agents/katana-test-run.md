@@ -82,7 +82,7 @@ Post results on the ticket in the shape of #35's and #36's closing comments: wha
 
 ## When a job hangs or dies
 
-Before resubmitting, submit a **canary**, `lib/tests/katana/canary.pbs`, which times `import mlflow` from the pinned environment. If the canary hangs too, compute nodes can't read the shared environment: stop submitting and tell Patrick, as it goes to ResTech, not into code. On 2026-10-19 from 14:39 this stalled four jobs on k192, k216 and k217 while the login node read the same files in milliseconds.
+Before resubmitting, submit a **canary**, `lib/tests/katana/canary.pbs`, which times `import mlflow` from the pinned environment: `qsub -m abe -v CLONE=<clone>,PYTHONUNBUFFERED=1 canary.pbs`, where `CLONE` is the clone whose `lib/katana.sh` names that environment, the system clone or a test folder's `T/iris`. If the canary hangs too, compute nodes can't read the shared environment: stop submitting and tell Patrick, as it goes to ResTech, not into code. On 2026-10-19 from 14:39 this stalled four jobs on k192, k216 and k217 while the login node read the same files in milliseconds.
 
 Whenever you stop with the ticket unfinished, comment on it first with each job's ID, node and outcome and the test folder's path, so the next session can pick up from there.
 

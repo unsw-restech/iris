@@ -9,11 +9,11 @@
 #            script embeds dates from (ADR-0006)
 #
 # It creates runs/, stops the job with one line if the environment is
-# missing, then loads the Python module lib/katana.sh names, activates the environment, puts
-# lib/ on PYTHONPATH, exports CODE as IRIS_CODE for the entry script, which
-# runs from the run directory, and creates the run directory. It then prints
-# what the job runs with, the commit being COMMIT or else the clone's HEAD,
-# and how to view the result. It defines iris_record_code, which the script
+# missing, then loads the Python module lib/katana.sh names, activates the
+# environment, puts lib/ on PYTHONPATH, exports CODE as IRIS_CODE for the
+# entry script, which runs from the run directory, and creates the run
+# directory. It then prints what the job runs with, the commit being COMMIT
+# or else the clone's HEAD, and how to view the result. It defines iris_record_code, which the script
 # calls once it has written run.py and before Python runs it, and iris_done,
 # which the script calls after the run to print the view commands again.
 # Nothing is installed.

@@ -48,7 +48,9 @@ check() {
 # of what it would hold.
 
 # How a script: line opens the quoted heredoc that carries an imaging
-# form's entry script, up to its end marker.
+# form's entry script, up to its end marker: the definition of an imaging
+# form, read from the ERB source. lib/tests/imaging_form.rb's OPENER is the
+# whole line as the form renders it, which the rendered-form checks need.
 entry_opener="  cat > \"\$RUN_DIR/run.py\" <<'"
 
 # Each catalogue card in index.html, in page order, as <slug> <lab>
@@ -155,8 +157,8 @@ check "usage tag matches the folder" usage_tags
 # bash. The copies that must stay literal agree with it: each imaging
 # form's pane ENV_DIR (ADR-0006), a form's Ruby test for the system clone
 # (@apps_dir == "<clone>/workflows"), the modulefile's PATH and the form
-# tests' SYSTEM_APPS_DIR. No other file under bin/, lib/ or module/ in
-# git's index keeps a copy of a constant of its own.
+# tests' SYSTEM_APPS_DIR. No other file under bin/, lib/, module/ or envs/
+# in git's index, notes (*.md, *.in) aside, keeps a constant of its own.
 # tests/bin/test_katana_constants.sh runs it on fixture trees.
 katana_constants() {
     local IRIS_SYSTEM_CLONE IRIS_ENV_DIR IRIS_PYTHON_MODULE f vals
@@ -187,22 +189,24 @@ katana_constants() {
         mapfile -t vals < <(tr -d '\r' < "$f" | sed -nE 's/^ *SYSTEM_APPS_DIR = "([^"]*)".*/\1/p')
         [ ${#vals[@]} = 0 ] || keep "$f" "SYSTEM_APPS_DIR" "$IRIS_SYSTEM_CLONE/workflows" "${vals[@]}"
     done
-    git grep -nF -e "$IRIS_SYSTEM_CLONE" -e "$IRIS_ENV_DIR" -e "$IRIS_PYTHON_MODULE" -- bin lib module \
+    git grep -nF -e "$IRIS_SYSTEM_CLONE" -e "$IRIS_ENV_DIR" -e "$IRIS_PYTHON_MODULE" -- bin lib module envs ':(exclude)*.md' ':(exclude)*.in' \
         ':(exclude)lib/katana.sh' ':(exclude)module/modulefiles/iris' |
         sed 's/$/  (take it from lib\/katana.sh)/'
 }
 check "Katana constants match lib/katana.sh" katana_constants
 
 # Print form lines that break a rule, by top-level section: no heredoc in
-# script: but the one carrying the entry script (every line there stays
-# indented), no Ruby #{} in check: (it collides with OpenComposer's own
-# substitution).
+# script: (every line there stays indented), no Ruby #{} in check: (it
+# collides with OpenComposer's own substitution). An imaging form's script
+# carries its entry script in one, so the rendered-form checks hold its
+# heredoc rule instead.
 form_sections() {
-    local f
+    local f imaging
     for f in workflows/*/form.yml.erb; do
-        tr -d '\r' < "$f" | awk -v f="$f" -v opener="$entry_opener" '
+        imaging=0; imaging_forms | grep -qxF "$f" && imaging=1
+        tr -d '\r' < "$f" | awk -v f="$f" -v imaging="$imaging" '
             /^[A-Za-z_]+:/ { sec = $1 }
-            sec == "script:" && /<</ && index($0, opener) != 1 { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
+            sec == "script:" && /<</ && !imaging { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
             sec == "check:" && /#\{/ { print f ":" NR ": #{} in check: (use + concatenation)" }'
     done
 }
@@ -218,8 +222,8 @@ need_ruby() {
 # Each imaging form's script as the form renders it holds, in order, its
 # PBS header with the usage tag, CODE and its guard, ENV_DIR, the job
 # library, the banner, the heredoc holding its entry script byte for byte,
-# the call recording the run's code and the python call on run.py, and its
-# entry script holds no #{ or <% (ADR-0006). lib/tests/imaging_form.rb
+# the call recording the run's code and the python call on run.py, with no
+# other heredoc, and its entry script holds no #{ or <% (ADR-0006). lib/tests/imaging_form.rb
 # holds those parts and lib/tests/test_imaging_form.rb breaks each one.
 rendered_scripts() {
     need_ruby || return

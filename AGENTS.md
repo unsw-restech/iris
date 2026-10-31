@@ -37,7 +37,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazi
 
 Run `bin/check` before committing; CI runs it on every push. It covers the link and URL greps, the form and manifest rules, executable bits, shellcheck, ruff and the synthetic-dataset test, which needs the desktop CPU venv (`envs/imaging/desktop.sh` builds it). Its attribution check reads commit messages, so it sees a message only once committed; `.githooks/commit-msg` refuses one first. Turn the hook on once per clone: `git config core.hooksPath .githooks`.
 
-A change to a `form.yml.erb`, `module/` or `lib/iris-job.sh` also needs `bin/katana-test` before committing. It sends the working tree, uncommitted edits included, from any clone or worktree over `ssh katana`, so no push is needed. It runs every form test and the module test, and submits the library's `lib/tests/katana/job_lib.pbs` once and waits for it, since `check:` looks inside `/srv/scratch/$USER` and the module and job-library tests need Environment Modules and `katana_ai_ro` membership.
+A change to a `form.yml.erb`, `module/`, `lib/iris-job.sh` or `lib/katana.sh`, which every job sources, also needs `bin/katana-test` before committing. It sends the working tree, uncommitted edits included, from any clone or worktree over `ssh katana`, so no push is needed. It runs every form test and the module test, and submits the library's `lib/tests/katana/job_lib.pbs` once and waits for it, since `check:` looks inside `/srv/scratch/$USER` and the module and job-library tests need Environment Modules and `katana_ai_ro` membership.
 
 ## Deploying
 

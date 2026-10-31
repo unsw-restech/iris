@@ -364,7 +364,7 @@ def train_and_segment(args, record, pairs, n_classes, vol, device, intensity):
                 "intensity_mean": mean, "intensity_std": std}, run_dir / rundir.MODEL)
 
     write_label_volume(run_dir / rundir.LABELS, segment(model, vol, mean, std, device, intensity), vol.shape)
-    print(f"Wrote {run_dir / 'labels.tif'} {tuple(vol.shape)} in {time.time() - trained:.0f} s")
+    print(f"Wrote {run_dir / rundir.LABELS} {tuple(vol.shape)} in {time.time() - trained:.0f} s")
 
 
 if __name__ == "__main__":

@@ -79,9 +79,10 @@ def _head(code_dir):
         return None
 
 
-def _write(path, text):
+def write_atomic(path, text):
     """Write via a temp file and a rename, so a reader, or a run killed
-    mid-write, sees all or nothing."""
+    mid-write, sees all or nothing. Every file the run directory, its
+    record and the run index hold is written this way."""
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(text)
     os.replace(tmp, path)
@@ -124,7 +125,7 @@ def record_code(run_dir, code_dir, entry, commit):
               f"so whether this run is edited is unknown: {detail}")
         return
     try:
-        _write(run_dir / RUN_DIFF, diff)
+        write_atomic(run_dir / RUN_DIFF, diff)
     except OSError as e:
         _warn(f"could not write {run_dir / RUN_DIFF}, so whether this run is edited is unknown: {e}")
     if diff:
@@ -144,16 +145,16 @@ def _record_commits(run_dir, commit, head):
             _warn("the form did not record the IRIS clone's commit and git could not read it either, "
                   "so this run records no commit and whether it is edited is unknown.")
             return
-        _write(run_dir / COMMIT, head + "\n")
+        write_atomic(run_dir / COMMIT, head + "\n")
         _warn(f"the form did not record the IRIS clone's commit, so commit.txt holds its commit at job start, "
               f"{head}, and whether this run is edited is unknown.")
         return
-    _write(run_dir / COMMIT, commit + "\n")
+    write_atomic(run_dir / COMMIT, commit + "\n")
     if head is None:
         _warn(f"could not read the IRIS clone's commit at job start, so whether it moved from {commit}, "
               f"when the form was opened, is unknown.")
     elif head != commit:
-        _write(run_dir / LIB_COMMIT, head + "\n")
+        write_atomic(run_dir / LIB_COMMIT, head + "\n")
         _warn(f"the IRIS clone moved from commit {commit}, when the form was opened, to {head}. "
               f"The workflow code in this script is from {commit}; the library it uses (lib/) is from {head}, "
               f"recorded in {run_dir / LIB_COMMIT}.")
@@ -194,14 +195,10 @@ def edited_to_record(value):
     return UNKNOWN if value is None else value
 
 
-def edited_from_record(value):
-    """run.json's `edited` as True, False or None for unknown."""
-    return value if isinstance(value, bool) else None
-
-
-def edited_text(value):
-    """An edited flag (True, False or None) as text: true, false or unknown."""
-    return UNKNOWN if value is None else str(value).lower()
+def edited_tag(value):
+    """run.json's `edited` (true, false or anything else for unknown) as the
+    importer's iris.edited tag writes it: true, false or unknown."""
+    return str(value).lower() if isinstance(value, bool) else UNKNOWN
 
 
 if __name__ == "__main__":
