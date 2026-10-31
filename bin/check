@@ -11,9 +11,10 @@
 #
 # The Python tests, lib/tests once and then each workflow's tests/, run in
 # the desktop CPU venv, which envs/imaging/desktop.sh builds (IRIS_PYTHON
-# names another interpreter).
-# The microCT form test and the module test need Katana and are not run
-# here: see AGENTS.md.
+# names another interpreter). The rendered-form checks and their tests need
+# Ruby (once in WSL: sudo apt install ruby; CI's image has it).
+# The form tests that need /srv/scratch and the module test need Katana
+# and are not run here: see AGENTS.md.
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 PYTHON="${IRIS_PYTHON:-$HOME/.venvs/iris-imaging/bin/python}"
@@ -46,8 +47,9 @@ check() {
 # the rules below as tab-separated lines. A tree without a file has none
 # of what it would hold.
 
-# The heredoc opener that carries an imaging form's entry script.
-entry_opener="  cat > \"\$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'"
+# How a script: line opens the quoted heredoc that carries an imaging
+# form's entry script, up to its end marker.
+entry_opener="  cat > \"\$RUN_DIR/run.py\" <<'"
 
 # Each catalogue card in index.html, in page order, as <slug> <lab>
 # <status>: <lab> is the id of the <div class="lab" id="<lab>"> section
@@ -86,9 +88,10 @@ site_pages=$(for f in index.html guide/index.html contribute/index.html workflow
 done)
 
 # Each imaging form (GLOSSARY.md): a workflows/*/form.yml.erb whose script
-# carries its entry script in the heredoc entry_opener opens.
+# carries its entry script in a heredoc, a line starting entry_opener. The
+# rendered-form checks hold the rest of what its script must hold.
 site_imaging_forms=$(for f in workflows/*/form.yml.erb; do
-    [ -f "$f" ] && tr -d '\r' < "$f" | grep -qxF "$entry_opener" && echo "$f"
+    [ -f "$f" ] && tr -d '\r' < "$f" | awk -v p="$entry_opener" 'index($0, p) == 1 { f = 1 } END { exit !f }' && echo "$f"
 done)
 
 cards() { [ -z "$site_cards" ] || printf '%s\n' "$site_cards"; }
@@ -148,14 +151,6 @@ usage_tags() {
 }
 check "usage tag matches the folder" usage_tags
 
-job_library() {
-    local f
-    for f in $(imaging_forms); do
-        tr -d '\r' < "$f" | grep -qxF '  source "$CODE/../../lib/iris-job.sh"' || echo "$f"
-    done
-}
-check "imaging forms source the job library" job_library
-
 # lib/katana.sh holds Katana's constants for every script that can source
 # bash. The copies that must stay literal agree with it: each imaging
 # form's pane ENV_DIR (ADR-0006), a form's Ruby test for the system clone
@@ -207,56 +202,56 @@ form_sections() {
     for f in workflows/*/form.yml.erb; do
         tr -d '\r' < "$f" | awk -v f="$f" -v opener="$entry_opener" '
             /^[A-Za-z_]+:/ { sec = $1 }
-            sec == "script:" && /<</ && $0 != opener { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
+            sec == "script:" && /<</ && index($0, opener) != 1 { print f ":" NR ": heredoc in script: (build files with printf '%s\\n')" }
             sec == "check:" && /#\{/ { print f ":" NR ": #{} in check: (use + concatenation)" }'
     done
 }
 check "form script: and check: sections" form_sections
 
-# Every imaging form embeds its entry script in script: (ADR-0006): it
-# names the script in entry_script, reads it at render time into
-# entry_code, and puts that between the quoted heredoc opener and
-# IRIS_RUN_PY_END, so the job writes and runs exactly what the pane holds.
-# The next line runs iris_record_code, so run.diff exists even
-# if Python cannot start run.py. The script holds no #{ (OpenComposer would
-# substitute a field, or drop the line when the field is empty) and no <%
-# (ERB). tests/bin/test_entry_script.sh runs it on fixture trees.
-embedded_entry_script() {
-    local f d entry
-    for f in $(imaging_forms); do
-        d="$(dirname "$f")"
-        entry="$(tr -d '\r' < "$f" | sed -nE 's/^<%- entry_script = "([^"]+)" -%>$/\1/p' | head -1)"
-        if [ -z "$entry" ] ||
-            ! tr -d '\r' < "$f" | grep -qxF '<%- entry_code = code.empty? ? "" : File.read(File.join(code, entry_script)).gsub(/^(?=.)/, "  ") -%>' ||
-            ! tr -d '\r' < "$f" | awk -v opener="$entry_opener" '
-                /^[A-Za-z_]+:/ { sec = $1 }
-                sec == "script:" && step == 0 && $0 == opener { step = 1; next }
-                step == 1 { step = ($0 == "<%= entry_code -%>") ? 2 : 0; next }
-                step == 2 { step = ($0 == "  IRIS_RUN_PY_END") ? 3 : 0; next }
-                step == 3 { if ($0 == "  iris_record_code <%= entry_script %>") found = 1; step = 0 }
-                END { exit !found }'; then
-            echo "$f: does not embed its entry script and then run iris_record_code (see the microCT form and ADR-0006)"
-            continue
-        fi
-        if [ ! -f "$d/$entry" ]; then
-            echo "$f: no entry script at $d/$entry"
-            continue
-        fi
-        tr -d '\r' < "$d/$entry" | grep -nE '#\{|<%' | sed "s|^|$d/$entry:|; s|\$|  (#{ or <% in an embedded entry script)|"
+# Ruby renders the forms as OpenComposer does; without it a rule that needs
+# it fails, so a local pass means what a CI pass does.
+need_ruby() {
+    command -v ruby > /dev/null ||
+        { echo "ruby not found: install it once with sudo apt install ruby"; return 1; }
+}
+
+# Each imaging form's script as the form renders it holds, in order, its
+# PBS header with the usage tag, CODE and its guard, ENV_DIR, the job
+# library, the banner, the heredoc holding its entry script byte for byte,
+# the call recording the run's code and the python call on run.py, and its
+# entry script holds no #{ or <% (ADR-0006). lib/tests/imaging_form.rb
+# holds those parts and lib/tests/test_imaging_form.rb breaks each one.
+rendered_scripts() {
+    need_ruby || return
+    # shellcheck disable=SC2046 # one word per path
+    [ -z "$(imaging_forms)" ] || ruby lib/tests/imaging_form.rb $(imaging_forms)
+}
+check "imaging forms' rendered scripts" rendered_scripts
+
+# The Ruby tests that need only Ruby and git; those needing /srv/scratch
+# (each workflow's tests/test_form.rb) run in bin/katana-test.
+ruby_tests() {
+    local t out
+    need_ruby || return
+    for t in lib/tests/test_*.rb; do
+        [ -f "$t" ] || continue
+        out="$(ruby "$t" 2>&1)" || { echo "$t:"; echo "$out" | tail -40; }
     done
 }
-check "imaging forms embed their entry script" embedded_entry_script
+check "rendered-form tests" ruby_tests
 
-# The job runs its own clone's code: CODE comes from @apps_dir, guarded
-# because OpenComposer re-reads the form on submit with @apps_dir unset.
+# hello-world's job runs its own clone's code too: CODE comes from
+# @apps_dir, guarded because OpenComposer re-reads the form on submit with
+# @apps_dir unset. The rendered-form checks cover the imaging forms.
 code_guard() {
     local f
     for f in workflows/*/form.yml.erb; do
+        imaging_forms | grep -qxF "$f" && continue
         tr -d '\r' < "$f" | grep -qxF '<% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>' &&
             tr -d '\r' < "$f" | grep -qxF '  CODE="<%= code %>"' || echo "$f"
     done
 }
-check "forms set CODE from a guarded @apps_dir" code_guard
+check "other forms set CODE from a guarded @apps_dir" code_guard
 
 # Local icon files don't resolve with an absolute apps_dir.
 manifest_icons() {
