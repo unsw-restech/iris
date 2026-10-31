@@ -1,7 +1,9 @@
-# Render this workflow's form.yml.erb the way OpenComposer 1.9.0 does, for
-# tests and for submitting a job without the browser.
+# Render a form.yml.erb the way OpenComposer 1.9.0 does, for tests and for
+# submitting a job without the browser. Every workflow's form tests use it.
 #
-#   render     ERB with @apps_dir and @OC_DIR_NAME set (the GET), then YAML
+#   render     ERB with @apps_dir and @OC_DIR_NAME set (the GET), then YAML;
+#              @apps_dir is the folder holding the form's workflow folder
+#              unless given (nil, as on OpenComposer's re-read at submit)
 #   check      eval the check: section with each field as @field, and
 #              oc_assert raising as OpenComposer's does (run.rb rescues it
 #              and re-renders the form with the values kept)
@@ -10,15 +12,14 @@
 #              does (lib/form.rb output_script_js)
 #
 # From the command line, prints the job script for the given fields:
-#   ruby form_helper.rb APPS_DIR dataset=/srv/scratch/$USER/x epochs=2 ...
+#   ruby lib/tests/form_helper.rb [--apps-dir DIR] [--no-check] FORM \
+#     dataset=/srv/scratch/$USER/x epochs=2 ...
+# --no-check prints the script even if check: rejects the fields.
 
 require "erb"
 require "yaml"
 
 module FormHelper
-  WORKFLOW = File.expand_path("..", __dir__)
-  FORM = File.join(WORKFLOW, "form.yml.erb")
-
   class Context
     def initialize(apps_dir, dir_name)
       @apps_dir = apps_dir
@@ -28,8 +29,9 @@ module FormHelper
     def get_binding = binding
   end
 
-  def self.render(apps_dir = File.dirname(WORKFLOW))
-    text = ERB.new(File.read(FORM), trim_mode: "-").result(Context.new(apps_dir, File.basename(WORKFLOW)).get_binding)
+  def self.render(form, apps_dir = File.dirname(File.dirname(File.expand_path(form))))
+    workflow = File.basename(File.dirname(File.expand_path(form)))
+    text = ERB.new(File.read(form), trim_mode: "-").result(Context.new(apps_dir, workflow).get_binding)
     YAML.load(text)
   end
 
@@ -80,10 +82,17 @@ module FormHelper
 end
 
 if $PROGRAM_NAME == __FILE__
-  apps_dir, *pairs = ARGV
-  form = FormHelper.render(File.expand_path(apps_dir))
+  require "optparse"
+  opts = { check: true }
+  OptionParser.new do |o|
+    o.on("--apps-dir DIR") { |d| opts[:apps_dir] = File.expand_path(d) }
+    o.on("--no-check") { opts[:check] = false }
+  end.parse!
+  form_path, *pairs = ARGV
+  abort "usage: form_helper.rb [--apps-dir DIR] [--no-check] FORM [field=value]..." unless form_path
+  form = opts.key?(:apps_dir) ? FormHelper.render(form_path, opts[:apps_dir]) : FormHelper.render(form_path)
   values = FormHelper.defaults(form, pairs.to_h { |p| p.split("=", 2) })
-  if (msg = FormHelper.check(form, values))
+  if opts[:check] && (msg = FormHelper.check(form, values))
     warn "check: rejected: " + msg
     exit 1
   end

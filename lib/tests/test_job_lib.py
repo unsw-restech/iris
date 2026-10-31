@@ -4,13 +4,16 @@ Asserts only on what a job shows: its exit status, its output and the run
 directory. The missing-environment case runs anywhere. The full sequence
 needs Katana's module system, so it runs only there, against the
 environment whose Python runs the tests (the CPU job in the README of
-envs/imaging/). CODE is the reference workflow's folder, the clone's
-workflow folder a job sets it to:
+envs/imaging/). Each job starts with the header the reference form
+renders (lib/tests/form_helper.rb, so Ruby is needed), its CODE the
+reference workflow's folder in the clone that serves the form:
 
     ~/.venvs/iris-imaging/bin/python -m unittest discover -s lib/tests
 """
 
+import functools
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -20,6 +23,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO / "workflows" / "microct-2d-segmentation"
 JOB_LIB = REPO / "lib" / "iris-job.sh"
+FORM_HELPER = REPO / "lib" / "tests" / "form_helper.rb"
 ON_KATANA = Path("/etc/profile.d/modules.sh").exists()
 
 
@@ -31,21 +35,42 @@ def head(code=WORKFLOW):
                           capture_output=True, text=True, check=True).stdout.strip()
 
 
-def source_job_lib(env_dir, run_dir, then="echo AFTER", commit="", code=WORKFLOW):
-    """Run a job script's opening lines as the form writes them: set CODE,
-    COMMIT (the clone's commit when the form rendered), ENV_DIR and RUN_DIR,
-    turn on set -eo pipefail, source the library, then run `then`."""
-    script = (
-        'set -eo pipefail\n'
-        f'CODE="{code}"\n'
-        f'COMMIT="{commit}"\n'
-        f'ENV_DIR="{env_dir}"\n'
-        f'RUN_DIR="{run_dir}"\n'
-        f'source "{JOB_LIB}"\n'
-        f'{then}\n'
-    )
+def rendered_script(code, dataset):
+    """The job script the reference form renders, served from the clone
+    holding `code`, for `dataset` and the form's defaults."""
+    return subprocess.run(
+        ["ruby", str(FORM_HELPER), "--apps-dir", str(code.parent), "--no-check", str(WORKFLOW / "form.yml.erb"),
+         f"dataset={dataset}"],
+        capture_output=True, text=True, check=True).stdout
+
+
+@functools.cache
+def record_step():
+    """The rendered script's line after the heredoc that writes run.py: the
+    call recording the run's code."""
+    script = rendered_script(WORKFLOW, "/srv/scratch/z0000000/dataset")
+    marker = re.search(r"<<'(\w+)'\n", script).group(1)
+    return script.split(f"\n{marker}\n", 1)[1].splitlines()[0]
+
+
+def source_job_lib(env_dir, run_dir, then="echo AFTER", commit=None, code=WORKFLOW):
+    """Run the rendered script's header, from #!/bin/bash to sourcing the
+    library, for a run directory <dataset>/runs/<job>, then run `then`.
+    ENV_DIR is `env_dir`; COMMIT, the clone's commit when the form
+    rendered, is `commit` if given. The library sourced is always this
+    tree's, whichever clone `code` is in."""
+    assert run_dir.parent.name == "runs", run_dir
+    lines = rendered_script(code, run_dir.parent.parent).splitlines(keepends=True)
+    end = next(i for i, line in enumerate(lines) if JOB_LIB.name in line)
+    header = "".join(lines[:end]) + f'source "{JOB_LIB}"\n'
+    for name, value in {"ENV_DIR": env_dir, "COMMIT": commit}.items():
+        if value is not None:
+            line = f'{name}="{value}"'
+            header, n = re.subn(rf"^{name}=.*$", lambda _, line=line: line, header, flags=re.M)
+            assert n == 1, f"the rendered header sets {name} {n} times"
     env = {k: v for k, v in os.environ.items() if k not in ("VIRTUAL_ENV", "PYTHONPATH")}
-    return subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=120)
+    env["PBS_JOBID"] = f"{run_dir.name}.kman.restech.unsw.edu.au"
+    return subprocess.run(["bash", "-c", f"{header}{then}\n"], env=env, capture_output=True, text=True, timeout=120)
 
 
 class MissingEnvironment(unittest.TestCase):
@@ -110,7 +135,7 @@ class RenderTimeCommit(unittest.TestCase):
             run_dir = Path(tmp, "dataset", "runs", "1")
             result = source_job_lib(sys.prefix, run_dir, commit=commit, then=(
                 f'cp "{WORKFLOW / "src" / "run.py"}" "$RUN_DIR/run.py"\n'
-                'iris_record_code src/run.py'))
+                f'{record_step()}'))
             files = {p.name: p.read_text().strip() for p in run_dir.iterdir()}
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result, files
@@ -153,7 +178,7 @@ class RecordCode(unittest.TestCase):
             script.write_text(broken)
             result = source_job_lib(sys.prefix, run_dir, commit=head(), then=(
                 f'cp "{script}" "$RUN_DIR/run.py"\n'
-                'iris_record_code src/run.py\n'
+                f'{record_step()}\n'
                 'python "$RUN_DIR/run.py" --help'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("SyntaxError", result.stderr)
