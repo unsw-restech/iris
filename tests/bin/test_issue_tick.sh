@@ -3,6 +3,8 @@
 # nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_issue_tick.sh
+#
+# bin/check name: issue-tick test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 fake="$(mktemp -d)"

@@ -5,6 +5,8 @@
 # it.
 #
 #   tests/bin/test_workflow_owner.sh
+#
+# bin/check name: workflow owner test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

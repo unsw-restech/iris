@@ -4,6 +4,8 @@
 # case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_entry_script.sh
+#
+# bin/check name: entry script test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

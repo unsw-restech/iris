@@ -5,6 +5,8 @@
 # nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_unmaintained.sh
+#
+# bin/check name: unmaintained-workflow test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

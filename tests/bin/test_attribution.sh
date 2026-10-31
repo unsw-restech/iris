@@ -5,6 +5,8 @@
 # nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_attribution.sh
+#
+# bin/check name: attribution test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

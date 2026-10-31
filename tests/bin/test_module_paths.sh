@@ -4,6 +4,8 @@
 # case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_module_paths.sh
+#
+# bin/check name: module paths test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

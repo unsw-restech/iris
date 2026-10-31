@@ -5,6 +5,8 @@
 # can run it.
 #
 #   tests/bin/test_citation_cff.sh
+#
+# bin/check name: CITATION.cff test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

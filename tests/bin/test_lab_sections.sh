@@ -4,6 +4,8 @@
 # each failed case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_lab_sections.sh
+#
+# bin/check name: lab-section test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

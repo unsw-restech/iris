@@ -4,6 +4,8 @@
 # and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_citable_versions.sh
+#
+# bin/check name: citable versions test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

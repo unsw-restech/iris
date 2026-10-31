@@ -4,6 +4,8 @@
 # failed case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_site_name.sh
+#
+# bin/check name: site name test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

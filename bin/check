@@ -603,41 +603,14 @@ shellcheck_all() {
 }
 check "shellcheck" shellcheck_all
 
-# The desktop helpers that wrap ssh, against a fake ssh on PATH.
-check "qwait test" bash tests/bin/test_qwait.sh
-# The live-site wait, against a fake curl on PATH.
-check "pageswait test" bash tests/bin/test_pageswait.sh
-# The issue checkbox ticker, against a fake gh.
-check "issue-tick test" bash tests/bin/test_issue_tick.sh
-# The system-clone pull preview and the Katana test runner, against a fake ssh.
-check "syspull test" bash tests/bin/test_syspull.sh
-check "katana-test test" bash tests/bin/test_katana_test.sh
-# The pilot readability check syspull runs, against a fake getfacl.
-check "pilot-readable test" bash tests/bin/test_pilot_readable.sh
-# The AI-attribution check, against throwaway histories.
-check "attribution test" bash tests/bin/test_attribution.sh
-# The conflict-list check, against throwaway histories.
-check "conflict-list test" bash tests/bin/test_conflict_lists.sh
-# The unmaintained-workflow check, against throwaway site trees.
-check "unmaintained-workflow test" bash tests/bin/test_unmaintained.sh
-# The lab-section check, against throwaway site trees.
-check "lab-section test" bash tests/bin/test_lab_sections.sh
-# The pre-launch pairing, against copies of the site.
-check "pre-launch pairing test" bash tests/bin/test_prelaunch.sh
-# The workflow-owner check, against throwaway repo trees.
-check "workflow owner test" bash tests/bin/test_workflow_owner.sh
-# The citable-versions check, against throwaway workflow pages.
-check "citable versions test" bash tests/bin/test_citable_versions.sh
-# The CITATION.cff check, against throwaway trees.
-check "CITATION.cff test" bash tests/bin/test_citation_cff.sh
-# The module-paths check, against throwaway trees.
-check "module paths test" bash tests/bin/test_module_paths.sh
-# The logo and title check, against throwaway trees.
-check "site name test" bash tests/bin/test_site_name.sh
-# The embedded entry script check, against throwaway trees.
-check "entry script test" bash tests/bin/test_entry_script.sh
-# The module command folder check, against throwaway repos.
-check "module command folder test" bash tests/bin/test_module_commands.sh
+# Every tests/bin/test_*.sh, each against fakes or throwaway trees: a
+# test prints its failed cases and nothing on success. Each runs under the
+# name its "# bin/check name: <name>" line gives, or its path if it has
+# none, so a new test runs with no other edit.
+for t in tests/bin/test_*.sh; do
+    n=$(tr -d '\r' < "$t" | sed -n 's/^# bin\/check name: //p' | head -n1)
+    check "${n:-$t}" bash "$t"
+done
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
