@@ -14,8 +14,10 @@
 [ $# -gt 0 ] || { grep -m1 '^#   bin/qwait' "$0" | sed 's/^# *//'; exit 2; }
 INTERVAL="${QWAIT_INTERVAL:-60}"
 TAIL="${QWAIT_TAIL:-20}"
-# The system clone (see AGENTS.md); a run from /pun/sys/ ran its code.
-SYS_CLONE=/srv/scratch/katana_ai/iris/code
+# lib/katana.sh decides whether a run's code is the system clone's; a run
+# from /pun/sys/ ran its code.
+# shellcheck source=lib/katana.sh
+. "$(dirname "$(readlink -f "$0")")/../lib/katana.sh" || exit 2
 pending=("$@")
 status=0
 ssh_failures=0
@@ -64,9 +66,9 @@ while [ ${#pending[@]} -gt 0 ]; do
         rc=$? code=${code#Code*: }
         if [ $rc = 255 ]; then echo "   clone: unknown, ssh failed"
         elif [ $rc != 0 ]; then echo "   clone: unknown, the log has no Code: line"
+        elif iris_in_system_clone "$code"; then echo "   clone: system ($code)"
         else
             case "$code" in
-                "$SYS_CLONE"/*) echo "   clone: system ($code)" ;;
                 /home/*/iris/*) echo "   clone: dev ($code)" ;;
                 *) echo "   clone: other ($code)" ;;
             esac

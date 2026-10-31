@@ -50,7 +50,8 @@ sent() { grep -qF -- "$2" "$fake/args" 2>/dev/null || echo "syspull $1: ssh comm
 # not_sent <case> <extended regex>: the command ssh ran never matches it.
 not_sent() { ! grep -qE -- "$2" "$fake/args" 2>/dev/null || echo "syspull $1: ssh command matches '$2'"; }
 
-sys=/srv/scratch/katana_ai/iris/code
+. lib/katana.sh
+sys="$IRIS_SYSTEM_CLONE"
 
 # The preview fetches and lists, and changes nothing in the clone.
 expect 0 "fake report"

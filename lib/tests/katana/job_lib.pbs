@@ -9,10 +9,15 @@
 # took 4 s (job 9654477). bin/katana-test submits it once; by hand:
 #
 #   qsub -m abe -v T=/srv/scratch/$USER/iris-test-<n>,PYTHONUNBUFFERED=1 job_lib.pbs
-ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
-. /etc/profile.d/modules.sh; module load python/3.13.2
+#
+# The environment and Python module are the tree's own, from its
+# lib/katana.sh, so an environment bump is tested on the version the form pins.
+: "${T:?pass T=<scratch test folder> with qsub -v}"
+. "$T/iris/lib/katana.sh" || exit 1
+ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
+. /etc/profile.d/modules.sh; module load "$IRIS_PYTHON_MODULE"
 echo "host $(hostname) $(date +%T)"
-cd "${T:?pass T=<scratch test folder> with qsub -v}/iris/lib/tests" || exit 1
+cd "$T/iris/lib/tests" || exit 1
 "$ENV_DIR/bin/python" -X faulthandler -m unittest -v test_job_lib 2>&1
 s=$?
 echo "exit $s $(date +%T)"

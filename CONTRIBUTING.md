@@ -40,6 +40,7 @@ iris/
 │   ├── pageswait                     # Wait for the live site to serve a change (desktop)
 │   ├── issue-tick                    # Tick checkboxes in an issue's body (desktop)
 │   ├── iris-import                   # Import new runs into your MLflow tracking store
+│   ├── iris-python                   # Runs an iris.* module in the imaging environment; the iris-* tools are shims over it
 │   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
 │   ├── iris-rebuild                  # Rebuild a lost tracking store from run directories
 │   ├── iris-view                     # View a run's labels over its volume in napari (in a Virtual Desktop)
@@ -51,6 +52,7 @@ iris/
 ├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
+│   ├── katana.sh                     # Katana's constants: the system clone, the imaging environment, the Python module
 │   ├── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
 │   └── tests/                        # The library's tests, run once (bin/check), and its Katana jobs in katana/ (bin/katana-test submits job_lib.pbs)
 ├── module/                           # `module load iris` (ADR-0003)
@@ -73,7 +75,7 @@ iris/
 
 Plain static HTML — no build step, no dependencies. The landing page keeps its styles inline; the workflow detail pages and the guide share `assets/iris.css`. The `hello-world` page has its own styles — it's a deliberate variant, not a copy, so don't fold it into the shared sheet.
 
-IRIS jobs use Katana **modules first**. Imaging jobs source `lib/iris-job.sh`, which loads Katana's `python/3.13.2` module and tops it up with the pinned imaging venv from `envs/imaging/`, so nothing is installed when a run starts.
+IRIS jobs use Katana **modules first**. Imaging jobs source `lib/iris-job.sh`, which loads Katana's Python module and tops it up with the pinned imaging venv from `envs/imaging/`, so nothing is installed when a run starts. Both are named once, in `lib/katana.sh`, beside the system clone's path; the form's pane keeps its own `ENV_DIR`, and `bin/check` keeps it the same.
 
 Keep `.nojekyll` in place. Without it, Pages runs Jekyll and would silently drop any future directory beginning with an underscore.
 
@@ -95,7 +97,7 @@ The workflow-author checklist. Work on a branch of your fork, cloned on Katana a
 
 1. **Copy the reference folder**, `workflows/microct-2d-segmentation/`, to `workflows/<slug>/`. Its `tests/` holds only that workflow's own tests: the entry script's end-to-end synthetic run (`test_synthetic.py`) and the form tests (`test_form.rb`, on `form_helper.rb`). The shared library's tests, and the Katana jobs for the library, the module and the environment, are in `lib/tests/` and `lib/tests/katana/`, so the copy carries none of them, and `bin/check` and `bin/katana-test` run them once for every workflow. To build a Planned workflow, extend its existing folder instead, so its URL never changes.
 2. **Change the slug everywhere**: the folder name, `#PBS -A iris-<slug>` in the form's script header, the Experiment name default and the job name default. The folder name is also the OpenComposer URL segment.
-3. **Set the environment version** in the form's `ENV_DIR`. If the workflow needs packages the environment lacks, request them ([Requesting packages](#requesting-packages)); never change a built version.
+3. **Keep the environment version** in the form's `ENV_DIR`: every imaging form pins the one `lib/katana.sh` names, and `bin/check` fails one that doesn't. If the workflow needs packages the environment lacks, request them ([Requesting packages](#requesting-packages)); never change a built version.
 4. **Set the fields and `check:` rules** in `form.yml.erb`, and the entry point under `src/`. Add a synthetic-dataset test under `tests/`, as the reference workflow's `tests/test_synthetic.py` does, so `bin/check` runs your workflow end to end on made-up data. Defaults for memory, walltime and epochs cite the timing run that measured them.
 
    **Embed the entry script** in the form's `script:`, as the reference form does, so researchers can edit it for one run (ADR-0006): the form reads it from `src/` at render time into a quoted heredoc below the banner telling researchers to set the fields first, and the job writes it into the run directory as `run.py`, runs `iris_record_code` on the next line to record the run's code, writing its `commit.txt` and writing and printing its `run.diff`, and runs it from there. `lib/` stays in the clone, out of the pane. The entry script may contain neither `#{` (OpenComposer substitutes a field there) nor `<%` (ERB); `bin/check` rejects an imaging form that lacks its embedded script or the `iris_record_code` line, or whose script contains either. `hello-world` keeps its plain script.
@@ -109,7 +111,7 @@ If the workflow ships a `local/run_local.ps1`, **keep it ASCII-only**. These fil
 
 ### Requesting packages
 
-Only the maintainer builds environments. If your workflow needs packages the shared imaging environment lacks, add them to `envs/imaging/requirements.in` in your PR and list them in its description. The maintainer builds version *n+1* from it (`envs/imaging/README.md`), commits its lock, and your form's `ENV_DIR` points at *n+1* before merge. Until then, test against a venv of your own built from that `requirements.in`, and say so in the PR.
+Only the maintainer builds environments. If your workflow needs packages the shared imaging environment lacks, add them to `envs/imaging/requirements.in` in your PR and list them in its description. The maintainer builds version *n+1* from it (`envs/imaging/README.md`), commits its lock, and moves `lib/katana.sh` and every imaging form's `ENV_DIR` to *n+1* before merge (`bin/check` lists any copy left behind). Until then, test against a venv of your own built from that `requirements.in`, and say so in the PR.
 
 ## The workflow owner
 

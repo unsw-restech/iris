@@ -4,17 +4,6 @@
 # Firefox at it (lib/iris/compare.py). Run it in a terminal in a Virtual
 # Desktop and leave the terminal open; Ctrl+C there stops MLflow.
 #
-# Runs with the imaging environment the form pins (bin/check keeps them
-# the same), or another with ENV_DIR=...
-# Unbuffered (-u), so its lines keep their order when logged or piped.
-# Keep it free of `set -u`: the module scripts reference unset variables.
-
-set -eo pipefail
-ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
-LIB="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib" && pwd)"
-
-if [ -f /etc/profile.d/modules.sh ]; then
-    . /etc/profile.d/modules.sh
-    module load python/3.13.2
-fi
-PYTHONPATH="$LIB${PYTHONPATH:+:$PYTHONPATH}" exec "$ENV_DIR/bin/python" -u -m iris.compare
+# A shim over bin/iris-python, which runs it in the imaging environment
+# lib/katana.sh pins, or another with ENV_DIR=...
+exec "$(dirname "$(readlink -f "$0")")/iris-python" iris.compare "$@"

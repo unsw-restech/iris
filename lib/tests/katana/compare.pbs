@@ -21,7 +21,8 @@
 : "${T:?pass T=<scratch test folder> with qsub -v}"
 RUN="${RUN:-/srv/scratch/z3224749/iris-fixtures/home/run-index/9573671}"
 [ -f "$RUN" ] || { echo "No run-index pointer at $RUN"; exit 1; }
-ENV_DIR="${ENV_DIR:-/srv/scratch/katana_ai/iris/envs/imaging/1}"
+. "$T/iris/lib/katana.sh" || exit 1
+ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
 export IRIS_HOME=$T/home-compare PYTHONUNBUFFERED=1 PYTHONFAULTHANDLER=1
 [ -e "$IRIS_HOME" ] && { echo "$IRIS_HOME exists: the store must be fresh"; exit 1; }
 cd "$T" || exit 1
@@ -69,7 +70,7 @@ PY
         echo "port $port closed after Ctrl+C"
     fi
 }
-. /etc/profile.d/modules.sh; module load python/3.13.2
+. /etc/profile.d/modules.sh; module load "$IRIS_PYTHON_MODULE"
 : > compare.out
 probe &
 echo "$(ts) starting iris-compare"

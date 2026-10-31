@@ -10,7 +10,8 @@
 # No `set -u`: the module scripts reference unset variables.
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
-commands=/srv/scratch/katana_ai/iris/code/module/bin
+. lib/katana.sh || exit 1
+commands="$IRIS_SYSTEM_CLONE/module/bin"
 failed=0
 fail() { echo "FAIL: $*"; failed=1; }
 
@@ -26,7 +27,7 @@ module load iris || fail "module load iris"
 # (`module -t list`, Environment Modules 5.3.1 on Katana, 2026-10-26).
 loaded=$(module -t list 2>&1 | grep -v ':$' | tr '\n' ' ')
 [ "$loaded" = "iris " ] || fail "module load iris should load only iris; loaded: $loaded"
-for cmd in iris-rebuild iris-import check ciwait; do
+for cmd in iris-rebuild iris-import iris-python check ciwait; do
     found=$(command -v "$cmd") && fail "$cmd is on the PATH after module load iris: $found"
 done
 

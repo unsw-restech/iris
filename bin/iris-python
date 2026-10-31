@@ -1,0 +1,24 @@
+#!/bin/bash
+# bin/iris-python iris.<module> [<arg>...]: run one of lib/'s iris.* Python
+# modules in the imaging environment, the dispatcher behind the bin/iris-*
+# tools, which are shims over it. It loads Katana's Python module when
+# Environment Modules exist, puts this clone's lib/ first on PYTHONPATH and
+# runs the module unbuffered (-u), so its lines keep their order when
+# logged or piped, with the arguments given. ENV_DIR names another
+# environment than the one lib/katana.sh pins. It isn't in module/bin, so
+# `module load iris` never puts it on the PATH (ADR-0003).
+# Keep it free of `set -u`: the module scripts reference unset variables.
+
+set -eo pipefail
+[[ "$1" == iris.* ]] || { echo "usage: bin/iris-python iris.<module> [<arg>...]" >&2; exit 2; }
+name="$1"
+shift
+LIB="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib" && pwd)"
+. "$LIB/katana.sh"
+ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
+
+if [ -f /etc/profile.d/modules.sh ]; then
+    . /etc/profile.d/modules.sh
+    module load "$IRIS_PYTHON_MODULE"
+fi
+PYTHONPATH="$LIB${PYTHONPATH:+:$PYTHONPATH}" exec "$ENV_DIR/bin/python" -u -m "$name" "$@"
