@@ -165,7 +165,7 @@ def replay(client, home, run_dir, record):
         if dataset is not None:
             client.log_inputs(run_id, datasets=[dataset_input(dataset)])
         if "edited" in record:
-            client.set_tag(run_id, EDITED_TAG, rundir.edited_text(rundir.edited_from_record(record["edited"])))
+            client.set_tag(run_id, EDITED_TAG, rundir.edited_tag(record["edited"]))
         for name in CODE_ARTIFACTS:
             if (run_dir / name).is_file():
                 client.log_artifact(run_id, str(run_dir / name))

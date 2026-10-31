@@ -61,16 +61,8 @@ def job_id():
     return full.split(".")[0] or None
 
 
-def write_atomic(path, text):
-    """Write via a temp file and a rename, so a reader, or a run killed
-    mid-write, leaves all or nothing."""
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text)
-    os.replace(tmp, path)
-
-
 def write_json(path, obj):
-    write_atomic(path, json.dumps(obj, indent=2) + "\n")
+    rundir.write_atomic(path, json.dumps(obj, indent=2) + "\n")
 
 
 class Killed(BaseException):
@@ -172,5 +164,5 @@ class RunRecord:
     def write_pointer(self):
         index = run_index(iris_home())
         index.mkdir(parents=True, exist_ok=True)
-        write_atomic(index / self.job_id, str(self.run_dir) + "\n")
+        rundir.write_atomic(index / self.job_id, str(self.run_dir) + "\n")
 
