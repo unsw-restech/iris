@@ -20,7 +20,7 @@ import urllib.request
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
 
 from iris.record import iris_home  # noqa: E402
-from iris.tracking import artifact_root, import_runs, store_uri, summary  # noqa: E402
+from iris.tracking import STORE, artifact_root, import_runs, store_uri, summary  # noqa: E402
 
 HOST = "127.0.0.1"
 # Seconds. In batch jobs, mlflow ui answered in 15 s on k180 with mlflow
@@ -66,7 +66,7 @@ def main():
     result = import_runs(home, wait=False)
     if result is not None:
         print(summary(result, home))
-    elif (home / "tracking.db").exists():
+    elif (home / STORE).exists():
         print("Another import into this store is running, so new runs may be missing:"
               " showing the runs already imported.")
     else:

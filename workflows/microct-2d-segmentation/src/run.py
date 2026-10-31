@@ -3,21 +3,13 @@
 
 Trains a 2D U-Net from scratch on a dataset's training pairs, then segments
 its whole volume slice by slice along z into one label volume. Before it
-runs this script, the job writes it into --run-dir as run.py, beside
-commit.txt and its diff, run.diff (lib/iris-job.sh). The script writes the
-rest there:
-
-  labels.tif    the label volume, uint8 BigTIFF, one deflate page per slice
-  model.pt      the trained weights
-  params.json   every form field, including the seed actually used
-  dataset.json  which dataset the run read: its folders, file counts and
-                volume, and the volume's intensity statistics
-  metrics.json  training loss and per-class Dice/IoU on held-out patches,
-                per epoch and final
-  run.json      the experiment, job ID, environment, whether it is an
-                edited run and how the run ended, written last; the run
-                index then points at the run directory, so the importer can
-                replay it into MLflow
+runs this script, the job writes it into --run-dir as run.py and records
+its code there (iris_record_code in lib/iris-job.sh). The script writes the
+rest there: the label volume (uint8 BigTIFF, one deflate page per slice),
+the trained weights, and the run's record through RunRecord, with every
+form field and the seed actually used, which dataset it read, and training
+loss and per-class Dice/IoU on held-out patches per epoch. The workflow
+page's table lists every file, and iris.rundir names them.
 
 Classes are 1..K, where K is the highest value in train/labels; 0 marks an
 unlabelled pixel and is never predicted. lib/ must be on PYTHONPATH (the job
@@ -37,6 +29,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from iris import rundir
 from iris.dataset import IntensityStats, dataset_record
 from iris.labels import MAX_CLASSES, write_label_volume
 from iris.record import RunRecord
@@ -368,9 +361,9 @@ def train_and_segment(args, record, pairs, n_classes, vol, device, intensity):
     print(f"Set up and trained {args.epochs} epochs in {trained - started:.0f} s")
 
     torch.save({"state_dict": model.state_dict(), "n_classes": n_classes,
-                "intensity_mean": mean, "intensity_std": std}, run_dir / "model.pt")
+                "intensity_mean": mean, "intensity_std": std}, run_dir / rundir.MODEL)
 
-    write_label_volume(run_dir / "labels.tif", segment(model, vol, mean, std, device, intensity), vol.shape)
+    write_label_volume(run_dir / rundir.LABELS, segment(model, vol, mean, std, device, intensity), vol.shape)
     print(f"Wrote {run_dir / 'labels.tif'} {tuple(vol.shape)} in {time.time() - trained:.0f} s")
 
 

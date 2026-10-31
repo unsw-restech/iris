@@ -87,8 +87,13 @@ class FullSequence(unittest.TestCase):
         self.assertIn(f"PYTHON={sys.prefix}/bin/python", self.result.stdout)
         self.assertIn("IMPORTS OK", self.result.stdout)
 
-    def test_records_the_clone_commit_in_the_run_directory(self):
-        self.assertEqual((self.run_dir / "commit.txt").read_text().strip(), head())
+    def test_the_header_shows_the_clones_commit_the_environment_and_the_run_directory(self):
+        self.assertIn(f"\nCommit      : {head()}\n", self.result.stdout)
+        self.assertIn(f"\nEnvironment : {sys.prefix}\n", self.result.stdout)
+        self.assertIn(f"\nRun dir     : {self.run_dir}\n", self.result.stdout)
+
+    def test_records_no_code_before_the_script_calls_iris_record_code(self):
+        self.assertEqual(list(self.run_dir.iterdir()), [])
 
     def test_exports_the_workflow_folder_for_the_entry_script(self):
         result = source_job_lib(sys.prefix, self.run_dir.with_name("1235"), then='echo "IRIS_CODE=$(printenv IRIS_CODE)"')
@@ -98,20 +103,24 @@ class FullSequence(unittest.TestCase):
 @unittest.skipUnless(ON_KATANA, "needs Katana's module system")
 class RenderTimeCommit(unittest.TestCase):
     """The embedded code dates from when the form rendered, lib/ from when
-    the job starts (ADR-0006)."""
+    the job starts (ADR-0006): iris_record_code records both."""
 
     def run_with(self, commit):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp, "dataset", "runs", "1")
-            result = source_job_lib(sys.prefix, run_dir, commit=commit)
+            result = source_job_lib(sys.prefix, run_dir, commit=commit, then=(
+                f'cp "{WORKFLOW / "src" / "run.py"}" "$RUN_DIR/run.py"\n'
+                'iris_record_code src/run.py'))
             files = {p.name: p.read_text().strip() for p in run_dir.iterdir()}
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result, files
 
-    def test_the_render_time_commit_goes_to_commit_txt(self):
+    def test_the_render_time_commit_goes_to_commit_txt_and_the_header(self):
         result, files = self.run_with(head())
         self.assertEqual(files["commit.txt"], head())
         self.assertNotIn("lib_commit.txt", files)
+        self.assertIn("run.diff", files)
+        self.assertIn(f"\nCommit      : {head()}\n", result.stdout)
         self.assertNotIn("WARNING", result.stdout + result.stderr)
 
     def test_a_clone_that_moved_since_rendering_is_recorded_as_lib_commit_with_a_warning(self):
@@ -119,6 +128,7 @@ class RenderTimeCommit(unittest.TestCase):
         result, files = self.run_with(rendered)
         self.assertEqual(files["commit.txt"], rendered)
         self.assertEqual(files["lib_commit.txt"], head())
+        self.assertIn(f"\nCommit      : {rendered}\n", result.stdout)
         self.assertIn("WARNING", result.stderr)
         self.assertIn(head(), result.stderr)
 
@@ -131,8 +141,8 @@ class RenderTimeCommit(unittest.TestCase):
 
 
 @unittest.skipUnless(ON_KATANA, "needs Katana's module system")
-class RecordEdits(unittest.TestCase):
-    """iris_record_edits, which the script calls between writing run.py and
+class RecordCode(unittest.TestCase):
+    """iris_record_code, which the script calls between writing run.py and
     running it, so a run.py Python cannot even parse leaves its diff."""
 
     def test_a_run_py_with_a_syntax_error_leaves_run_py_and_run_diff_and_fails_the_job(self):
@@ -143,7 +153,7 @@ class RecordEdits(unittest.TestCase):
             script.write_text(broken)
             result = source_job_lib(sys.prefix, run_dir, commit=head(), then=(
                 f'cp "{script}" "$RUN_DIR/run.py"\n'
-                'iris_record_edits src/run.py\n'
+                'iris_record_code src/run.py\n'
                 'python "$RUN_DIR/run.py" --help'))
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("SyntaxError", result.stderr)

@@ -165,9 +165,9 @@ form:
 # directory as run.py and runs it from there, while lib/ stays in the clone
 # (ADR-0006). It must hold no OpenComposer field or ERB tag, which bin/check
 # enforces. COMMIT is the clone's commit at render time, the commit the
-# embedded code is from: the job records it in commit.txt, and warns if the
-# clone has moved since. Before Python runs run.py, iris_record_edits writes
-# and prints its diff against the entry script at COMMIT, run.diff.
+# embedded code is from. Before Python runs run.py, iris_record_code records
+# the run's code: COMMIT, a warning if the clone has moved since, and
+# run.py's diff against the entry script at COMMIT, which it prints.
 <% code = @apps_dir ? File.expand_path(File.join(@apps_dir, @OC_DIR_NAME)) : "" %>
 <%- entry_script = "src/run.py" -%>
 <%- entry_code = code.empty? ? "" : File.read(File.join(code, entry_script)).gsub(/^(?=.)/, "  ") -%>
@@ -199,7 +199,7 @@ script: |
   cat > "$RUN_DIR/run.py" <<'IRIS_RUN_PY_END'
 <%= entry_code -%>
   IRIS_RUN_PY_END
-  iris_record_edits <%= entry_script %>
+  iris_record_code <%= entry_script %>
 
   python "$RUN_DIR/run.py" \
     --dataset "$DATASET" --run-dir "$RUN_DIR" \
