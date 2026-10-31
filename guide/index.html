@@ -127,7 +127,7 @@
     <h2>Fiji and ParaView</h2>
     <p>For a closer look than <code>iris-view</code> gives, open the run's label volume in Fiji, or crop a region of it in Fiji and render it in 3D in ParaView.</p>
 
-    <!-- Fiji and ParaView steps run as written in unsw-restech/iris#46 (2026-10-21). labels.tif is a BigTIFF: ImageJ's own TIFF Virtual Stack reads it as 0 x 0, Bio-Formats opens it. Bio-Formats reads its slices as time points, hence "T" below. workflows/microct-2d-segmentation/tests/katana/viewers.pbs checks these readers headless. -->
+    <!-- Fiji and ParaView steps run as written in unsw-restech/iris#46 (2026-10-21). labels.tif is a BigTIFF: ImageJ's own TIFF Virtual Stack reads it as 0 x 0, Bio-Formats opens it. Bio-Formats reads its slices as time points, hence "T" below. lib/tests/katana/viewers.pbs checks these readers headless. -->
     <h3 class="sub">Open the label volume in Fiji</h3>
     <ol>
       <li>In the desktop's terminal, run <code>module load fiji/20240614-2117</code>, then start Fiji with <code>ImageJ-linux64</code>.</li>

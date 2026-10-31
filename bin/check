@@ -9,8 +9,9 @@
 #                       "card status"), for a quick loop while editing;
 #                       commit on a full run
 #
-# The synthetic-dataset test runs in the desktop CPU venv, which
-# envs/imaging/desktop.sh builds (IRIS_PYTHON names another interpreter).
+# The Python tests, lib/tests once and then each workflow's tests/, run in
+# the desktop CPU venv, which envs/imaging/desktop.sh builds (IRIS_PYTHON
+# names another interpreter).
 # The microCT form test and the module test need Katana and are not run
 # here: see AGENTS.md.
 
@@ -644,11 +645,15 @@ check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format conc
 
 if selected "synthetic-dataset test"; then
     if [ -x "$PYTHON" ]; then
-        out="$("$PYTHON" -m unittest discover -s workflows/microct-2d-segmentation/tests 2>&1)" || {
-            echo "FAIL: synthetic-dataset test"
-            echo "$out" | tail -40 | sed 's/^/  /'
-            failed=1
-        }
+        # The library's tests once, then each workflow's own.
+        for dir in lib/tests workflows/*/tests; do
+            ls "$dir"/test_*.py > /dev/null 2>&1 || continue
+            out="$("$PYTHON" -m unittest discover -s "$dir" 2>&1)" || {
+                echo "FAIL: synthetic-dataset test: $dir"
+                echo "$out" | tail -40 | sed 's/^/  /'
+                failed=1
+            }
+        done
     else
         echo "FAIL: synthetic-dataset test: no venv at $PYTHON; build it with envs/imaging/desktop.sh"
         failed=1
