@@ -150,6 +150,17 @@ class ImagingFormTest < Minitest::Test
     assert_fails(%r{src/run.py:\d+: <% in the entry script})
   end
 
+  def test_a_form_with_another_heredoc_fails
+    edit_form { |s| s.sub("  iris_done\n", "  cat > x <<EOF\n  EOF\n  iris_done\n") }
+    assert_fails(/line \d+: a heredoc besides the entry script's/)
+  end
+
+  def test_an_entry_script_holding_a_heredoc_like_line_passes
+    File.write(File.join(@code, "src", "run.py"), "x = 1 << 2  # cat <<EOF\n", mode: "a")
+    commit
+    assert_equal [], ImagingForm.problems(@form)
+  end
+
   def test_a_form_whose_commit_is_not_the_clones_at_render_time_fails
     edit_form { |s| s.sub('COMMIT="<%= commit %>"', 'COMMIT=""') }
     assert_fails(/no COMMIT="\h{40}"/)

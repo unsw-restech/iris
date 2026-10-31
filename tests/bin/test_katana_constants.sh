@@ -20,28 +20,15 @@ name="Katana constants match lib/katana.sh"
 clone=/srv/scratch/katana_ai/iris/code
 env=/srv/scratch/katana_ai/iris/envs/imaging/1
 
-# make_tree <name>: a site whose seg workflow has an imaging form holding
-# the literal copies, its form test, the modulefile and a tool that takes
-# the constants from lib/katana.sh.
+# make_tree <name>: a site whose seg workflow has the reference imaging
+# form, holding the literal copies, its form test, the modulefile and a tool
+# that takes the constants from lib/katana.sh.
 make_tree() {
     local tree="$scratch/$1"
     site_tree "$tree" seg:ct-lab:active
     mkdir -p "$tree/lib" "$tree/module/modulefiles" "$tree/workflows/seg/tests"
     cp lib/katana.sh "$tree/lib/katana.sh"
-    printf '%s\n' \
-        '<%-' \
-        "  if @apps_dir && File.expand_path(@apps_dir) == \"$clone/workflows\"" \
-        '    load_iris = "module load iris"' \
-        '  end' \
-        '-%>' \
-        'script: |' \
-        '  #!/bin/bash' \
-        '  #PBS -A iris-seg' \
-        "  ENV_DIR=$env" \
-        '  source "$CODE/../../lib/iris-job.sh"' \
-        "  cat > \"\$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'" \
-        '<%= entry_code -%>' \
-        '  IRIS_RUN_PY_END' \
+    sed 's/#PBS -A iris-microct-2d-segmentation/#PBS -A iris-seg/' workflows/microct-2d-segmentation/form.yml.erb \
         > "$tree/workflows/seg/form.yml.erb"
     printf '%s\n' 'class FormTest' "  SYSTEM_APPS_DIR = \"$clone/workflows\"" 'end' \
         > "$tree/workflows/seg/tests/test_form.rb"
@@ -80,6 +67,18 @@ case_ fail modulefile-no-path module/modulefiles/iris '/prepend-path/d'
 # A script that keeps its own copy of a constant fails, wherever it sits.
 case_ fail tool-env bin/iris-tool "s|\"\$IRIS_ENV_DIR\"|$env|"
 case_ fail tool-module bin/iris-tool 's|$IRIS_ENV_DIR|python/3.13.2|'
+# The environment's build and test scripts are among them; its notes are not.
+make_tree env-script
+mkdir -p "$scratch/env-script/envs/imaging"
+printf '%s\n' '#!/bin/bash' 'module load python/3.13.2' > "$scratch/env-script/envs/imaging/test.pbs"
+git -C "$scratch/env-script" add -A
+expect fail "$scratch/env-script" "$name"
+make_tree env-notes
+mkdir -p "$scratch/env-notes/envs/imaging"
+echo "Built on python/3.13.2 at $env." > "$scratch/env-notes/envs/imaging/README.md"
+echo "# Built on Katana's python/3.13.2 module." > "$scratch/env-notes/envs/imaging/requirements.in"
+git -C "$scratch/env-notes" add -A
+expect pass "$scratch/env-notes" "$name"
 make_tree job-clone
 mkdir -p "$scratch/job-clone/lib/tests/katana"
 printf '%s\n' '#!/bin/bash' "CODE=$clone" > "$scratch/job-clone/lib/tests/katana/inspect.pbs"

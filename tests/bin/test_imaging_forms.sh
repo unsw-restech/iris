@@ -75,9 +75,13 @@ out="$(PATH="$scratch/no-ruby-bin" "$scratch/no-ruby/bin/check" "$name" 2>&1)"
 grep -qF 'sudo apt install ruby' <<< "$out" && grep -q "^FAIL: $name" <<< "$out" ||
     { echo "no-ruby: expected a failure naming sudo apt install ruby"; echo "$out" | sed 's/^/  /'; }
 
-# The heredoc that carries the entry script is the one heredoc script:
-# allows; any other is still refused.
+# The heredoc that carries the entry script is the one heredoc an imaging
+# form's script: allows, checked on the rendered script; in any other form
+# no heredoc is.
 expect pass "$scratch/clean" "form script: and check: sections"
 make_tree other-heredoc
 sed -i "s|^  iris_done|  cat > x <<EOF\n  EOF\n  iris_done|" "$scratch/other-heredoc/workflows/seg/form.yml.erb"
-expect fail "$scratch/other-heredoc" "form script: and check: sections"
+expect fail "$scratch/other-heredoc" "imaging forms' rendered scripts"
+make_tree hello-heredoc
+sed -i 's|^  bash "$CODE/src/hello_world.sh"|  cat > x <<EOF\n  EOF\n&|' "$scratch/hello-heredoc/workflows/hello-world/form.yml.erb"
+expect fail "$scratch/hello-heredoc" "form script: and check: sections"
