@@ -5,6 +5,8 @@
 # each failed case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_module_commands.sh
+#
+# bin/check name: module command folder test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

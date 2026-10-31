@@ -41,6 +41,62 @@ check() {
     fi
 }
 
+# The site model: the catalogue's cards, the CONTRIBUTING tier table, the
+# site's pages and the imaging forms, each parsed once here and queried by
+# the rules below as tab-separated lines. A tree without a file has none
+# of what it would hold.
+
+# The heredoc opener that carries an imaging form's entry script.
+entry_opener="  cat > \"\$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'"
+
+# Each catalogue card in index.html, in page order, as <slug> <lab>
+# <status>: <lab> is the id of the <div class="lab" id="<lab>"> section
+# holding it, which ends at the </div> indented as its opening tag ("-"
+# outside every section, "?" in one with no id), and <status> is the label
+# after its status-dot ("-" if it has none).
+site_cards=$(tr -d '\r' 2>/dev/null < index.html | awk -v OFS='\t' '
+    function flush() { if (slug != "") print slug, card_lab, (status == "" ? "-" : status); slug = "" }
+    lab != "" && $0 == lab_end { lab = "" }
+    /class="lab[" ]/ {
+        lab_end = $0; sub(/<.*/, "</div>", lab_end)
+        lab = $0
+        if (!sub(/.* id="/, "", lab)) lab = "?"
+        else sub(/".*/, "", lab)
+    }
+    match($0, /href="workflows\/[a-z0-9-]+\/"[^>]*class="workflow-card/) {
+        flush()
+        slug = $0; sub(/.*href="workflows\//, "", slug); sub(/\/".*/, "", slug)
+        card_lab = (lab == "" ? "-" : lab); status = ""
+    }
+    slug != "" && status == "" && /class="status-dot/ {
+        status = $0; sub(/.*status-dot[^>]*><\/span> */, "", status); sub(/<.*/, "", status)
+    }
+    END { flush() }')
+
+# Each workflow the CONTRIBUTING tier table lists, as <slug> <tier>.
+site_tiers=$(tr -d '\r' 2>/dev/null < CONTRIBUTING.md | awk -F'|' -v OFS='\t' '/^\| \*\*/ {
+    t = $2; gsub(/^ *\*\*|\*\* *$/, "", t)
+    n = split($3, w, "`")
+    for (i = 2; i <= n; i += 2) print w[i], t }')
+
+# Each of the site's pages that exists: the landing page, the guide, the
+# contribute page and every workflow page.
+site_pages=$(for f in index.html guide/index.html contribute/index.html workflows/*/index.html; do
+    [ -f "$f" ] && echo "$f"
+done)
+
+# Each imaging form (GLOSSARY.md): a workflows/*/form.yml.erb whose script
+# carries its entry script in the heredoc entry_opener opens.
+site_imaging_forms=$(for f in workflows/*/form.yml.erb; do
+    [ -f "$f" ] && tr -d '\r' < "$f" | grep -qxF "$entry_opener" && echo "$f"
+done)
+
+cards() { [ -z "$site_cards" ] || printf '%s\n' "$site_cards"; }
+tiers() { [ -z "$site_tiers" ] || printf '%s\n' "$site_tiers"; }
+pages() { [ -z "$site_pages" ] || printf '%s\n' "$site_pages"; }
+workflow_pages() { pages | grep '^workflows/'; }
+imaging_forms() { [ -z "$site_imaging_forms" ] || printf '%s\n' "$site_imaging_forms"; }
+
 # The site is served from the /iris/ subpath, so every link is relative
 # (../../ from a workflow page).
 check "root-absolute links" grep -rn 'href="/' . --include=*.html
@@ -94,24 +150,22 @@ check "usage tag matches the folder" usage_tags
 
 job_library() {
     local f
-    for f in $(grep -l '^ *ENV_DIR=' workflows/*/form.yml.erb); do
+    for f in $(imaging_forms); do
         tr -d '\r' < "$f" | grep -qxF '  source "$CODE/../../lib/iris-job.sh"' || echo "$f"
     done
 }
 check "imaging forms source the job library" job_library
 
-# The bin/ wrappers default to the imaging environment the form pins, so
-# every ENV_DIR path in them and the forms is the same one.
+# The bin/ wrappers default to the imaging environment the imaging forms
+# pin, so every ENV_DIR path in them and the forms is the same one.
 env_dir_pins() {
     local pins
-    pins=$(grep -H '^ *ENV_DIR=' bin/iris-* workflows/*/form.yml.erb | tr -d '\r' |
+    # shellcheck disable=SC2046 # one word per path
+    pins=$(grep -H '^ *ENV_DIR=' bin/iris-* $(imaging_forms) | tr -d '\r' |
         sed -E 's/^([^:]*):[^=]*="?(\$\{ENV_DIR:-)?([^"}]*).*/\3  \1/')
     [ "$(cut -d' ' -f1 <<< "$pins" | sort -u | wc -l)" -le 1 ] || echo "$pins"
 }
 check "one imaging environment across forms and bin/ wrappers" env_dir_pins
-
-# The heredoc opener that carries an imaging form's entry script.
-entry_opener="  cat > \"\$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'"
 
 # Print form lines that break a rule, by top-level section: no heredoc in
 # script: but the one carrying the entry script (every line there stays
@@ -128,19 +182,17 @@ form_sections() {
 }
 check "form script: and check: sections" form_sections
 
-# Every imaging form (every form but hello-world) embeds its entry script
-# in script: (ADR-0006): it names the script in entry_script, reads it at
-# render time into entry_code, and puts that between the quoted heredoc
-# opener and IRIS_RUN_PY_END, so the job writes and runs exactly what the
-# pane holds. The next line runs iris_record_edits, so run.diff exists even
+# Every imaging form embeds its entry script in script: (ADR-0006): it
+# names the script in entry_script, reads it at render time into
+# entry_code, and puts that between the quoted heredoc opener and
+# IRIS_RUN_PY_END, so the job writes and runs exactly what the pane holds. The next line runs iris_record_edits, so run.diff exists even
 # if Python cannot start run.py. The script holds no #{ (OpenComposer would
 # substitute a field, or drop the line when the field is empty) and no <%
 # (ERB). tests/bin/test_entry_script.sh runs it on fixture trees.
 embedded_entry_script() {
     local f d entry
-    for f in workflows/*/form.yml.erb; do
+    for f in $(imaging_forms); do
         d="$(dirname "$f")"
-        [ "$(basename "$d")" = hello-world ] && continue
         entry="$(tr -d '\r' < "$f" | sed -nE 's/^<%- entry_script = "([^"]+)" -%>$/\1/p' | head -1)"
         if [ -z "$entry" ] ||
             ! tr -d '\r' < "$f" | grep -qxF '<%- entry_code = code.empty? ? "" : File.read(File.join(code, entry_script)).gsub(/^(?=.)/, "  ") -%>' ||
@@ -238,7 +290,7 @@ resolve_each() {
 # in any tracked file outside the desktop tools and their tests.
 local_links() {
     local f url
-    for f in index.html guide/index.html contribute/index.html workflows/*/index.html; do
+    for f in $(pages); do
         grep -oE 'href="[^"]*"' "$f" | sed 's/^href="//; s/"$//' | grep -vE '^(https?|mailto):' |
             resolve_each "$f" "$(dirname "$f")"
     done
@@ -302,76 +354,47 @@ NOTICES
 }
 check "pre-launch notices match the Run buttons" prelaunch_notice
 
-# The CONTRIBUTING tier table, one "<slug> <tier>" line per workflow it lists.
-tier_rows() {
-    tr -d '\r' < CONTRIBUTING.md | awk -F'|' '/^\| \*\*/ {
-        t = $2; gsub(/^ *\*\*|\*\* *$/, "", t)
-        n = split($3, w, "`")
-        for (i = 2; i <= n; i += 2) print w[i], t }'
-}
-
 # A card's status label follows its workflow's row in the CONTRIBUTING tier table,
 # whose row titles are the tier names in label[] below.
+# tests/bin/test_card_status.sh runs it on fixture trees.
 card_status() {
-    local tiers
-    tiers=$(tier_rows)
-    tr -d '\r' < index.html | awk -v tiers="$tiers" '
+    awk -F'\t' '
         BEGIN {
             label["Run and verified"] = "Active"
             label["Run, browser run pending"] = "Testing"
             label["Planned"] = "Planned"
             label["Unmaintained"] = "no card"
-            n = split(tiers, rows, "\n")
-            for (i = 1; i <= n; i++) {
-                s = rows[i]; sub(/ .*/, "", s)
-                t = rows[i]; sub(/^[^ ]* /, "", t)
-                if (!(t in label)) {
-                    if (!(t in told)) {
-                        names = ""
-                        for (k in label) names = names (names == "" ? "" : "; ") k
-                        print "CONTRIBUTING.md: tier \"" t "\" is not one of: " names
-                    }
-                    told[t] = 1
-                    continue
+        }
+        FNR == NR {
+            if (!($2 in label)) {
+                if (!($2 in told)) {
+                    names = ""
+                    for (k in label) names = names (names == "" ? "" : "; ") k
+                    print "CONTRIBUTING.md: tier \"" $2 "\" is not one of: " names
                 }
-                want[s] = label[t]
+                told[$2] = 1
+                next
             }
+            want[$1] = label[$2]
+            next
         }
-        match($0, /href="workflows\/[a-z0-9-]+\/" class="workflow-card/) {
-            slug = $0; sub(/.*href="workflows\//, "", slug); sub(/\/".*/, "", slug)
-        }
-        slug != "" && /class="status-dot/ {
-            got = $0; sub(/.*status-dot[^>]*><\/span> */, "", got); sub(/<.*/, "", got)
-            if (!(slug in want)) print "index.html: " slug " has no row in the CONTRIBUTING tier table"
-            else if (got != want[slug]) print "index.html: " slug " reads " got "; its CONTRIBUTING tier says " want[slug]
-            slug = ""
-        }'
+        $3 == "-" { print "index.html: " $1 "'"'"'s card has no status label"; next }
+        !($1 in want) { print "index.html: " $1 " has no row in the CONTRIBUTING tier table"; next }
+        $3 != want[$1] { print "index.html: " $1 " reads " $3 "; its CONTRIBUTING tier says " want[$1] }
+    ' <(tiers) <(cards)
 }
 check "card status matches the CONTRIBUTING tier table" card_status
 
-# The catalogue groups cards by lab: each card sits in a
-# <div class="lab" id="<lab>"> section, which ends at the </div> indented
-# as its opening tag, and its page's breadcrumb links that section
-# (../../#<lab>).
+# The catalogue groups cards by lab: each card sits in a lab section (see
+# site_cards), and its page's breadcrumb links that section (../../#<lab>).
 # tests/bin/test_lab_sections.sh runs it on fixture trees.
 lab_sections() {
-    local cards slug lab
-    cards=$(tr -d '\r' < index.html | awk '
-        lab != "" && $0 == lab_end { lab = "" }
-        /class="lab[" ]/ {
-            lab_end = $0; sub(/<.*/, "</div>", lab_end)
-            lab = $0
-            if (!sub(/.* id="/, "", lab)) { print "index.html:" NR ": a lab section with no id"; lab = "?" }
-            else sub(/".*/, "", lab)
-        }
-        match($0, /href="workflows\/[a-z0-9-]+\/" class="workflow-card/) {
-            slug = $0; sub(/.*href="workflows\//, "", slug); sub(/\/".*/, "", slug)
-            if (lab == "") print "index.html:" NR ": " slug "'"'"'s card is outside every lab section"
-            else print "card", slug, lab
-        }')
-    grep -v '^card ' <<< "$cards" | grep .
-    grep '^card ' <<< "$cards" | while read -r _ slug lab; do
-        [ "$lab" = "?" ] && continue
+    local slug lab
+    cards | while IFS=$'\t' read -r slug lab _; do
+        case "$lab" in
+            -) echo "index.html: $slug's card is outside every lab section"; continue ;;
+            \?) echo "index.html: $slug's card is in a lab section with no id"; continue ;;
+        esac
         [ -f "workflows/$slug/index.html" ] &&
             tr -d '\r' < "workflows/$slug/index.html" | grep 'class="breadcrumb"' |
             grep -qF "href=\"../../#$lab\"" ||
@@ -384,10 +407,11 @@ check "cards sit in a lab section their page's breadcrumb links" lab_sections
 # this tier without one), so a line outside the table cites a job for each
 # of them: "`<slug>`", then "(job <ID>" with no backtick between. A renamed
 # tier fails card_status.
+# tests/bin/test_tier_jobs.sh runs it on fixture trees.
 tier_jobs() {
     local doc slug
     doc=$(tr -d '\r' < CONTRIBUTING.md)
-    for slug in $(tier_rows | sed -n 's/ Run and verified$//p'); do
+    for slug in $(tiers | awk -F'\t' '$2 == "Run and verified" { print $1 }'); do
         grep -v '^|' <<< "$doc" | grep -qE "\`$slug\`[^\`]*\(job [0-9]+" ||
             echo "CONTRIBUTING.md: $slug is Run and verified but no line cites its job: \"\`$slug\` ... (job <ID>\", with no backtick between them"
     done
@@ -404,8 +428,8 @@ check "Run and verified workflows cite a job" tier_jobs
 # tests/bin/test_unmaintained.sh runs it on fixture trees.
 unmaintained() {
     local page slug rows banners
-    rows=$(tier_rows | sed -n 's/ Unmaintained$//p')
-    banners=$(grep -l 'class="unmaintained-banner"' workflows/*/index.html | xargs -r -n1 dirname | xargs -r -n1 basename)
+    rows=$(tiers | awk -F'\t' '$2 == "Unmaintained" { print $1 }')
+    banners=$(workflow_pages | xargs -r grep -l 'class="unmaintained-banner"' | xargs -r -n1 dirname | xargs -r -n1 basename)
     for slug in $(sort -u <<< "$rows"$'\n'"$banners"); do
         page="workflows/$slug/index.html"
         if [ ! -f "$page" ]; then
@@ -418,7 +442,7 @@ unmaintained() {
             echo "$page: $slug is Unmaintained in the CONTRIBUTING tier table, but its page has no unmaintained-banner"
         grep -qE 'class="run-btn|/pun/(dev|sys)/OpenComposer/' "$page" &&
             echo "$page: Unmaintained, but has a Run button"
-        grep -qE "href=\"workflows/$slug/\"[^>]*class=\"workflow-card" index.html &&
+        cards | cut -f1 | grep -qx "$slug" &&
             echo "index.html: $slug is Unmaintained, but has a catalogue card"
         [ -e "workflows/$slug/form.yml.erb" ] &&
             echo "workflows/$slug/form.yml.erb: $slug is Unmaintained; move its form to _archive/$slug/"
@@ -433,7 +457,7 @@ check "unmaintained workflows have no Run button, card, live form or CODEOWNERS 
 # collection ID stay out of workflow pages, so a change of collection edits the
 # guide and the ID in this pattern, and no workflow page.
 guide_copies() {
-    grep -n -i 'kdm\.restech\|128 GB\|winscp\|app\.globus\.org\|ee4d18e3-a68d-447a-8acc-8b97771239d4' workflows/*/index.html
+    workflow_pages | xargs -r grep -H -n -i 'kdm\.restech\|128 GB\|winscp\|app\.globus\.org\|ee4d18e3-a68d-447a-8acc-8b97771239d4'
 }
 check "workflow page repeats the guide (link guide/#stage or #view)" guide_copies
 
@@ -481,7 +505,7 @@ check "workflow owner on the page and in CODEOWNERS" workflow_owner
 # tests/bin/test_citable_versions.sh runs it on fixture trees.
 citable_versions() {
     local f
-    for f in workflows/*/index.html; do
+    for f in $(workflow_pages); do
         tr -d '\r' < "$f" | awk -v f="$f" '
             / id="cite"/ { cite = 1 }
             cite && /<\/details>/ { cite = 0 }
@@ -511,7 +535,7 @@ check "citable versions on workflow pages" citable_versions
 # #fragment stays. tests/bin/test_citation_cff.sh runs it on fixture trees.
 citation_cff() {
     local re='10\.48546/workflowhub\.workflow\.[0-9]+\.[0-9]+' pages cff
-    pages=$(grep -ohE "$re" workflows/*/index.html | sort -u)
+    pages=$(workflow_pages | xargs -r grep -ohE "$re" | sort -u)
     cff=$(tr -d '\r' < CITATION.cff | awk '/^[^ \t#]/ { ids = /^identifiers:/ } ids { sub(/(^|[ \t])#.*/, ""); print }' |
         grep -oE "$re" | sort -u)
     comm -23 <(echo "$pages") <(echo "$cff") | grep . | sed 's/$/ is on a workflow page; add it to identifiers in CITATION.cff/'
@@ -526,8 +550,7 @@ check "CITATION.cff and workflow pages list the same citable versions" citation_
 # tests/bin/test_site_name.sh runs it on fixture trees.
 site_name() {
     local f logo logos="" title
-    for f in index.html guide/index.html contribute/index.html workflows/*/index.html; do
-        [ -f "$f" ] || continue
+    for f in $(pages); do
         logo=$(tr -d '\r\n' < "$f" | grep -o 'nav-logo-text">[^<]*' | head -1 |
             sed 's/^nav-logo-text">//; s/^[[:space:]]*//; s/[[:space:]]*$//')
         if [ -z "$logo" ]; then echo "$f has no nav-logo-text logo"; else logos+="$f: $logo"$'\n'; fi
@@ -604,41 +627,15 @@ shellcheck_all() {
 }
 check "shellcheck" shellcheck_all
 
-# The desktop helpers that wrap ssh, against a fake ssh on PATH.
-check "qwait test" bash tests/bin/test_qwait.sh
-# The live-site wait, against a fake curl on PATH.
-check "pageswait test" bash tests/bin/test_pageswait.sh
-# The issue checkbox ticker, against a fake gh.
-check "issue-tick test" bash tests/bin/test_issue_tick.sh
-# The system-clone pull preview and the Katana test runner, against a fake ssh.
-check "syspull test" bash tests/bin/test_syspull.sh
-check "katana-test test" bash tests/bin/test_katana_test.sh
-# The pilot readability check syspull runs, against a fake getfacl.
-check "pilot-readable test" bash tests/bin/test_pilot_readable.sh
-# The AI-attribution check, against throwaway histories.
-check "attribution test" bash tests/bin/test_attribution.sh
-# The conflict-list check, against throwaway histories.
-check "conflict-list test" bash tests/bin/test_conflict_lists.sh
-# The unmaintained-workflow check, against throwaway site trees.
-check "unmaintained-workflow test" bash tests/bin/test_unmaintained.sh
-# The lab-section check, against throwaway site trees.
-check "lab-section test" bash tests/bin/test_lab_sections.sh
-# The pre-launch pairing, against copies of the site.
-check "pre-launch pairing test" bash tests/bin/test_prelaunch.sh
-# The workflow-owner check, against throwaway repo trees.
-check "workflow owner test" bash tests/bin/test_workflow_owner.sh
-# The citable-versions check, against throwaway workflow pages.
-check "citable versions test" bash tests/bin/test_citable_versions.sh
-# The CITATION.cff check, against throwaway trees.
-check "CITATION.cff test" bash tests/bin/test_citation_cff.sh
-# The module-paths check, against throwaway trees.
-check "module paths test" bash tests/bin/test_module_paths.sh
-# The logo and title check, against throwaway trees.
-check "site name test" bash tests/bin/test_site_name.sh
-# The embedded entry script check, against throwaway trees.
-check "entry script test" bash tests/bin/test_entry_script.sh
-# The module command folder check, against throwaway repos.
-check "module command folder test" bash tests/bin/test_module_commands.sh
+# Every tests/bin/test_*.sh, each against fakes or throwaway trees: a
+# test prints its failed cases and nothing on success. Each runs under the
+# name its "# bin/check name: <name>" line gives, or its path if it has
+# none, so a new test runs with no other edit.
+for t in tests/bin/test_*.sh; do
+    [ -f "$t" ] || continue
+    n=$(tr -d '\r' < "$t" | sed -n 's/^# bin\/check name: //p' | head -n1)
+    check "${n:-$t}" bash "$t"
+done
 
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'

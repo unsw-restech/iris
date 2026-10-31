@@ -5,6 +5,8 @@
 # can run it.
 #
 #   tests/bin/test_citation_cff.sh
+#
+# bin/check name: CITATION.cff test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"
@@ -18,15 +20,14 @@ trap 'rm -rf "$scratch"' EXIT
 # any extra lines at the end of its identifiers and references blocks.
 site() {
     local dir="$scratch/$2" doi
-    mkdir -p "$dir/bin" "$dir/workflows/some-workflow"
-    cp bin/check "$dir/bin/check"
+    site_tree "$dir" some-workflow:ct-lab:active
     {
         printf '%s\n' '<details id="cite">' '  <ul>'
         for doi in $3; do
             echo "    <li><a href=\"https://doi.org/$doi\">$doi</a> · 2026-11-02 · commit <code>d2c15b3</code></li>"
         done
         printf '%s\n' '  </ul>' '</details>'
-    } > "$dir/workflows/some-workflow/index.html"
+    } >> "$dir/workflows/some-workflow/index.html"
     {
         printf '%s\n' 'cff-version: 1.2.0' 'identifiers:' '  - type: url' '    value: "https://workflowhub.eu/projects/472"'
         for doi in $4; do

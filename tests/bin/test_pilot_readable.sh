@@ -6,6 +6,8 @@
 # nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_pilot_readable.sh
+#
+# bin/check name: pilot-readable test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

@@ -3,6 +3,8 @@
 # nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_pageswait.sh
+#
+# bin/check name: pageswait test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 fake="$(mktemp -d)"

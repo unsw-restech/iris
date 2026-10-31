@@ -4,6 +4,8 @@
 # run it.
 #
 #   tests/bin/test_syspull.sh
+#
+# bin/check name: syspull test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 fake="$(mktemp -d)"

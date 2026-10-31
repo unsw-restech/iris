@@ -4,6 +4,8 @@
 # case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_qwait.sh
+#
+# bin/check name: qwait test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 fake="$(mktemp -d)"
