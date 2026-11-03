@@ -53,7 +53,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 ## Deliberate, leave as is
 
-- **No `CLAUDE.md`**, in the repo or in `IRIS_github_pages\`: `AGENTS.md` is the only instructions file (Patrick, 2026-10-26). Claude Code loads it on the first Read of a file in the repo, so read with the Read tool before working through Bash.
+- **`AGENTS.md` is the only instructions file**, in the repo or in `IRIS_github_pages\`: no tool-specific instructions file sits beside it (Patrick, 2026-10-26).
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
 - **Planned cards still link to their pages**, keeping the `.planned` style: full colour like Active cards, with no hover lift (Patrick, 2026-10-28).
 - **No version tags** on cards: nothing versions a workflow, and each run's `commit.txt` records the code it ran (Patrick, 2026-10-22). A workflow page lists its citable versions by DOI, date and commit, never as a version number (ADR-0002).

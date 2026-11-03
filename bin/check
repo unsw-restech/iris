@@ -643,8 +643,8 @@ check "page logos match; README cites CITATION.cff's title" site_name
 # that is where the dev-clone branch builds its full paths. iris-rebuild
 # isn't in the module, so its full path stays; maintainer text
 # (CONTRIBUTING, bin/) and _archive/ aren't read. Pages are read from
-# git's index, as local_links does, so a copy such as a worktree under
-# .claude/ isn't. tests/bin/test_module_paths.sh runs it on fixture trees.
+# git's index, as local_links does, so a copy such as a worktree inside
+# the clone isn't. tests/bin/test_module_paths.sh runs it on fixture trees.
 module_paths() {
     local re='/iris-(view|compare)([^A-Za-z0-9_-]|$)' f
     git grep -nE "$re" -- '*.html' ':(exclude)_archive'

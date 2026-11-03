@@ -87,8 +87,8 @@ site fail form-output-tag workflows/seg/form.yml.erb \
 site fail form-output-join-variable workflows/seg/form.yml.erb \
     '    help: "run <%= File.join(bin, "iris-compare") %> in a terminal."'
 
-# A copy of the site outside git's index, such as a worktree under
-# .claude/worktrees/, isn't read: only tracked pages are.
+# A copy of the site outside git's index, such as a worktree inside the
+# clone, isn't read: only tracked pages are.
 make_tree untracked-copy
 git -C "$scratch/untracked-copy" add -A
 mkdir -p "$scratch/untracked-copy/old-worktree/guide"
