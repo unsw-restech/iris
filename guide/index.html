@@ -163,6 +163,15 @@
       <li>On the other side, choose your computer and the folder to copy into.</li>
       <li>Press <strong>Start</strong>.</li>
     </ol>
+    <!-- Globus's own sync in place of a job starting the transfer: unsw-restech/iris#96. -->
+    <h3 class="sub">Make it repeat</h3>
+    <p>Optional. Globus can bring your runs home on a schedule, so you don't start a transfer for each one. Once your first run has made your dataset's <code>my-dataset/runs/</code> folder, follow the steps above with that folder instead of one run directory. Before pressing <strong>Start</strong>, open <strong>Transfer &amp; Timer Options</strong>, choose to sync so only new or changed files are copied, and set how often it repeats.</p>
+    <ul>
+      <li>Copying only happens while your computer is on with Globus Connect Personal running.</li>
+      <li>A run still going arrives part-way, and a later repeat brings the rest. Its job has finished once <code>runs/&lt;job ID&gt;.OU</code> has arrived beside it.</li>
+      <li>If Globus emails you that your repeat is paused, sign in to Globus and press <strong>Resume</strong>. It pauses when it needs you to sign in again.</li>
+      <li>A successful run brings its label volume and trained weights, so watch how much space they take on your computer. A run you delete there comes back at the next repeat.</li>
+    </ul>
     <h3 class="sub">In a terminal instead</h3>
     <p>Use the same rsync as for staging, with its source and destination swapped, run from your computer. For example, one run directory:</p>
     <pre class="code-block">rsync -av --progress zID@kdm.restech.unsw.edu.au:/srv/scratch/zID/my-dataset/runs/1234567/ my-dataset/runs/1234567/</pre>
