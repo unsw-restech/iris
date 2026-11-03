@@ -34,6 +34,11 @@ expect pass "$scratch/in-prose" "$name"
 make_tree in-a-test workflows/seg/tests/test_run.py 'print("labels.tif")'
 expect pass "$scratch/in-a-test" "$name"
 
+# A name of any shape counts once iris.rundir holds it.
+make_tree new-name lib/iris/view.py 'print("run-log_v2.tar.gz")'
+printf '%s\n' 'LOG2 = "run-log_v2.tar.gz"' >> "$scratch/new-name/lib/iris/rundir.py"
+expect fail "$scratch/new-name" "$name"
+
 make_tree quoted workflows/seg/src/run.py "print(run_dir / 'labels.tif')"
 expect fail "$scratch/quoted" "$name"
 

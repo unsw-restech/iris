@@ -8,12 +8,12 @@
 #   bin/syspull --apply <sha>   fast-forward the clone to <sha>, on origin/main
 #
 # The listing ends with the commits and the --apply line for origin/main's
-# tip. Quote every commit in the go-ahead request, naming the clone's path;
-# --apply then deploys that commit even if main has moved since, and refuses
-# a clone that isn't on main or holds uncommitted edits. Both end by listing
-# what a pilot tester can't read in the clone (bin/pilot-readable.py), and
-# --apply exits 1 if anything is listed, since the deploy has happened. Over
-# `ssh katana`.
+# tip. Quote every commit verbatim in the go-ahead request, naming the
+# clone's path; --apply then deploys that commit even if main has moved
+# since, and refuses a clone that isn't on main or holds uncommitted edits.
+# Both end by listing what a pilot tester can't read in the clone
+# (bin/pilot-readable.py), and --apply exits 1 if anything is listed, since
+# the deploy has happened. Over `ssh katana`.
 
 # The system clone, from lib/katana.sh.
 # shellcheck source=lib/katana.sh

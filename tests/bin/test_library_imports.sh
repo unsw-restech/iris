@@ -34,8 +34,18 @@ expect pass "$scratch/prefix-of-a-module" "$name"
 make_tree path-in-text 'WORKFLOW = "workflows/seg/src/run.py"'
 expect pass "$scratch/path-in-text" "$name"
 
+make_tree in-prose 'from run to run, the module names the file'
+expect pass "$scratch/in-prose" "$name"
+
 make_tree from-tests 'from test_synthetic import make_volume'
 expect fail "$scratch/from-tests" "$name"
 
 make_tree from-src '    import run'
 expect fail "$scratch/from-src" "$name"
+
+# A test job's Python heredoc is the library's too.
+make_tree job-heredoc 'from datasets import make_volume'
+mkdir -p "$scratch/job-heredoc/lib/tests/katana"
+printf '%s\n' 'python - <<EOF' 'import test_synthetic' 'EOF' > "$scratch/job-heredoc/lib/tests/katana/job.pbs"
+git -C "$scratch/job-heredoc" add -A
+expect fail "$scratch/job-heredoc" "$name"

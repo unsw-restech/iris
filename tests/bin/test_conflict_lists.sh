@@ -42,9 +42,9 @@ expect fail no-edit-merge "Merge branch '58-t72' into 58-citable-workflows
 # Conflicts:
 #	CONTRIBUTING.md"
 
-# conflicted <name>: a repo in $scratch/<name> using the hook, stopped in a
+# conflicted_repo <name>: a repo in $scratch/<name> using the hook, stopped in a
 # conflicted merge of its branch other.
-conflicted() {
+conflicted_repo() {
     local repo="$scratch/$1"
     git init -q -b main "$repo"
     git -C "$repo" config user.name Test
@@ -66,15 +66,25 @@ conflicted() {
 
 # A --no-edit commit keeps the list, so the hook refuses it; the merge is
 # still open for a commit -m, which passes.
-conflicted no-edit-hook
+conflicted_repo no-edit-hook
 git -C "$scratch/no-edit-hook" commit -q --no-edit > /dev/null 2>&1 &&
     echo "hook: passed a --no-edit commit of a conflicted merge"
 git -C "$scratch/no-edit-hook" commit -q -m "Merge other" > /dev/null 2>&1 ||
     echo "hook: refused a conflicted merge's commit -m"
 
 # An editor session passes, since git's cleanup removes the list.
-conflicted editor-hook
+conflicted_repo editor-hook
 GIT_EDITOR=true git -C "$scratch/editor-hook" commit -q > /dev/null 2>&1 ||
     echo "hook: refused a conflicted merge finished in an editor"
 ! git -C "$scratch/editor-hook" log -1 --format=%B | grep -q '^# Conflicts:' ||
     echo "hook: an editor session kept the conflict list"
+
+# With no terminal, a cherry-pick's --continue strips the list with no
+# editor, so it passes.
+conflicted_repo cherry-pick-hook
+git -C "$scratch/cherry-pick-hook" merge --abort
+git -C "$scratch/cherry-pick-hook" cherry-pick other > /dev/null 2>&1
+echo picked > "$scratch/cherry-pick-hook/page"
+git -C "$scratch/cherry-pick-hook" add page
+git -C "$scratch/cherry-pick-hook" cherry-pick --continue < /dev/null > /dev/null 2>&1 ||
+    echo "hook: refused a cherry-pick's --continue"

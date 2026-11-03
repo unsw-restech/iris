@@ -156,15 +156,15 @@ check "usage tag matches the folder" usage_tags
 
 # The library's Katana test jobs test no one workflow, so they carry a tag
 # of their own and stay out of any workflow's run count.
-# tests/bin/test_test_job_tags.sh runs it on fixture trees.
-test_job_tags() {
+# tests/bin/test_library_job_tags.sh runs it on fixture trees.
+library_job_tags() {
     local f
     for f in lib/tests/katana/*.pbs; do
         [ -f "$f" ] || continue
         tr -d '\r' < "$f" | grep -qx '#PBS -A iris-tests' || echo "$f: no '#PBS -A iris-tests'"
     done
 }
-check "library test jobs use the iris-tests usage tag" test_job_tags
+check "library test jobs use the iris-tests usage tag" library_job_tags
 
 # The library depends on no workflow, so copying a workflow's folder leaves
 # its tests whole: nothing under lib/ imports a module from a workflow's
@@ -172,7 +172,7 @@ check "library test jobs use the iris-tests usage tag" test_job_tags
 library_imports() {
     local modules
     modules="$(git ls-files 'workflows/*/src/*.py' 'workflows/*/tests/*.py' | xargs -r -n1 basename -s .py | sort -u | paste -sd'|')"
-    [ -z "$modules" ] || git grep -nE "^[[:space:]]*(from|import)[[:space:]]+($modules)([^A-Za-z0-9_]|$)" -- 'lib/*.py'
+    [ -z "$modules" ] || git grep -nE "^[[:space:]]*(from[[:space:]]+($modules)[[:space:]]+import|import[[:space:]]+($modules)([^A-Za-z0-9_]|$))" -- 'lib/*.py' 'lib/*.pbs'
 }
 check "lib/ imports nothing from workflows/" library_imports
 
@@ -183,7 +183,7 @@ check "lib/ imports nothing from workflows/" library_imports
 run_dir_names() {
     local names
     [ -f lib/iris/rundir.py ] || return 0
-    names="$(sed -nE 's/^[A-Z_]+ = "([a-z_]+\.[a-z]+)".*/\1/p' lib/iris/rundir.py | sed 's/\./\\./g' | paste -sd'|')"
+    names="$(sed -nE 's/^[A-Z0-9_]+ = "([^"/]+\.[^"/]+)".*/\1/p' lib/iris/rundir.py | sed 's/\./\\./g' | paste -sd'|')"
     [ -z "$names" ] || git grep -nE "['\"/]($names)['\"]" -- 'lib/iris/*.py' 'workflows/*/src/*.py' ':(exclude)lib/iris/rundir.py'
 }
 check "run directory file names come from iris.rundir" run_dir_names

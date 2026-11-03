@@ -3,9 +3,9 @@
 # trees. Prints each failed case and nothing on success, so bin/check can
 # run it.
 #
-#   tests/bin/test_test_job_tags.sh
+#   tests/bin/test_library_job_tags.sh
 #
-# bin/check name: test-job tag test
+# bin/check name: library job tag test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 scratch="$(mktemp -d)"

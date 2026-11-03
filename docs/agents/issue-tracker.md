@@ -23,7 +23,7 @@ The repo is `unsw-restech/iris`. `gh` infers it when run inside the clone (`iris
 
 When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
 
-- **Read a PR**: `gh pr view <number> --json title,state,labels,body,comments,reviews` (not `--comments`, as above) and `gh pr diff <number>` for the diff.
+- **Read a PR**: `gh pr view <number> --json title,state,labels,body,comments,reviews` and `gh pr diff <number>` for the diff.
 - **List external PRs for triage**: `gh api --paginate 'repos/{owner}/{repo}/pulls?state=open' --jq '.[] | select(.author_association | IN("OWNER","MEMBER","COLLABORATOR") | not) | {number, title, author: .user.login, author_association, labels: [.labels[].name]}'`.
 - **Comment / label / close**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
 

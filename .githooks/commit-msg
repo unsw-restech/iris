@@ -7,8 +7,10 @@
 
 # git commit --no-edit keeps a conflicted merge's "# Conflicts:" list. An
 # editor session has the list too, but its cleanup removes it, and git's
-# "# Please enter" hint marks that session.
-if grep -q '^# Conflicts:' "$1" && ! grep -q '^# Please enter' "$1"; then
+# "# Please enter" hint marks that session. So does a cherry-pick's
+# --continue, with no hint, so this reads merges alone.
+if git rev-parse -q --verify MERGE_HEAD > /dev/null &&
+    grep -q '^# Conflicts:' "$1" && ! grep -q '^# Please enter' "$1"; then
     echo "commit-msg: git's conflict list in the message; finish the merge with git commit -m \"<message>\"" >&2
     exit 1
 fi
