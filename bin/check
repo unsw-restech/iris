@@ -128,7 +128,8 @@ check "AI attribution in commit messages" ai_attribution
 
 # A conflicted merge finished with `git commit --no-edit` keeps git's
 # commented "# Conflicts:" list in its message; finish one with
-# `git commit -m "<message>"` instead. IRIS_CHECK_REPO as above.
+# `git commit -m "<message>"` instead. .githooks/commit-msg refuses one
+# before it exists. IRIS_CHECK_REPO as above.
 conflict_lists() {
     git -C "${IRIS_CHECK_REPO:-.}" log --oneline -E --grep='^# Conflicts:' HEAD
 }
@@ -152,6 +153,40 @@ usage_tags() {
     done
 }
 check "usage tag matches the folder" usage_tags
+
+# The library's Katana test jobs test no one workflow, so they carry a tag
+# of their own and stay out of any workflow's run count.
+# tests/bin/test_test_job_tags.sh runs it on fixture trees.
+test_job_tags() {
+    local f
+    for f in lib/tests/katana/*.pbs; do
+        [ -f "$f" ] || continue
+        tr -d '\r' < "$f" | grep -qx '#PBS -A iris-tests' || echo "$f: no '#PBS -A iris-tests'"
+    done
+}
+check "library test jobs use the iris-tests usage tag" test_job_tags
+
+# The library depends on no workflow, so copying a workflow's folder leaves
+# its tests whole: nothing under lib/ imports a module from a workflow's
+# src/ or tests/. tests/bin/test_library_imports.sh runs it on fixture trees.
+library_imports() {
+    local modules
+    modules="$(git ls-files 'workflows/*/src/*.py' 'workflows/*/tests/*.py' | xargs -r -n1 basename -s .py | sort -u | paste -sd'|')"
+    [ -z "$modules" ] || git grep -nE "^[[:space:]]*(from|import)[[:space:]]+($modules)([^A-Za-z0-9_]|$)" -- 'lib/*.py'
+}
+check "lib/ imports nothing from workflows/" library_imports
+
+# iris.rundir names every file in a run directory, so the library and the
+# entry scripts use its constants, not a quoted name or path ending in one.
+# The names come from its constants, so a new file is covered as it is added.
+# tests/bin/test_run_dir_names.sh runs it on fixture trees.
+run_dir_names() {
+    local names
+    [ -f lib/iris/rundir.py ] || return 0
+    names="$(sed -nE 's/^[A-Z_]+ = "([a-z_]+\.[a-z]+)".*/\1/p' lib/iris/rundir.py | sed 's/\./\\./g' | paste -sd'|')"
+    [ -z "$names" ] || git grep -nE "['\"/]($names)['\"]" -- 'lib/iris/*.py' 'workflows/*/src/*.py' ':(exclude)lib/iris/rundir.py'
+}
+check "run directory file names come from iris.rundir" run_dir_names
 
 # lib/katana.sh holds Katana's constants for every script that can source
 # bash. The copies that must stay literal agree with it: each imaging

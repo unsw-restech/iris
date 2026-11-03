@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N iris_viewers
-#PBS -A iris-microct-2d-segmentation
+#PBS -A iris-tests
 #PBS -l select=1:ncpus=2:mem=8gb
 #PBS -l walltime=0:10:00
 #PBS -j oe

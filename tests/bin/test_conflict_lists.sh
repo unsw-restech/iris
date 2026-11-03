@@ -1,7 +1,8 @@
 #!/bin/bash
 # bin/check's conflict-list check against throwaway histories in a scratch
-# repo, which IRIS_CHECK_REPO points it at. Prints each failed case and
-# nothing on success, so bin/check can run it.
+# repo, which IRIS_CHECK_REPO points it at, and .githooks/commit-msg on real
+# conflicted merges. Prints each failed case and nothing on success, so
+# bin/check can run it.
 #
 #   tests/bin/test_conflict_lists.sh
 #
@@ -40,3 +41,40 @@ expect fail no-edit-merge "Merge branch '58-t72' into 58-citable-workflows
 
 # Conflicts:
 #	CONTRIBUTING.md"
+
+# conflicted <name>: a repo in $scratch/<name> using the hook, stopped in a
+# conflicted merge of its branch other.
+conflicted() {
+    local repo="$scratch/$1"
+    git init -q -b main "$repo"
+    git -C "$repo" config user.name Test
+    git -C "$repo" config user.email test@example.com
+    git -C "$repo" config core.hooksPath "$PWD/.githooks"
+    echo one > "$repo/page"
+    git -C "$repo" add page
+    git -C "$repo" commit -q -m "Add the page"
+    git -C "$repo" checkout -q -b other
+    echo two > "$repo/page"
+    git -C "$repo" commit -q -am "Change the page"
+    git -C "$repo" checkout -q main
+    echo three > "$repo/page"
+    git -C "$repo" commit -q -am "Change the page differently"
+    git -C "$repo" merge -q other > /dev/null 2>&1
+    echo merged > "$repo/page"
+    git -C "$repo" add page
+}
+
+# A --no-edit commit keeps the list, so the hook refuses it; the merge is
+# still open for a commit -m, which passes.
+conflicted no-edit-hook
+git -C "$scratch/no-edit-hook" commit -q --no-edit > /dev/null 2>&1 &&
+    echo "hook: passed a --no-edit commit of a conflicted merge"
+git -C "$scratch/no-edit-hook" commit -q -m "Merge other" > /dev/null 2>&1 ||
+    echo "hook: refused a conflicted merge's commit -m"
+
+# An editor session passes, since git's cleanup removes the list.
+conflicted editor-hook
+GIT_EDITOR=true git -C "$scratch/editor-hook" commit -q > /dev/null 2>&1 ||
+    echo "hook: refused a conflicted merge finished in an editor"
+! git -C "$scratch/editor-hook" log -1 --format=%B | grep -q '^# Conflicts:' ||
+    echo "hook: an editor session kept the conflict list"

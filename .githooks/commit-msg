@@ -1,8 +1,17 @@
 #!/bin/bash
 # Refuses a commit whose message carries AI attribution, using the
-# patterns bin/check applies to main's history (.githooks/attribution-patterns).
-# bin/check can only see a message once it is committed; this catches it
-# first. Turn it on once per clone: git config core.hooksPath .githooks
+# patterns bin/check applies to main's history (.githooks/attribution-patterns),
+# or git's conflict list. bin/check can only see a message once it is
+# committed; this catches it first. Turn it on once per clone:
+# git config core.hooksPath .githooks
+
+# git commit --no-edit keeps a conflicted merge's "# Conflicts:" list. An
+# editor session has the list too, but its cleanup removes it, and git's
+# "# Please enter" hint marks that session.
+if grep -q '^# Conflicts:' "$1" && ! grep -q '^# Please enter' "$1"; then
+    echo "commit-msg: git's conflict list in the message; finish the merge with git commit -m \"<message>\"" >&2
+    exit 1
+fi
 
 patterns="$(dirname "$0")/attribution-patterns"
 # git runs this before cleanup: drop a commit -v diff below the scissors

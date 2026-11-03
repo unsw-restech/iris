@@ -65,6 +65,10 @@ sent preview "HEAD...origin/main"         # lists only what main brings
 sent preview "bin/syspull --apply"        # the line the go-ahead quotes
 not_sent preview "tail|head"              # every file listed, none dropped
 sent preview "python3"                    # then what pilot testers can't read
+# The commits follow the files, so a tail of the listing keeps them.
+files="$(grep -n 'git diff --stat' "$fake/args" | cut -d: -f1)"
+commits="$(grep -n 'git log --oneline HEAD..origin/main' "$fake/args" | cut -d: -f1)"
+[ "$files" -lt "$commits" ] || echo "syspull preview: the commits come before the files"
 
 # --apply moves the clone to exactly the commit that was previewed.
 expect 0 "fake report" --apply 0123abc
