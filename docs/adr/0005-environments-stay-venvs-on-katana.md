@@ -1,5 +1,7 @@
 # Environments stay venvs on Katana
 
+**Superseded by [ADR-0008](0008-environments-move-from-venvs-to-containers.md)**: environments move from venvs to containers (Patrick, 2026-11-05).
+
 Imaging environments stay venvs built on Katana from `envs/imaging/`, and IRIS again makes no promise off Katana, as decision 12 of #12 ("Off Katana: no promise") had it. This reverses ADR-0004 before anything used it. An image needed more than the venv for every version: a CI build, a digest map, a launcher and a pull onto Katana. Publishing it also needed a GitHub org owner to make the GHCR package public, which is work the maintainer can't do alone. Meanwhile the venv already runs every workflow (Patrick, 2026-10-27).
 
 ## Considered Options

@@ -13,7 +13,7 @@ The day IRIS opens to every researcher with a Katana account, ending the pilot. 
 _Avoid_: Go-live, release
 
 **Workflow**:
-One imaging analysis a researcher can launch from IRIS, made up of a catalogue page, a form and the code the job runs.
+One imaging analysis a researcher can launch from IRIS, made up of a catalogue page, a form and the code the job runs. It may also read data that complements the images, such as tables or audio, but IRIS takes no workflow without imaging.
 _Avoid_: Pipeline, app, job
 
 **Researcher**:
@@ -33,8 +33,20 @@ The workflow author answerable for keeping one workflow working, named on its pa
 _Avoid_: Maintainer, contributor
 
 **Proposal**:
-A workflow author's request to add a workflow, made before building it, which the maintainer approves or declines.
+A workflow author's request for something only the maintainer can give, made before building the workflow that needs it: new packages, a new modality or lab, or adopting an unmaintained workflow. The maintainer approves or declines it. A workflow that needs none of these needs no proposal.
 _Avoid_: Request, submission, application
+
+**Test instance**:
+The OpenComposer on Katana that shows each workflow author the forms in their own clone and runs them as that author, so they can prove a workflow before it joins IRIS.
+_Avoid_: Sandbox, staging
+
+**Run proof**:
+The generated record of a real run from the test instance, kept with the workflow, that shows the workflow's current code ran and finished. It shows the testing was done; it does not replace review.
+_Avoid_: Certificate, test report
+
+**Review batch**:
+The maintainer's pass over every pull request that has passed all its checks, approved together and then deployed. IRIS tells authors to expect one about every fortnight, but the maintainer decides when each happens, and a request waits until then.
+_Avoid_: Release, train
 
 **Catalogue**:
 The set of workflows listed on the IRIS landing page. Onboarding pages such as `hello-world` are not part of it.
@@ -101,8 +113,12 @@ ResTech's tally of runs per workflow per month, taken from Katana's own job reco
 _Avoid_: Usage log, telemetry
 
 **Environment**:
-The shared, versioned set of software a workflow's runs use. It is built ahead of time and never changed, and nothing is installed into it when a run starts.
-_Avoid_: Image, container, setup
+A versioned set of software a lab's workflows run in, packaged as a container; several labs may share one. It is built ahead of time and never changed, and nothing is installed into it when a run starts. `imaging/1`, from before the move to containers, is a venv.
+_Avoid_: Image, venv, setup
+
+**Container**:
+The single file one version of an environment is packaged as, which a run starts inside. Registries and container tools call it an image; IRIS never does, since an image in IRIS is imaging data.
+_Avoid_: Image, container image, SIF
 
 **`iris` module**:
 The Katana module that `module load iris` loads. It puts `iris-view` and `iris-compare`, from the system clone, on the researcher's PATH and does nothing else. It is not an environment: it installs no software and has no version.
@@ -117,11 +133,11 @@ An image or volume of the same shape as its source in which each pixel or voxel 
 _Avoid_: Mask, annotation, ground truth
 
 **Dataset**:
-One volume together with its training pairs, kept in a single folder in the researcher's scratch with a fixed layout. A run reads one dataset.
+The folder in the researcher's scratch that a run reads, laid out as its workflow requires: for `microct-2d-segmentation`, one volume and its training pairs. A run reads one dataset.
 _Avoid_: Project, input folder
 
 **Dataset record**:
-What a run notes about the dataset it read, so the researcher can find it again and spot if it changed: the folders' paths and file counts, the volume's size, modification time, shape, data type, voxel spacing if the volume records one, and intensity statistics. It holds no content hash; the digest MLflow shows hashes the record itself.
+What a run notes about the dataset it read, so the researcher can find it again and spot if it changed: what is true of any folder, its path, file count, total size and newest change, plus whatever details its workflow adds, such as a volume's shape and voxel spacing. It holds no content hash; the digest MLflow shows hashes the record itself.
 _Avoid_: Fingerprint, checksum, manifest
 
 **Staging**:
