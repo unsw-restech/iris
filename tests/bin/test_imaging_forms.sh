@@ -39,10 +39,10 @@ make_tree no-source
 sed -i '/iris-job\.sh/d' "$scratch/no-source/workflows/seg/form.yml.erb"
 expect fail "$scratch/no-source" "$name"
 
-# Dropping ENV_DIR and the record call too still leaves an imaging form,
+# Dropping the pinned version and the record call too still leaves an imaging form,
 # so it is still checked.
 make_tree no-source-no-env
-sed -i '/iris-job\.sh/d; /ENV_DIR=/d; /<%= entry_script %>/d' "$scratch/no-source-no-env/workflows/seg/form.yml.erb"
+sed -i '/iris-job\.sh/d; /IRIS_ENV_VERSION=/d; /<%= entry_script %>/d' "$scratch/no-source-no-env/workflows/seg/form.yml.erb"
 expect fail "$scratch/no-source-no-env" "$name"
 
 # A heredoc that never ends still opens the entry script, so it is checked.
@@ -50,10 +50,10 @@ make_tree no-end-marker
 sed -i '/^<%= entry_code -%>$/{n;d}' "$scratch/no-end-marker/workflows/seg/form.yml.erb"
 expect fail "$scratch/no-end-marker" "$name"
 
-# A form with an environment but no entry script heredoc isn't an imaging
+# A form that pins a version but has no entry script heredoc isn't an imaging
 # form.
 make_tree env-only
-printf '%s\n' 'script: |' '  #!/bin/bash' '  #PBS -A iris-seg' '  ENV_DIR=/srv/scratch/katana_ai/iris/envs/imaging/1' \
+printf '%s\n' 'script: |' '  #!/bin/bash' '  #PBS -A iris-seg' '  IRIS_ENV_VERSION=microct/1' \
     > "$scratch/env-only/workflows/seg/form.yml.erb"
 expect pass "$scratch/env-only" "$name"
 

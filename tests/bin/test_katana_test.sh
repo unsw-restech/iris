@@ -14,7 +14,8 @@ fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
 
 # Records its arguments in $fake/args and its stdin in $fake/tree.tar, and
-# exits with the code in $fake/exit-code (0 without one). With
+# exits with the code in $fake/exit-code (0 without one); to katana-dm, in
+# $fake/dm-args and $fake/dm-stdin, exiting with $fake/dm-exit-code's. With
 # $fake/run-remote, it runs the command it was given instead, on the tree,
 # with /srv/scratch/$USER as $fake/scratch, a module system that loads
 # nothing and the log wait cut to $fake/run-remote's seconds.
@@ -22,6 +23,12 @@ mkdir "$fake/bin" "$fake/scratch"
 cat > "$fake/bin/ssh" <<'EOF'
 #!/bin/bash
 dir="$(cd "$(dirname "$0")/.." && pwd)"
+# The data mover only ever gets the stand-in container's pull, kept apart.
+if [ "$1" = katana-dm ]; then
+    printf '%s\n' "$@" > "$dir/dm-args"
+    cat > "$dir/dm-stdin"
+    exit "$(cat "$dir/dm-exit-code" 2>/dev/null || echo 0)"
+fi
 printf '%s\n' "$@" > "$dir/args"
 cat > "$dir/tree.tar"
 if [ -f "$dir/run-remote" ]; then
@@ -46,8 +53,9 @@ chmod +x "$fake/bin/ssh" "$fake/bin/qsub"
 
 # A repo holding the script, a tracked file and a link like module/bin's.
 repo="$fake/repo"
-mkdir -p "$repo/bin" "$repo/module/bin" "$repo/module/tests"
+mkdir -p "$repo/bin" "$repo/module/bin" "$repo/module/tests" "$repo/lib/tests/katana"
 cp bin/katana-test "$repo/bin/"
+cp lib/tests/katana/stand-in.sh "$repo/lib/tests/katana/"
 echo 'exit 0' > "$repo/module/tests/test_module.sh"
 echo committed > "$repo/tracked.txt"
 ln -s ../../bin/katana-test "$repo/module/bin/link"
@@ -96,6 +104,16 @@ grep -qF 'lib/tests/katana/job_lib.pbs' "$fake/args" || fail "doesn't submit lib
 [ "$(grep -c 'qsub ' "$fake/args")" = 1 ] || fail "has $(grep -c 'qsub ' "$fake/args") qsub lines, expected 1"
 grep -q 'qsub .*-W block=true' "$fake/args" || fail "doesn't wait on the job-library test"
 grep -q 'qsub .*-m abe' "$fake/args" || fail "submits the job-library test without -m abe"
+
+# The stand-in container the job-library test runs in goes down through the
+# data mover, before anything runs on Katana, and a failed pull stops it.
+grep -qxF -- "bash -s -- --pull" "$fake/dm-args" && cmp -s "$fake/dm-stdin" lib/tests/katana/stand-in.sh ||
+    fail "doesn't send lib/tests/katana/stand-in.sh --pull to katana-dm"
+rm "$fake/args"
+echo 1 > "$fake/dm-exit-code"
+if run > /dev/null; then fail "exit 0 when the stand-in container's pull failed"; fi
+[ ! -f "$fake/args" ] || fail "ran on Katana after the stand-in container's pull failed"
+rm "$fake/dm-exit-code"
 
 # A failing test on Katana fails the script.
 echo 1 > "$fake/exit-code"

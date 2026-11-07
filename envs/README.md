@@ -48,6 +48,8 @@ The digest on GHCR is the version. Its tag is only a label, and rebuilding the s
 
 Jobs never touch the registry: they run the container files in the IRIS environments folder, `IRIS_ENVS_FOLDER` in `lib/katana.sh` (`/srv/scratch/katana_ai/iris/envs`). Version `<env>/<n>`'s file is `<folder>/<env>/<n>.sif`, and `<folder>/<env>/<n>.digest` beside it holds the digest it was pulled by, so `microct/1` is `microct/1.sif` and `microct/1.digest`. Katana keeps a file for each version a live form pins, plus `IRIS_TOOLS_ENV_VERSION`, the one the researcher tools (`iris-view`, `iris-compare`, the importer, rebuild) run in, whichever lab a run is from.
 
+A job whose form pins a version with no file there stops at once, with one line naming the file and the guide's help routes. Otherwise `lib/iris-job.sh` runs the code recorder and the entry script in it with `apptainer exec --cleanenv`, adding `--nv` when PBS gave the job GPUs (it sets `CUDA_VISIBLE_DEVICES`) and not for a CPU-only run, and passes in only what the run needs, the version and the digest in its `.digest` file among them, for the run record.
+
 `bin/envpull`, run from the desktop, makes the folder hold exactly those, over `ssh katana-dm`:
 
 ```

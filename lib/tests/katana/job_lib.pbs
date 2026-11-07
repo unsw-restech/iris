@@ -4,23 +4,30 @@
 #PBS -l select=1:ncpus=1:mem=4gb
 #PBS -l walltime=0:10:00
 #PBS -j oe
-# test_job_lib needs Katana's modules, and Ruby to render the form. T is
-# the scratch test folder holding the copy of the tree in T/iris
-# (docs/agents/katana-test-run.md). 12 tests
-# took 4 s (job 9654477). bin/katana-test submits it once; by hand:
+# test_job_lib runs jobs in a container, which needs Katana's Apptainer, and
+# Ruby to render the form. T is the scratch test folder holding the copy of
+# the tree in T/iris (docs/agents/katana-test-run.md). The jobs run in the
+# stand-in container (stand-in.sh), which bin/katana-test pulls through the
+# data mover first if it is missing. It requests no GPUs, so it is the
+# CPU-only run too. 22 tests took 7 s (job 9689878). bin/katana-test submits it once; by hand:
 #
 #   qsub -m abe -v T=/srv/scratch/$USER/iris-test-<n>,PYTHONUNBUFFERED=1 job_lib.pbs
 #
-# The environment and Python module are the tree's own, from its
-# lib/katana.sh, so an environment bump is tested on the version the form pins.
+# The tests' own Python is Katana's module, lib/katana.sh's, since they
+# need nothing beyond the standard library. Their temporary folders go in
+# T, under /srv, which Katana binds into every container, as it does a
+# real run's dataset.
 : "${T:?pass T=<scratch test folder> with qsub -v}"
 . "$T/iris/lib/katana.sh" || exit 1
-ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
+. "$T/iris/lib/tests/katana/stand-in.sh" || exit 1
+[ -f "$IRIS_STAND_IN" ] || { echo "no stand-in container at $IRIS_STAND_IN; pull it as lib/tests/katana/stand-in.sh says"; echo "exit 1"; exit 1; }
+export IRIS_STAND_IN TMPDIR="$T/tmp"
+mkdir -p "$TMPDIR" || exit 1
 . /etc/profile.d/modules.sh; module load "$IRIS_PYTHON_MODULE"
 module load ruby/3.2.0
 echo "host $(hostname) $(date +%T)"
 cd "$T/iris/lib/tests" || exit 1
-"$ENV_DIR/bin/python" -X faulthandler -m unittest -v test_job_lib 2>&1
+python3 -X faulthandler -m unittest -v test_job_lib 2>&1
 s=$?
 echo "exit $s $(date +%T)"
 exit $s

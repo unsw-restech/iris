@@ -3,17 +3,18 @@
 # test jobs, bin/qwait, bin/syspull and bin/envpull among them. Sourcing it only sets
 # them, so it is safe on the desktop too.
 #
-# Copies that must stay literal, the imaging forms' pane ENV_DIR
-# (ADR-0006), the forms' Ruby test for the system clone, the modulefile's
-# path and the form tests' paths, are compared with these by bin/check's
-# "Katana constants" check. Moving to imaging environment 2 is the one line
-# here and those copies, which that check lists.
+# Copies that must stay literal, the forms' Ruby test for the system clone,
+# the modulefile's path and the form tests' paths, are compared with these
+# by bin/check's "Katana constants" check. A form pins its environment
+# version by name, which bin/check finds in the digest map below.
 # shellcheck disable=SC2034  # used by the scripts that source it
 
 # The system clone (Patrick, 2026-10-23; see AGENTS.md): the system
 # OpenComposer serves its workflows/ and `module load iris` its module/bin.
 IRIS_SYSTEM_CLONE=/srv/scratch/katana_ai/iris/code
-# The imaging environment the imaging forms pin (envs/imaging/).
+# The imaging/1 venv the researcher tools still run in (envs/imaging/),
+# until they move to IRIS_TOOLS_ENV_VERSION's container; jobs run in the
+# container their form pins.
 IRIS_ENV_DIR=/srv/scratch/katana_ai/iris/envs/imaging/1
 # The Python module that environment was built on (../available-modules.md).
 IRIS_PYTHON_MODULE=python/3.13.2

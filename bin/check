@@ -189,8 +189,8 @@ run_dir_names() {
 check "run directory file names come from iris.rundir" run_dir_names
 
 # lib/katana.sh holds Katana's constants for every script that can source
-# bash. The copies that must stay literal agree with it: each imaging
-# form's pane ENV_DIR (ADR-0006), a form's Ruby test for the system clone
+# bash. The copies that must stay literal agree with it: a form's Ruby
+# test for the system clone
 # (@apps_dir == "<clone>/workflows"), the modulefile's PATH and the form
 # tests' SYSTEM_APPS_DIR. No other file under bin/, lib/, module/ or envs/
 # in git's index, notes (*.md, *.in) aside, keeps a constant of its own.
@@ -208,10 +208,6 @@ katana_constants() {
             [ "$v" = "$want" ] || echo "$file: $what is $v; lib/katana.sh has $want"
         done
     }
-    for f in $(imaging_forms); do
-        mapfile -t vals < <(tr -d '\r' < "$f" | sed -nE 's/^  ENV_DIR=(.*)$/\1/p')
-        keep "$f" "ENV_DIR" "$IRIS_ENV_DIR" "${vals[@]}"
-    done
     for f in workflows/*/form.yml.erb; do
         [ -f "$f" ] || continue
         mapfile -t vals < <(tr -d '\r' < "$f" | sed -nE 's/.*@apps_dir[^=]*== "([^"]*)".*/\1/p')
@@ -317,9 +313,11 @@ need_ruby() {
 }
 
 # Each imaging form's script as the form renders it holds, in order, its
-# PBS header with the usage tag, CODE and its guard, ENV_DIR, the job
+# PBS header with the usage tag, CODE and its guard, the one
+# IRIS_ENV_VERSION=<env>/<n> line pinning its environment version, the job
 # library, the banner, the heredoc holding its entry script byte for byte,
-# the call recording the run's code and the python call on run.py, with no
+# the call recording the run's code and the container start line,
+# iris_container python on run.py, with no
 # other heredoc, and its entry script holds no #{ or <% (ADR-0006). lib/tests/imaging_form.rb
 # holds those parts and lib/tests/test_imaging_form.rb breaks each one.
 rendered_scripts() {
