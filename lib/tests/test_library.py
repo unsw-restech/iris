@@ -27,7 +27,7 @@ import numpy as np
 from datasets import make_volume, two_class_labels, write_dataset
 from run_dirs import clone_with_entry, finished_run, record_code  # noqa: E402  (it puts lib/ on the path)
 
-from iris.compare import start_ui  # noqa: E402
+from iris.compare import open_browser, start_ui  # noqa: E402
 from iris.record import RunRecord  # noqa: E402
 from iris.tracking import StoreExists, import_runs, rebuild, store_uri  # noqa: E402
 from iris.view import recent_runs  # noqa: E402
@@ -273,6 +273,16 @@ class Import(unittest.TestCase):
         finally:
             server.terminate()
             server.wait(30)
+
+
+class Browser(unittest.TestCase):
+    def test_in_the_container_the_url_goes_to_the_file_bin_iris_compare_watches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            url_file = Path(tmp) / "url"
+            with mock.patch.dict(os.environ, {"IRIS_URL_FILE": str(url_file)}):
+                open_browser("http://127.0.0.1:5123")
+            self.assertEqual(url_file.read_text(), "http://127.0.0.1:5123\n")
+            self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), ["url"])
 
 
 def outward_address():

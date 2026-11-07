@@ -4,6 +4,6 @@
 # argument pick from your recent runs. Run it in a terminal in a Virtual
 # Desktop; closing the napari window ends it.
 #
-# A shim over bin/iris-python, which runs it in the imaging environment
-# lib/katana.sh pins, or another with ENV_DIR=...
+# A shim over bin/iris-python, which runs it in the researcher tools'
+# container lib/katana.sh names, or another with IRIS_TOOLS_CONTAINER=...
 exec "$(dirname "$(readlink -f "$0")")/iris-python" iris.view "$@"
