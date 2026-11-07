@@ -10,7 +10,6 @@ run index, to pick from.
 """
 
 import argparse
-import json
 import sys
 import threading
 from datetime import datetime
@@ -20,7 +19,7 @@ import dask
 import dask.array as da
 import tifffile
 
-from iris import rundir
+from iris import rundir, runs
 from iris.record import indexed_runs, iris_home, run_index
 from iris.volume import open_volume
 
@@ -46,20 +45,21 @@ def load_run(run_dir):
 
 
 def recent_runs(home, limit=10):
-    """Up to `limit` runs in the run index under `home` that finished, so
-    have a whole label volume, newest first, as (run directory, its
-    run.json) pairs. A run whose run directory or run.json has since gone
-    is left out."""
-    runs = []
+    """Up to `limit` runs in the run index under `home` that finished with
+    a label volume, so have a whole one, newest first, as (run directory,
+    its record, iris.runs.Run) pairs, whatever format recorded them. A
+    run whose workflow writes no label volume is left out, as is one whose
+    run directory or run.json has since gone or can't be read."""
+    found = []
     for _, run_dir in indexed_runs(run_index(home)):
         try:
-            run = json.loads((run_dir / rundir.RUN_JSON).read_text())
-        except (OSError, ValueError):
+            run = runs.read_run(run_dir)
+        except (OSError, ValueError, KeyError, TypeError):
             continue
-        if run.get("status") == "FINISHED":
-            runs.append((run_dir, run))
-    runs.sort(key=lambda r: r[1].get("end_time", 0), reverse=True)
-    return runs[:limit]
+        if run.status == "FINISHED" and (run_dir / rundir.LABELS).is_file():
+            found.append((run_dir, run))
+    found.sort(key=lambda r: r[1].end_time, reverse=True)
+    return found[:limit]
 
 
 def pick_run(home):
@@ -71,8 +71,8 @@ def pick_run(home):
                  " iris-view <dataset>/runs/<job ID>")
     print("Recent runs, newest first:")
     for n, (run_dir, run) in enumerate(recent, 1):
-        ended = datetime.fromtimestamp(run.get("end_time", 0)).strftime("%Y-%m-%d %H:%M")
-        print(f"{n:3}  {ended}  {run.get('experiment', '?')}  {run_dir}")
+        ended = datetime.fromtimestamp(run.end_time).strftime("%Y-%m-%d %H:%M")
+        print(f"{n:3}  {ended}  {run.experiment}  {run_dir}")
     while True:
         try:
             answer = input(f"Run to view (1-{len(recent)}, Enter to quit): ").strip()
@@ -88,7 +88,7 @@ def intensity_range(run_dir):
     """The volume's (min, max) from the run's dataset record, so napari
     need not read the volume to set its contrast, or None."""
     try:
-        intensity = json.loads((Path(run_dir) / rundir.DATASET).read_text())["intensity"]
+        intensity = runs.read_run(run_dir).dataset()["intensity"]
         return intensity["min"], intensity["max"]
     except (OSError, ValueError, KeyError, TypeError):
         return None
@@ -114,7 +114,7 @@ def main():
     run_dir = (args.run_dir or pick_run(iris_home())).resolve()
     if not (run_dir / rundir.LABELS).is_file():
         sys.exit(f"No label volume at {run_dir / rundir.LABELS}: is the run still going, or did it fail?"
-                 " Its log is next to it in runs/.")
+                 " Its log is next to it in runs/. Some workflows write no label volume, so have nothing to view.")
     print(f"Opening {run_dir} in napari. Close its window to quit.")
     show(run_dir)
 

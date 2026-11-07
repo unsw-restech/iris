@@ -2,7 +2,8 @@
 
 Jobs never open the store (docs/adr/0001). Each finished run leaves a record
 in its run directory and a pointer in /srv/scratch/$USER/iris/run-index/
-(see iris.record). This replays every indexed run not yet in
+(see iris.record), read in whichever run record format it was written in
+(iris.runs). This replays every indexed run not yet in
 /srv/scratch/$USER/iris/tracking.db, creating the store on first import
 with its artifact root, artifacts/, next to it. Each becomes one MLflow run
 named by its job ID, under its experiment, with its params, metrics history
@@ -38,7 +39,7 @@ from mlflow import MlflowClient  # noqa: E402
 from mlflow.entities import Dataset, DatasetInput, Metric, Param, RunTag, ViewType  # noqa: E402
 from mlflow.store.tracking.sqlalchemy_store import SqlAlchemyStore  # noqa: E402
 
-from iris import rundir  # noqa: E402
+from iris import rundir, runs  # noqa: E402
 from iris.record import indexed_runs, iris_home, run_index  # noqa: E402
 
 IMPORT_TAG = "iris_import"  # "incomplete" until every value is logged, then "complete"
@@ -99,18 +100,6 @@ def param_value(value):
     return value if isinstance(value, str) else json.dumps(value)
 
 
-def metric_values(epoch):
-    """One epoch's record as flat MLflow metrics: dice {"1": 0.9} becomes
-    dice/1. Values that are not numbers, such as an absent class's None,
-    are left out."""
-    for key, value in epoch.items():
-        if key in ("epoch", "time"):
-            continue
-        for name, v in (value.items() if isinstance(value, dict) else [(None, value)]):
-            if isinstance(v, (int, float)) and not isinstance(v, bool):
-                yield (f"{key}/{name}" if name is not None else key), float(v)
-
-
 def dataset_input(record):
     """A run's dataset record (iris.dataset) as an MLflow dataset input,
     named after the dataset folder, with the whole record as its profile.
@@ -128,48 +117,40 @@ def dataset_input(record):
     ))
 
 
-def read_json(path, empty):
-    """`path`'s contents, or `empty` if the run ended before writing it."""
-    try:
-        return json.loads(path.read_text())
-    except FileNotFoundError:
-        return empty
-
-
 def log_in_batches(client, run_id, kind, values, per_call):
     for i in range(0, len(values), per_call):
         client.log_batch(run_id, **{kind: values[i:i + per_call]})
 
 
-def replay(client, home, run_dir, record):
-    """Log one run directory into the store as a single MLflow run. If any
-    step fails, the half-logged run is deleted."""
-    params = read_json(run_dir / rundir.PARAMS, {})
-    epochs = read_json(run_dir / rundir.METRICS, {"epochs": []})["epochs"]
-    dataset = read_json(run_dir / rundir.DATASET, None)
+def replay(client, home, record):
+    """Log one run, `record` (iris.runs.Run), into the store as a single
+    MLflow run. If any step fails, the half-logged run is deleted."""
+    run_dir = record.run_dir
+    params = record.params()
+    points = record.metric_points()
+    dataset = record.dataset()
     run = client.create_run(
-        experiment_id(client, record["experiment"], home),
-        start_time=int(record["start_time"] * 1000),
+        experiment_id(client, record.experiment, home),
+        start_time=int(record.start_time * 1000),
         tags={IMPORT_TAG: "incomplete"},
-        run_name=record["job_id"],
+        run_name=record.job_id,
     )
     run_id = run.info.run_id
     try:
         log_in_batches(client, run_id, "params",
                        [Param(k, param_value(v)) for k, v in params.items()], PARAMS_TAGS_PER_CALL)
         log_in_batches(client, run_id, "tags",
-                       [RunTag(k, str(v)) for k, v in record["tags"].items()], PARAMS_TAGS_PER_CALL)
+                       [RunTag(k, v) for k, v in record.tags.items()], PARAMS_TAGS_PER_CALL)
         log_in_batches(client, run_id, "metrics",
-                       [Metric(name, value, int(epoch["time"] * 1000), epoch["epoch"])
-                        for epoch in epochs for name, value in metric_values(epoch)], METRICS_PER_CALL)
+                       [Metric(name, value, ms, step) for name, value, ms, step in points], METRICS_PER_CALL)
         if dataset is not None:
             client.log_inputs(run_id, datasets=[dataset_input(dataset)])
-        if "edited" in record:
-            client.set_tag(run_id, EDITED_TAG, rundir.edited_tag(record["edited"]))
+        if record.edited is not None:
+            client.set_tag(run_id, EDITED_TAG, rundir.edited_tag(record.edited))
         for name in CODE_ARTIFACTS:
             if (run_dir / name).is_file():
                 client.log_artifact(run_id, str(run_dir / name))
-        client.set_terminated(run_id, record["status"], int(record["end_time"] * 1000))
+        client.set_terminated(run_id, record.status, int(record.end_time * 1000))
         client.set_tag(run_id, IMPORT_TAG, "complete")
     except Exception:
         client.delete_run(run_id)
@@ -179,8 +160,8 @@ def replay(client, home, run_dir, record):
 def dataset_runs(runs_folders):
     """(None, run directory) for each folder in the datasets' runs/ folders.
     Their names are not taken as job IDs: run.json holds the job ID."""
-    for runs in runs_folders:
-        for run_dir in sorted(runs.iterdir()):
+    for folder in runs_folders:
+        for run_dir in sorted(folder.iterdir()):
             if run_dir.is_dir():
                 yield None, run_dir
 
@@ -264,18 +245,21 @@ def import_run_dirs(client, home, run_dirs):
         if job_id is not None and job_id in done:
             continue
         try:
-            record = json.loads((run_dir / rundir.RUN_JSON).read_text())
+            record = runs.read_run(run_dir)
         except FileNotFoundError:
             pending += 1
             continue
-        if record["job_id"] in done:
+        except runs.UnknownFormat as e:
+            print(f"WARNING: could not import {run_dir}: {e}", file=sys.stderr)
+            continue
+        if record.job_id in done:
             continue
         try:
-            replay(client, home, run_dir, record)
+            replay(client, home, record)
         except Exception as e:  # noqa: BLE001 - one bad run must not block the rest
             print(f"WARNING: could not import {run_dir}: {e}", file=sys.stderr)
             continue
-        done.add(record["job_id"])
+        done.add(record.job_id)
         imported += 1
     return {"imported": imported, "pending": pending}
 

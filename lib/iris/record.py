@@ -2,28 +2,49 @@
 
 A job never opens the tracking store (docs/adr/0001). Instead, once the job
 has recorded the run's code in the run directory (iris.rundir, which names
-every file there), the entry script's RunRecord writes:
+every file there), the entry script's RunRecord writes the run record, in
+run record format FORMAT. It holds only what is true of any run; the
+shared tools read every format ever written (iris.runs).
 
-  params.json   every form field plus the seed, and what the run derived
-  metrics.json  {"epochs": [{"epoch", "time", <metric>: number or
-                {<class>: number or null}}...], "final": <last epoch>}
-  dataset.json  which dataset the run read (iris.dataset)
-  run.json      written last: experiment, job ID, whether the run is an
-                edited run (true, false or "unknown", from iris.rundir),
-                the run's tags (venv, commit and lib_commit as iris.rundir
-                reads them, slug, job ID, GPU, queue, run directory) and how
-                the run ended
+  params.json   the run's parameters: every form field plus the seed, and
+                what the run derived, as a flat {name: value}
+  metrics.json  {"log": [{"time", "epoch" if logged per epoch,
+                <metric>: number or {<class>: number or null}}...],
+                "final": {<metric>: its latest value}}; a run that logs no
+                metrics writes none
+  dataset.json  the dataset record (iris.dataset): which dataset the run
+                read
+  run.json      written last:
+                  "format"       FORMAT
+                  "run"          its identity and how it ended:
+                                 {"experiment", "workflow" (the slug),
+                                 "dir", "status", "start_time", "end_time"}
+                  "job"          {"id", "queue"}: the PBS job number, or
+                                 outside PBS the run directory's name, and
+                                 its queue or "none"
+                  "code"         {"commit", "lib_commit" only if the clone
+                                 moved, "edited": true, false or
+                                 "unknown"}, as iris.rundir reads them
+                  "environment"  {"version", "digest"}: the environment it
+                                 ran in, from IRIS_ENV_VERSION and
+                                 IRIS_ENV_DIGEST, which the job library
+                                 exports; null for either it leaves unset
+                  "extras"       the workflow's own details, such as the
+                                 GPU it ran on: {} if it adds none
 
 and then the pointer file /srv/scratch/$USER/iris/run-index/<job ID>, one
 line naming the run directory ($IRIS_HOME replaces /srv/scratch/$USER/iris
 in tests). Every file is written atomically. Only dataset.json, run.json
 and the pointer can fail without failing the run: they warn instead.
 
+The label volume and the trained weights are the workflow's to write, if
+it writes them; a run with no parameters or metrics is still a valid run.
 The entry script records the run:
 
-    with RunRecord(run_dir, experiment, code_dir) as record:
+    with RunRecord(run_dir, experiment, code_dir, extras={"gpu": gpu}) as record:
         record.write_params(params)
         record.log_epoch(1, train_loss=0.4, dice={"1": 0.9})
+        record.log_metrics(voxels=123456)    # no epoch
 """
 
 import json
@@ -34,6 +55,8 @@ import time
 from pathlib import Path
 
 from iris import rundir
+
+FORMAT = 2  # the run record format this writes (iris.runs reads every one)
 
 
 def iris_home():
@@ -77,13 +100,14 @@ class RunRecord:
     """One run's record. Use it as a context manager around the run: on exit
     it writes run.json with how the run ended, then the pointer file."""
 
-    def __init__(self, run_dir, experiment, code_dir, tags=None):
+    def __init__(self, run_dir, experiment, code_dir, extras=None):
         self.run_dir = Path(run_dir).resolve()
         self.experiment = experiment
         self.code_dir = Path(code_dir)
         self.job_id = job_id() or self.run_dir.name
-        self.tags = dict(tags or {})
-        self.epochs = []
+        self.extras = dict(extras or {})
+        self.log = []
+        self.final = {}
 
     def __enter__(self):
         self.start_time = time.time()
@@ -119,8 +143,16 @@ class RunRecord:
 
     def log_epoch(self, epoch, **metrics):
         """Record one epoch's metrics, rewriting metrics.json."""
-        self.epochs.append({"epoch": epoch, "time": time.time(), **metrics})
-        write_json(self.run_dir / rundir.METRICS, {"epochs": self.epochs, "final": self.epochs[-1]})
+        self._log({"epoch": epoch}, metrics)
+
+    def log_metrics(self, **metrics):
+        """Record metrics that belong to no epoch, rewriting metrics.json."""
+        self._log({}, metrics)
+
+    def _log(self, step, metrics):
+        self.log.append({**step, "time": time.time(), **metrics})
+        self.final.update(metrics)
+        write_json(self.run_dir / rundir.METRICS, {"log": self.log, "final": self.final})
 
     def write_dataset(self, describe):
         """Write dataset.json from describe(), which builds the dataset record
@@ -135,29 +167,30 @@ class RunRecord:
                   f"not show which dataset this run used: {e}", file=sys.stderr)
             return None
 
-    def run_tags(self):
-        tags = {
-            "slug": self.code_dir.name,
-            "job_id": self.job_id,
-            "commit": rundir.recorded_commit(self.run_dir, self.code_dir),
-            "venv": sys.prefix,
-            "queue": os.environ.get("PBS_QUEUE", "none"),
-            "run_dir": str(self.run_dir),
-        }
+    def code(self):
+        code = {"commit": rundir.recorded_commit(self.run_dir, self.code_dir)}
         moved = rundir.lib_commit(self.run_dir)
         if moved is not None:
-            tags["lib_commit"] = moved
-        return {**tags, **self.tags}
+            code["lib_commit"] = moved
+        code["edited"] = rundir.edited_to_record(rundir.edited(self.run_dir))
+        return code
 
     def write_run(self, status):
         run = {
-            "experiment": self.experiment,
-            "job_id": self.job_id,
-            "status": status,
-            "start_time": self.start_time,
-            "end_time": time.time(),
-            "tags": self.run_tags(),
-            "edited": rundir.edited_to_record(rundir.edited(self.run_dir)),
+            "format": FORMAT,
+            "run": {
+                "experiment": self.experiment,
+                "workflow": self.code_dir.name,
+                "dir": str(self.run_dir),
+                "status": status,
+                "start_time": self.start_time,
+                "end_time": time.time(),
+            },
+            "job": {"id": self.job_id, "queue": os.environ.get("PBS_QUEUE", "none")},
+            "code": self.code(),
+            "environment": {"version": os.environ.get("IRIS_ENV_VERSION") or None,
+                            "digest": os.environ.get("IRIS_ENV_DIGEST") or None},
+            "extras": self.extras,
         }
         write_json(self.run_dir / rundir.RUN_JSON, run)
 

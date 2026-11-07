@@ -3,8 +3,9 @@
 This module owns what a run directory holds and where it is. Every file in
 one is named here, and the job, the run record (iris.record), the importer
 (iris.tracking), iris-view and the entry scripts go through these names.
-The format on disk is fixed: runs recorded before this module import
-unchanged.
+These names are fixed: what the run record in them holds is versioned by
+its format (iris.record writes the current one, iris.runs reads them all),
+so runs recorded before this module import unchanged.
 
   run.py          the entry script as the form's script pane held it,
                   written by the job before Python runs it (ADR-0006)
@@ -19,7 +20,8 @@ unchanged.
   params.json, metrics.json, dataset.json, run.json
                   the run's record (iris.record), run.json last
   labels.tif, model.pt
-                  the label volume and the trained weights
+                  the label volume and the trained weights, for a workflow
+                  that writes them: a run needs neither
 
 Recording a run's code writes commit.txt, lib_commit.txt and run.diff and
 prints the edit report. lib/iris-job.sh's iris_record_code runs it in a
