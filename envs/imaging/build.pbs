@@ -26,8 +26,8 @@ RECIPE="${PBS_O_WORKDIR:?submit with qsub from envs/imaging}"
 ENV_DIR="${IRIS_ENV_DIR%/*}/$VERSION"
 WHEELHOUSE="/srv/scratch/katana_ai/iris/wheelhouse/imaging/$VERSION"
 
-REQS="$RECIPE/requirements.lock"
-[ -f "$REQS" ] || REQS="$RECIPE/requirements.in"
+# imaging/1's lock, now microct/1's.
+REQS="$RECIPE/../microct/1/requirements.lock"
 
 if [ -e "$ENV_DIR" ]; then
     echo "$ENV_DIR already exists. Built versions are never modified; build version $((VERSION + 1)) instead."
@@ -59,11 +59,11 @@ python3 -m venv "$ENV_DIR"
 grep -q '^archs .*\bsm_70\b' "$ENV_DIR/build-info.txt" || { echo "FAILED: this PyTorch build has no sm_70, so it cannot run on the V100s."; exit 1; }
 
 # A rebuild from the lock must install exactly the lock.
-if [ "$REQS" = "$RECIPE/requirements.lock" ] && ! diff "$REQS" "$ENV_DIR/requirements.lock"; then
+if ! diff "$REQS" "$ENV_DIR/requirements.lock"; then
     echo "FAILED: the installed packages differ from requirements.lock (diff above)."
     exit 1
 fi
 
-MLFLOW_DISABLE_AGENT_HINT=1 "$ENV_DIR/bin/python" "$RECIPE/check_imports.py" "$ENV_DIR/requirements.lock"
+MLFLOW_DISABLE_AGENT_HINT=1 "$ENV_DIR/bin/python" "$RECIPE/../check_imports.py" "$ENV_DIR/requirements.lock"
 
 echo "Built. Next: smoke.pbs on a V100 and one other GPU type, then seal.sh."
