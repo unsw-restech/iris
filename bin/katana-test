@@ -6,7 +6,7 @@
 # /srv/scratch/$USER, deleted when the run ends, so no clone on Katana is
 # touched and nothing is left behind.
 #
-# The job-library test needs Katana's modules, so it runs as a small PBS
+# The job-library test runs jobs in a container, so it runs as a small PBS
 # job (lib/tests/katana/job_lib.pbs, sized in its header) that qsub -W block
 # waits for, queue time included, keeping the login node light. PBS copies
 # its log into place a little after that, so the run waits up to 2 minutes
@@ -19,7 +19,8 @@
 # so it names any under workflows/, module/ or lib/: `git add` a new test
 # first. The module test needs katana_ai_ro membership. `git archive` keeps
 # module/bin's links, which a desktop clone with core.symlinks off checks
-# out as plain files. Over `ssh katana`.
+# out as plain files. Over `ssh katana`, and `ssh katana-dm` for the
+# stand-in container.
 
 set -o pipefail
 [ $# -eq 0 ] || { echo "usage: bin/katana-test" >&2; exit 2; }
@@ -29,6 +30,12 @@ tree="$(git stash create)" || { echo "katana-test: git stash create failed; fini
 untracked="$(git ls-files --others --exclude-standard workflows module lib)"
 [ -z "$untracked" ] || printf 'Not sent, since git does not track them:\n%s\n' "$untracked"
 echo "Testing ${tree:+uncommitted edits on }$(git log -1 --format='%h %s') on Katana"
+
+# The job-library test runs jobs in a stand-in container in the tester's
+# own container cache; a pull is a download, so it goes through the data
+# mover (lib/tests/katana/stand-in.sh), and only when the file is missing.
+ssh katana-dm 'bash -s -- --pull' < lib/tests/katana/stand-in.sh ||
+    { echo "katana-test: could not put the stand-in container on Katana" >&2; exit 1; }
 
 # ruby/3.2.0: Katana's Ruby module (../available-modules.md).
 # shellcheck disable=SC2016  # expanded on Katana

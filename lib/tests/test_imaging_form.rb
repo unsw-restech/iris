@@ -96,9 +96,24 @@ class ImagingFormTest < Minitest::Test
     assert_fails(/without @apps_dir/)
   end
 
-  def test_a_form_without_env_dir_fails
-    drop("  ENV_DIR=")
-    assert_fails(/no ENV_DIR/)
+  def test_a_form_that_pins_no_environment_version_fails
+    drop("  IRIS_ENV_VERSION=")
+    assert_fails(/no IRIS_ENV_VERSION=<env>\/<n>/)
+  end
+
+  def test_a_form_that_pins_an_environment_folder_rather_than_a_version_fails
+    edit_form { |s| s.sub(/^  IRIS_ENV_VERSION=.*$/, "  IRIS_ENV_VERSION=envs/microct/1.sif") }
+    assert_fails(/no IRIS_ENV_VERSION=<env>\/<n>/)
+  end
+
+  def test_a_form_that_pins_two_environment_versions_fails
+    edit_form { |s| s.sub(/^  IRIS_ENV_VERSION=.*$/) { |l| "#{l}\n#{l.sub(/1$/, "2")}" } }
+    assert_fails(/2 lines IRIS_ENV_VERSION=/)
+  end
+
+  def test_a_form_that_runs_run_py_outside_the_container_fails
+    edit_form { |s| s.sub("  #{ImagingForm::START} ", %(  python "$RUN_DIR/run.py" )) }
+    assert_fails(/no #{Regexp.escape(ImagingForm::START)}/)
   end
 
   def test_a_form_that_does_not_source_the_job_library_fails
@@ -122,8 +137,8 @@ class ImagingFormTest < Minitest::Test
   end
 
   def test_a_form_that_does_not_run_run_py_fails
-    edit_form { |s| s.sub("  #{ImagingForm::PYTHON} ", '  python "$CODE/src/run.py" ') }
-    assert_fails(/no #{Regexp.escape(ImagingForm::PYTHON)}/)
+    edit_form { |s| s.sub("  #{ImagingForm::START} ", '  iris_container python "$CODE/src/run.py" ') }
+    assert_fails(/no #{Regexp.escape(ImagingForm::START)}/)
   end
 
   def test_a_form_that_records_its_code_after_python_runs_fails

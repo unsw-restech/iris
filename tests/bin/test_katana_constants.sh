@@ -1,7 +1,7 @@
 #!/bin/bash
 # bin/check's "Katana constants" check against throwaway trees, each with
 # its own copy of bin/check and lib/katana.sh: the copies that must stay
-# literal (an imaging form's pane ENV_DIR and its Ruby test for the system
+# literal (an imaging form's Ruby test for the system
 # clone, the modulefile's path, the form tests' system apps_dir) agree with
 # lib/katana.sh, and no script under bin/, lib/ or module/ keeps a copy of
 # its own. Prints each failed case and nothing on success, so bin/check can
@@ -54,14 +54,10 @@ case_ pass crlf workflows/seg/form.yml.erb 's/$/\r/'
 case_ pass crlf-modulefile module/modulefiles/iris 's/$/\r/'
 
 # Each literal copy that drifts from lib/katana.sh fails.
-case_ fail form-env workflows/seg/form.yml.erb 's|imaging/1$|imaging/2|'
 case_ fail form-clone workflows/seg/form.yml.erb 's|iris/code/workflows|iris/code2/workflows|'
 case_ fail modulefile module/modulefiles/iris 's|iris/code/module|iris/code2/module|'
 case_ fail form-test workflows/seg/tests/test_form.rb 's|iris/code/workflows|iris/code2/workflows|'
-# Bumping the environment in lib/katana.sh alone leaves the form behind.
-case_ fail env-bump lib/katana.sh 's|^IRIS_ENV_DIR=.*|IRIS_ENV_DIR=/srv/scratch/katana_ai/iris/envs/imaging/2|'
 # A copy that is missing can't be compared, so it fails too.
-case_ fail form-no-env workflows/seg/form.yml.erb '/ENV_DIR=/d'
 case_ fail modulefile-no-path module/modulefiles/iris '/prepend-path/d'
 
 # A script that keeps its own copy of a constant fails, wherever it sits.

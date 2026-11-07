@@ -10,14 +10,17 @@
 #   - #!/bin/bash, then the PBS header with the usage tag, #PBS -A iris-<slug>
 #   - CODE, the form's own folder; COMMIT, its clone's commit at render
 #     time; the guard that stops the job when CODE is empty, as it is when
-#     OpenComposer re-reads the form without @apps_dir; ENV_DIR
+#     OpenComposer re-reads the form without @apps_dir; the one
+#     IRIS_ENV_VERSION=<env>/<n> line pinning its environment version,
+#     which bin/check's "environment versions" check finds in the digest map
 #   - sourcing the job library
 #   - the banner
 #   - the quoted heredoc writing run.py, holding the entry script byte for
 #     byte up to its end marker (ADR-0006)
 #   - on the next line, the call that records the run's code, naming the
 #     entry script, so a run.py Python cannot start still leaves its diff
-#   - the python call on the run directory's run.py
+#   - the container start line: the job library's iris_container running
+#     python on the run directory's run.py in the pinned container
 # No other line holds a heredoc: script: builds files with printf. The
 # entry script holds neither #{ (OpenComposer would substitute a field,
 # or drop the line when the field is empty) nor <% (ERB).
@@ -34,7 +37,8 @@ module ImagingForm
   END_MARKER = "IRIS_RUN_PY_END"
   OPENER = %(cat > "$RUN_DIR/run.py" <<'#{END_MARKER}')
   RECORD = "iris_record_code"
-  PYTHON = %(python "$RUN_DIR/run.py")
+  START = %(iris_container python "$RUN_DIR/run.py")
+  ENV_VERSION = /\AIRIS_ENV_VERSION=[a-z0-9-]+\/[1-9][0-9]*\n\z/
 
   # The problems with the imaging form at `form_path`, as
   # "<form_path>: <problem>" lines; empty if it has none.
@@ -108,7 +112,7 @@ module ImagingForm
         [%(CODE="#{@code}"), line.(%(CODE="#{@code}"))],
         [%(COMMIT="#{commit}", the clone's commit at render time), line.(%(COMMIT="#{commit}"))],
         ["the CODE guard: #{CODE_GUARD}", line.(CODE_GUARD)],
-        ["ENV_DIR=<environment>", ->(i) { @lines[i].match?(/\AENV_DIR=\S+\n\z/) ? i + 1 : nil }],
+        ["IRIS_ENV_VERSION=<env>/<n>, the environment version it pins", ->(i) { @lines[i].match?(ENV_VERSION) ? i + 1 : nil }],
         [SOURCE, line.(SOURCE)],
         ["the banner: #{BANNER}", line.(BANNER)],
         ["#{OPENER}, holding #{@entry} byte for byte, then #{END_MARKER}", lambda { |i|
@@ -117,7 +121,7 @@ module ImagingForm
           @lines[(i + 1)..].join.start_with?(body) ? i + 1 + body.lines.size : nil
         }],
         ["#{RECORD} #{@entry}, on the line after the heredoc", line.("#{RECORD} #{@entry}")],
-        [PYTHON, ->(i) { @lines[i].match?(/\A#{Regexp.escape(PYTHON)}( |\n)/) ? i + 1 : nil }],
+        [START, ->(i) { @lines[i].match?(/\A#{Regexp.escape(START)}( |\n)/) ? i + 1 : nil }],
       ]
     end
 
@@ -135,6 +139,8 @@ module ImagingForm
     def ordered_parts
       openers = @lines.count(OPENER + "\n")
       @problems << "#{openers} lines #{OPENER}; the entry script's heredoc opens once" if openers > 1
+      pins = @lines.count { |l| l.start_with?("IRIS_ENV_VERSION=") }
+      @problems << "#{pins} lines IRIS_ENV_VERSION=; a form pins one environment version" if pins > 1
       at = 0
       after_heredoc = false
       parts.each do |desc, found|
