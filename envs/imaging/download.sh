@@ -5,11 +5,10 @@
 #   ssh katana-dm
 #   cd <clone>/envs/imaging && ./download.sh <version>
 #
-# Uses requirements.lock if it exists, so a rebuild gets exactly the built
-# versions. The first build of a version has no lock yet and resolves
-# requirements.in; build.pbs then freezes the result into the lock. It
-# downloads for the clone's lib/katana.sh's Python module; for another, run
-# it as PYTHON_MODULE=<module> ./download.sh <version>.
+# Uses imaging/1's lock, which is now microct/1's (../microct/1/), so a
+# rebuild gets exactly the built versions. It downloads for the clone's
+# lib/katana.sh's Python module; for another, run it as
+# PYTHON_MODULE=<module> ./download.sh <version>.
 
 set -euo pipefail
 
@@ -23,8 +22,7 @@ if [ "$(hostname -s)" != "kdm" ]; then
     exit 1
 fi
 
-REQS="$RECIPE/requirements.lock"
-[ -f "$REQS" ] || REQS="$RECIPE/requirements.in"
+REQS="$RECIPE/../microct/1/requirements.lock"
 
 set +u
 . /etc/profile.d/modules.sh

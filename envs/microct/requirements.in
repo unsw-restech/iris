@@ -1,0 +1,17 @@
+# The microct environment's own top-level packages, beyond ../core.in.
+# microct/1 is imaging/1's lock unchanged, built on Katana's python/3.13.2
+# module and now installed in a container: 1/requirements.lock pins these
+# and the core list. A later version adds lines here and to a new lock.
+
+# One exact cu128 build that still lists sm_70 (V100). 2.10.0 is the newest
+# cu128 release; 2.9.1's cu128 wheel has no sm_70. Needs driver >= 570.
+torch==2.10.0+cu128
+
+# netCDF-classic volume blocks
+netCDF4
+
+# Deflate for the label volume's BigTIFF
+imagecodecs
+
+# iris-view
+napari[pyqt5]
