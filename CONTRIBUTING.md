@@ -43,7 +43,7 @@ iris/
 │   ├── pageswait                     # Wait for the live site to serve a change (desktop)
 │   ├── issue-tick                    # Tick checkboxes in an issue's body (desktop)
 │   ├── iris-import                   # Import new runs into your MLflow tracking store
-│   ├── iris-python                   # Runs an iris.* module in the imaging environment; the iris-* tools are shims over it
+│   ├── iris-python                   # Runs an iris.* module in the researcher tools' container (`IRIS_TOOLS_ENV_VERSION`); the iris-* tools are shims over it
 │   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)
 │   ├── iris-rebuild                  # Rebuild a lost tracking store from run directories
 │   ├── iris-view                     # View a run's labels over its volume in napari (in a Virtual Desktop)

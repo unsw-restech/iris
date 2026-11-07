@@ -1,13 +1,17 @@
 #!/bin/bash
 # bin/iris-python iris.<module> [<arg>...]: run one of lib/'s iris.* Python
-# modules in the imaging environment, the dispatcher behind the bin/iris-*
-# tools, which are shims over it. It loads Katana's Python module when
-# Environment Modules exist, puts this clone's lib/ first on PYTHONPATH and
-# runs the module unbuffered (-u), so its lines keep their order when
-# logged or piped, with the arguments given. ENV_DIR names another
-# environment than the one lib/katana.sh pins. It isn't in module/bin, so
-# `module load iris` never puts it on the PATH (ADR-0003).
-# Keep it free of `set -u`: the module scripts reference unset variables.
+# modules in the researcher tools' container, the dispatcher behind the
+# bin/iris-* tools, which are shims over it. The container is version
+# IRIS_TOOLS_ENV_VERSION's file in IRIS_ENVS_FOLDER (lib/katana.sh,
+# envs/README.md), whichever lab a run is from; IRIS_TOOLS_CONTAINER names
+# another container file. It runs the module unbuffered (-u), so its lines
+# keep their order when logged or piped, with the arguments given, under
+# `apptainer exec --cleanenv`, passing only what the tools need: this
+# clone's lib/ on the Python path, USER, and IRIS_HOME, the display
+# (DISPLAY, XAUTHORITY, for iris-view's napari) and IRIS_URL_FILE (for
+# bin/iris-compare) when set. Katana binds /srv, home and /tmp. A missing
+# container stops it with one line. It isn't in module/bin, so `module load
+# iris` never puts it on the PATH (ADR-0003).
 
 set -eo pipefail
 [[ "$1" == iris.* ]] || { echo "usage: bin/iris-python iris.<module> [<arg>...]" >&2; exit 2; }
@@ -15,10 +19,14 @@ name="$1"
 shift
 LIB="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib" && pwd)"
 . "$LIB/katana.sh"
-ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
-
-if [ -f /etc/profile.d/modules.sh ]; then
-    . /etc/profile.d/modules.sh
-    module load "$IRIS_PYTHON_MODULE"
+container="${IRIS_TOOLS_CONTAINER:-$IRIS_ENVS_FOLDER/$IRIS_TOOLS_ENV_VERSION.sif}"
+if [ ! -f "$container" ]; then
+    echo "ERROR: the IRIS tools' container ($IRIS_TOOLS_ENV_VERSION) is missing at $container. See https://docs.restech.unsw.edu.au/iris/guide/#help." >&2
+    exit 1
 fi
-PYTHONPATH="$LIB${PYTHONPATH:+:$PYTHONPATH}" exec "$ENV_DIR/bin/python" -u -m "$name" "$@"
+
+pass=(--env "PYTHONPATH=$LIB" --env "USER=$USER")
+for var in IRIS_HOME DISPLAY XAUTHORITY IRIS_URL_FILE; do
+    [ -z "${!var}" ] || pass+=(--env "$var=${!var}")
+done
+exec apptainer exec --cleanenv "${pass[@]}" "$container" python -u -m "$name" "$@"
