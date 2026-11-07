@@ -1,0 +1,57 @@
+#!/bin/bash
+# Make Katana's IRIS environments folder hold the containers live forms pin,
+# through the data mover (envs/README.md, "Containers on Katana").
+#
+#   bin/envpull                      pull each pinned version missing from
+#                                    the folder, and list container files
+#                                    nothing pins
+#   bin/envpull --pull <env>/<n>     pull one version by digest, pinned or not
+#   bin/envpull --remove <env>/<n>   remove a version's container file and
+#                                    its digest file, if nothing pins it
+#
+# A version is pinned by a form in this checkout's workflows/ or the system
+# clone's, with an "  IRIS_ENV_VERSION=<env>/<n>" line, and by the
+# researcher tools (IRIS_TOOLS_ENV_VERSION). Digests come from this
+# checkout's lib/katana.sh, so run it from main once a digest is pinned,
+# before bin/syspull deploys a form that pins it. An unpublished version is
+# skipped. A pull is by digest alone, into IRIS_ENVS_FOLDER/<env>/<n>.sif
+# with the digest in <env>/<n>.digest beside it, and never replaces a file
+# already there. --remove deletes: get Patrick's go-ahead naming the file
+# first, as the listing says; --pull brings a version back by digest.
+# Pulls log in with the read-only token in ~/.config/iris/ghcr-token on
+# Katana if it is there. Over `ssh katana-dm`; bin/envpull-dm.sh is the
+# side that runs there.
+
+here="$(dirname "$(readlink -f "$0")")"
+# shellcheck source=lib/katana.sh
+. "$here/../lib/katana.sh" || exit 2
+usage() { echo "usage: bin/envpull [--pull <env>/<n> | --remove <env>/<n>]" >&2; exit 2; }
+version='^[a-z0-9-]+/[1-9][0-9]*$'
+
+case "$#:${1-}" in
+    0:) mode=list target=- ;;
+    2:--pull) mode=pull target="$2" ;;
+    2:--remove) mode=remove target="$2" ;;
+    *) usage ;;
+esac
+[ "$target" = - ] || [[ "$target" =~ $version ]] || usage
+
+# The digest map and this checkout's pins, as words the remote shell keeps
+# whole: bin/check holds both to these forms.
+args=()
+for v in "${!IRIS_ENV_DIGESTS[@]}"; do
+    [[ "$v" =~ $version ]] && [[ "${IRIS_ENV_DIGESTS[$v]}" =~ ^(sha256:[0-9a-f]{64}|unpublished)$ ]] ||
+        { echo "envpull: lib/katana.sh's digest map has [$v]=${IRIS_ENV_DIGESTS[$v]}; run bin/check" >&2; exit 2; }
+    args+=("map:$v=${IRIS_ENV_DIGESTS[$v]}")
+done
+for f in "$here"/../workflows/*/form.yml.erb; do
+    [ -f "$f" ] || continue
+    slug="$(basename "$(dirname "$f")")"
+    while IFS= read -r v; do
+        [[ "$v" =~ $version ]] || { echo "envpull: workflows/$slug pins '$v'; run bin/check" >&2; exit 2; }
+        args+=("pin:$v=$slug")
+    done < <(tr -d '\r' < "$f" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p')
+done
+
+ssh katana-dm bash -s -- "$mode" "$target" "$IRIS_ENVS_FOLDER" "$IRIS_SYSTEM_CLONE" "$IRIS_ENV_REGISTRY" \
+    "$IRIS_TOOLS_ENV_VERSION" "${args[@]}" < "$here/envpull-dm.sh"

@@ -1,6 +1,6 @@
 # Katana's constants, in one place: every script that can source bash
 # takes them from here, the job library, the bin/iris-* tools, the Katana
-# test jobs, bin/qwait and bin/syspull among them. Sourcing it only sets
+# test jobs, bin/qwait, bin/syspull and bin/envpull among them. Sourcing it only sets
 # them, so it is safe on the desktop too.
 #
 # Copies that must stay literal, the imaging forms' pane ENV_DIR
@@ -24,6 +24,15 @@ IRIS_PYTHON_MODULE=python/3.13.2
 # envs/<env>/<n>/, and its container is published to IRIS_ENV_REGISTRY
 # tagged <env>-<n> (microct-1).
 IRIS_ENV_REGISTRY=ghcr.io/unsw-restech/iris-env
+# The IRIS environments folder in katana_ai scratch: version <env>/<n>'s
+# container file is <folder>/<env>/<n>.sif, with the digest it was pulled
+# by in <folder>/<env>/<n>.digest beside it. bin/envpull fills it, through
+# the data mover, with the versions live forms pin and the researcher
+# tools' version.
+IRIS_ENVS_FOLDER=/srv/scratch/katana_ai/iris/envs
+# The version the researcher tools (iris-view, iris-compare, the importer,
+# rebuild) run in, whichever lab a run is from.
+IRIS_TOOLS_ENV_VERSION=microct/1
 
 # The digest map: every environment version and its container's digest in
 # IRIS_ENV_REGISTRY, one "    [<env>/<n>]=<digest>" line each, so a script

@@ -22,6 +22,7 @@ Workflows run in environments packaged as containers ([ADR-0008](../docs/adr/000
 Both are in `lib/katana.sh`, the one place every script takes Katana's constants from. A script that can source bash reads the arrays. Any other reads them with a regex, one entry per line, in the formats below.
 
 - **Digest map** `IRIS_ENV_DIGESTS`: every environment version, `<env>/<n>`, and its container's digest in `IRIS_ENV_REGISTRY` (`ghcr.io/unsw-restech/iris-env`), one `    [<env>/<n>]=<digest>` line each. `<digest>` is `sha256:<64 hex>`, or `unpublished` until CI first publishes the version. `iris_env_ref <env>/<n>` prints `ghcr.io/unsw-restech/iris-env@sha256:<hex>`, the container by digest alone, or fails with one line for a version that is unpublished or not in the map.
+- **Researcher tools' version** `IRIS_TOOLS_ENV_VERSION`: the version `iris-view`, `iris-compare`, the importer and rebuild run in, `microct/1`. `bin/check` fails it if it isn't in the digest map.
 - **Lab table** `IRIS_LAB_ENVS`: each lab, by its section id in `index.html`, and the version its new workflows start on, one `    [<lab>]=<env>/<n>` line each. Adding a lab is one line, and a lab with no packages of its own points at another lab's environment.
 
 A form pins its version with an `  IRIS_ENV_VERSION=<env>/<n>` line in its script. `bin/check`'s "environment versions match the digest map" check fails:
@@ -39,7 +40,26 @@ A form pins its version with an `  IRIS_ENV_VERSION=<env>/<n>` line in its scrip
 3. **Publish**: on `main` only, a container that passes is pushed to `ghcr.io/unsw-restech/iris-env`, tagged `<env>-<n>` (`microct-1`). GHCR starts the package as private, which needs no org owner; making it public is its own step, done once by an org owner. Until then, pulling it needs a read-only token.
 4. **Pin the digest**: the run's summary prints the line to put in `lib/katana.sh`, `    [<env>/<n>]=sha256:<hex>`, in place of `[<env>/<n>]=unpublished`. Commit it, with the version's Status above, as its own commit. From then on CI never builds that version again, and its lock never changes. Until the digest is pinned, each push that triggers the workflow on `main` rebuilds the version and moves its tag, so pin it after the first green run.
 
+5. **Put it on Katana**: once the digest is on `main`, run `bin/envpull` from the desktop (below), before `bin/syspull` deploys a form that pins the version.
+
 The digest on GHCR is the version. Its tag is only a label, and rebuilding the same recipe gives a different digest. **A version that a citable version's commit pins is never deleted from the registry** ([ADR-0002](../docs/adr/0002-citable-versions-are-frozen-from-main.md)).
+
+## Containers on Katana
+
+Jobs never touch the registry: they run the container files in the IRIS environments folder, `IRIS_ENVS_FOLDER` in `lib/katana.sh` (`/srv/scratch/katana_ai/iris/envs`). Version `<env>/<n>`'s file is `<folder>/<env>/<n>.sif`, and `<folder>/<env>/<n>.digest` beside it holds the digest it was pulled by, so `microct/1` is `microct/1.sif` and `microct/1.digest`. Katana keeps a file for each version a live form pins, plus `IRIS_TOOLS_ENV_VERSION`, the one the researcher tools (`iris-view`, `iris-compare`, the importer, rebuild) run in, whichever lab a run is from.
+
+`bin/envpull`, run from the desktop, makes the folder hold exactly those, over `ssh katana-dm`:
+
+```
+bin/envpull                      pull each pinned version missing from the folder, and list files nothing pins
+bin/envpull --pull <env>/<n>     pull one version by digest, pinned or not
+bin/envpull --remove <env>/<n>   remove a version's file and its digest file, if nothing pins it
+```
+
+- A version is pinned by a form in the checkout it runs from, by one in the system clone, or by `IRIS_TOOLS_ENV_VERSION`. Digests come from the checkout's digest map, so run it from `main`.
+- An unpublished version is skipped. A pull is `apptainer pull docker://ghcr.io/unsw-restech/iris-env@sha256:<hex>`, by digest alone, and never replaces a file already there: one whose digest file disagrees with the map is reported, and replacing it needs Patrick's go-ahead naming that file.
+- **Removing needs Patrick's go-ahead naming the file.** The listing prints each unpinned file and its `--remove` line, and `--remove` refuses a version anything pins. It is not a one-way door: `--pull` brings any published version back by digest.
+- **Until the package is public, pulls need a read-only token** on Katana, in `~/.config/iris/ghcr-token`, mode 600: one line, `<GitHub login>:<token>`, from a classic token with `read:packages` alone. `bin/envpull-dm.sh` passes it to Apptainer as `APPTAINER_DOCKER_USERNAME` and `APPTAINER_DOCKER_PASSWORD`, never on a command line, and refuses a file others can read. Without the file, it pulls without a login, which works once the package is public; the token can then go.
 
 ## Building on the desktop
 

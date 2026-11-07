@@ -124,6 +124,10 @@ expect pass "$scratch/pinned" "$name"
 make_tree pinned-missing
 pin pinned-missing microct/2
 expect fail "$scratch/pinned-missing" "$name"
+# The researcher tools run in a version in the digest map too.
+make_tree tools-missing
+edit tools-missing lib/katana.sh 's|^IRIS_TOOLS_ENV_VERSION=.*|IRIS_TOOLS_ENV_VERSION=microct/2|'
+expect fail "$scratch/tools-missing" "$name"
 
 # A later version only adds packages to the one before it.
 make_tree adds
