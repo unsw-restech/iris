@@ -1,0 +1,99 @@
+# Environment containers (ADR-0008, envs/README.md). Every version that
+# lib/katana.sh's digest map lists as unpublished is built from its recipe
+# in envs/, checked by envs/check-container.sh, and, on main only,
+# published to ghcr.io/unsw-restech/iris-env tagged <env>-<n>. GHCR starts
+# a new package as private, which needs no org owner. The run's summary
+# prints the digest line to put in lib/katana.sh in place of unpublished;
+# once it is there, no later run builds that version again. On any other
+# branch the same build and checks run, and nothing is published. Nothing
+# builds on Katana.
+name: containers
+on:
+  push:
+    paths:
+      - envs/**
+      - lib/katana.sh
+      - .github/workflows/containers.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: containers-${{ github.ref }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      versions: ${{ steps.plan.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: plan
+        name: Unpublished versions
+        shell: bash
+        run: |
+          . lib/katana.sh
+          versions=$(for v in "${!IRIS_ENV_DIGESTS[@]}"; do
+              [ "${IRIS_ENV_DIGESTS[$v]}" != unpublished ] || echo "$v"
+          done | sort | jq -Rnc '[inputs]')
+          echo "Unpublished: $versions"
+          echo "versions=$versions" >> "$GITHUB_OUTPUT"
+
+  container:
+    needs: plan
+    if: needs.plan.outputs.versions != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 1  # a later version builds on the one before it
+      matrix:
+        version: ${{ fromJSON(needs.plan.outputs.versions) }}
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ matrix.version }}
+      LOCAL: iris-env-build:local
+    steps:
+      - uses: actions/checkout@v7
+      # The container is about 9 GB unpacked; the runner starts with less free.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+      # A later version pulls the one before it, which may be private.
+      - name: Log in to GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build
+        run: envs/build-container.sh "$VERSION" "$LOCAL"
+      - name: Size
+        run: docker images "$LOCAL"
+      - name: Install Xvfb
+        run: sudo apt-get update -q && sudo apt-get install -yq xvfb
+      - name: Check against the recipe
+        run: |
+          Xvfb :99 -ac -screen 0 1280x1024x24 > /dev/null 2>&1 &
+          sleep 2
+          DISPLAY=:99 envs/check-container.sh "$LOCAL" "$VERSION"
+      - name: Publish
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          . lib/katana.sh
+          ref="$IRIS_ENV_REGISTRY:${VERSION/\//-}"
+          docker tag "$LOCAL" "$ref"
+          docker push "$ref"
+          digest=$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$ref" |
+              sed -n "s|^$IRIS_ENV_REGISTRY@||p" | head -n1)
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "No digest for $ref after the push."; exit 1; }
+          echo "Published $ref as $IRIS_ENV_REGISTRY@$digest"
+          {
+              echo "Published \`$ref\` as \`$IRIS_ENV_REGISTRY@$digest\`."
+              echo
+              echo "In lib/katana.sh's digest map, replace \`[$VERSION]=unpublished\` with:"
+              echo
+              echo '```'
+              echo "    [$VERSION]=$digest"
+              echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

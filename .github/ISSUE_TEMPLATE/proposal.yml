@@ -51,7 +51,7 @@ body:
     id: packages
     attributes:
       label: Packages beyond the shared imaging environment
-      description: Packages and versions the workflow needs that `envs/imaging/requirements.in` doesn't have. Write "None" if it needs nothing new.
+      description: Packages and versions the workflow needs that its lab's environment doesn't have (`envs/core.in` and `envs/<env>/requirements.in`). Write "None" if it needs nothing new.
     validations:
       required: true
   - type: textarea

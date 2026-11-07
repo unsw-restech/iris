@@ -12,18 +12,18 @@ The arch list for version 1 was read from the `torch-2.10.0+cu128` cp313 wheel i
 
 ## Files
 
-- `requirements.in`: the top-level packages we ask for.
-- `requirements.lock`: the `pip freeze` of the version actually built, copied from the environment after `build.pbs`. A rebuild installs exactly this. It doesn't exist until version 1 is built.
+Version 1's lock is now `microct/1`'s, so the container holds exactly what the venv does ([`../README.md`](../README.md)). Its top-level packages are split between `../core.in` and `../microct/requirements.in`, and `check_imports.py` is in `../`, which the container checks use too.
+
+- `../microct/1/requirements.lock`: the `pip freeze` of version 1, copied from the environment after `build.pbs`. A rebuild installs exactly this.
 - `build-info.txt`: the Python, PyTorch, CUDA and compiled GPU archs of the built version, copied alongside the lock.
 - `download.sh`, `build.pbs`, `smoke.pbs`, `test.pbs`, `seal.sh`: the five build steps, in order.
-- `check_imports.py`: imports every package listed in a requirements file. Used by `build.pbs` and `desktop.sh`.
 - `desktop.sh`: the desktop CPU venv for the synthetic-dataset test.
 
 ## Building version *n* on Katana
 
 All five steps run from `envs/imaging/` in a clone on Katana. Each takes the environments' folder and the Python module from the clone's `lib/katana.sh`. To build a version on another Python module, before `lib/katana.sh` switches to it, give that module to every step: `PYTHON_MODULE=<module> ./download.sh <n>`, and `PYTHON_MODULE=<module>` added to each `qsub -v`.
 
-1. **Download** on the data mover, never a login node: `ssh katana-dm`, then `./download.sh <n>`. This puts every wheel into `/srv/scratch/katana_ai/iris/wheelhouse/imaging/<n>/`. It reads `requirements.lock` if present, otherwise `requirements.in`.
+1. **Download** on the data mover, never a login node: `ssh katana-dm`, then `./download.sh <n>`. This puts every wheel into `/srv/scratch/katana_ai/iris/wheelhouse/imaging/<n>/`. It reads `../microct/1/requirements.lock`.
 2. **Build** in a short CPU job (2 CPUs, 8 GB, 1 h): `qsub -v VERSION=<n> build.pbs`. This creates the venv at its final path with `pip install --no-index`, then writes `requirements.lock` and `build-info.txt` into it and imports every package in the lock. It fails if PyTorch has no `sm_70`, or if a rebuild from the lock installs anything different. It refuses to touch an environment that already exists, so after a failed build the half-built folder has to be deleted before retrying. That deletion is Patrick's call, by name.
 3. **Smoke test** in two 5-minute GPU jobs (2 CPUs, 8 GB, 1 GPU each), a V100 and one other type:
    ```
@@ -34,7 +34,7 @@ All five steps run from `envs/imaging/` in a clone on Katana. Each takes the env
 4. **Test** in a short CPU job (2 CPUs, 8 GB, 20 min): `qsub -v VERSION=<n> test.pbs`. This runs the shared library's tests (`lib/tests`), then each workflow's (`workflows/*/tests`), against the environment, including the `lib/iris-job.sh` tests that need Katana's module system and so are skipped on the desktop.
 5. **Seal** on the data mover: `./seal.sh <n>`. This makes the environment readable by everyone and writable by no one.
 
-Then copy `requirements.lock` and `build-info.txt` from `/srv/scratch/katana_ai/iris/envs/imaging/<n>/` into this folder, update the table above, and commit all three. The lock pins the packages; `build-info.txt` records the PyTorch version, CUDA version and arch list. The first build of a version resolves `requirements.in` and freezes the result into the lock. A rebuild installs from the lock and `build.pbs` checks that nothing changed.
+Version 1's `requirements.lock` and `build-info.txt` were copied from `/srv/scratch/katana_ai/iris/envs/imaging/1/` into the repo. The lock pins the packages; `build-info.txt` records the PyTorch version, CUDA version and arch list. A rebuild installs from the lock and `build.pbs` checks that nothing changed. New versions are containers ([`../README.md`](../README.md)), not venvs.
 
 A version stays as long as any workflow on `main` pins it, plus a grace period for queued jobs. Deleting one is Patrick's call. Scratch has no backup, so this recipe is what makes any version rebuildable.
 
@@ -44,10 +44,10 @@ The synthetic-dataset test runs on Patrick's desktop in WSL, against the same pa
 
 ```
 uv python install 3.13.2      # once
-envs/imaging/desktop.sh       # builds ~/.venvs/iris-imaging from requirements.lock
+envs/imaging/desktop.sh       # builds ~/.venvs/iris-imaging from microct/1's lock
 ```
 
-`desktop.sh` changes the lock's `torch==…+cu128` line to `+cpu` and drops the CUDA-only `nvidia-*`, `cuda-*` and `triton` packages. It ends by importing every remaining package. Until the lock exists, `envs/imaging/desktop.sh envs/imaging/requirements.in <dir>` builds a trial venv from the top-level list instead.
+`desktop.sh` changes the lock's `torch==…+cu128` line to `+cpu` and drops the CUDA-only `nvidia-*`, `cuda-*` and `triton` packages. It ends by importing every remaining package.
 
 ## Model weights (convention only)
 

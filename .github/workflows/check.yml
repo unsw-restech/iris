@@ -18,6 +18,6 @@ jobs:
           path: ~/.venvs/iris-imaging
           # The venv links to the interpreter by path, so the key names where
           # setup-uv puts it; a cached venv from another location is dangling.
-          key: venv-${{ runner.os }}-${{ hashFiles('envs/imaging/requirements.lock', 'envs/imaging/desktop.sh') }}-${{ env.UV_PYTHON_INSTALL_DIR }}
+          key: venv-${{ runner.os }}-${{ hashFiles('envs/microct/1/requirements.lock','envs/imaging/desktop.sh') }}-${{ env.UV_PYTHON_INSTALL_DIR }}
       - run: ~/.venvs/iris-imaging/bin/python -c '' 2>/dev/null || envs/imaging/desktop.sh
       - run: bin/check

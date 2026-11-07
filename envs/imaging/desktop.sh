@@ -2,7 +2,7 @@
 # Build the desktop CPU venv for the synthetic-dataset test.
 #
 # Usage: envs/imaging/desktop.sh [requirements file] [venv dir]
-#   defaults: requirements.lock, ~/.venvs/iris-imaging
+#   defaults: ../microct/1/requirements.lock (imaging/1's), ~/.venvs/iris-imaging
 #
 # Same packages as the Katana environment, from the same lock, with CPU
 # PyTorch swapped in: the torch line becomes +cpu and the CUDA-only
@@ -12,11 +12,11 @@
 set -euo pipefail
 
 RECIPE="$(cd "$(dirname "$0")" && pwd)"
-REQS="${1:-$RECIPE/requirements.lock}"
+REQS="${1:-$RECIPE/../microct/1/requirements.lock}"
 VENV="${2:-$HOME/.venvs/iris-imaging}"
 PYTHON="${PYTHON:-$(uv python find 3.13.2)}"
 
-[ -f "$REQS" ] || { echo "No $REQS. Build the Katana environment first, or pass requirements.in."; exit 1; }
+[ -f "$REQS" ] || { echo "No $REQS."; exit 1; }
 
 CPU_REQS="$(mktemp)"
 trap 'rm -f "$CPU_REQS"' EXIT
@@ -32,4 +32,4 @@ echo "Venv   : $VENV"
     --extra-index-url https://download.pytorch.org/whl/cpu \
     -r "$CPU_REQS"
 
-"$VENV/bin/python" "$RECIPE/check_imports.py" "$CPU_REQS"
+"$VENV/bin/python" "$RECIPE/../check_imports.py" "$CPU_REQS"

@@ -1,0 +1,15 @@
+# The shared core list: the top-level packages lib/iris needs, which every
+# environment holds (ADR-0007). A lab's own packages are in
+# envs/<env>/requirements.in; a version's lock pins both. README.md in this
+# folder covers versions and how CI builds them.
+
+# Reading volume blocks as one lazy array
+numpy
+xarray
+dask[array]
+
+# Label volume: slice-compressed uint8 BigTIFF
+tifffile
+
+# Experiment tracking
+mlflow>=3,<4

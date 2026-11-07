@@ -30,6 +30,7 @@ iris/
 ├── guide/index.html                  # "Using IRIS on Katana": staging and viewing, shared by imaging workflows
 ├── _archive/<slug>/                  # Retired OpenComposer forms, never served by OpenComposer
 ├── .github/workflows/check.yml       # CI: runs bin/check on every push
+├── .github/workflows/containers.yml  # CI: builds and checks each unpublished environment version; publishes it from main
 ├── .github/ISSUE_TEMPLATE/proposal.yml  # Issue form for a workflow author's proposal
 ├── .github/pull_request_template.md  # The checklist a workflow PR is ready for review on
 ├── .githooks/commit-msg              # Refuses AI attribution or git's conflict list in a commit message; AGENTS.md turns it on
@@ -49,10 +50,11 @@ iris/
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 │   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
 │   └── workflowhub-microct-2d-segmentation  # Walkthrough registering it on WorkflowHub; copy it for another workflow (desktop)
-├── envs/imaging/                     # Recipe for the shared imaging environment on Katana (see its README)
+├── envs/                             # Environment containers: the core list, each environment's packages and versions, CI's build and checks (see its README)
+│   └── imaging/                      # The imaging/1 venv's build steps on Katana, until containers replace it (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
-│   ├── katana.sh                     # Katana's constants: the system clone, the imaging environment, the Python module
+│   ├── katana.sh                     # Katana's constants: the system clone, the imaging environment, the Python module, the environments' digest map and lab table
 │   ├── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
 │   └── tests/                        # The library's tests, run once (bin/check); the form helper and the rendered-form checks every imaging form gets; its Katana jobs in katana/ (bin/katana-test submits job_lib.pbs)
 ├── module/                           # `module load iris` (ADR-0003)
@@ -111,7 +113,7 @@ If the workflow ships a `local/run_local.ps1`, **keep it ASCII-only**. These fil
 
 ### Requesting packages
 
-Only the maintainer builds environments. If your workflow needs packages the shared imaging environment lacks, add them to `envs/imaging/requirements.in` in your PR and list them in its description. The maintainer builds version *n+1* from it (`envs/imaging/README.md`), commits its lock, and moves `lib/katana.sh` and every imaging form's `ENV_DIR` to *n+1* before merge (`bin/check` lists any copy left behind). Until then, test against a venv of your own built from that `requirements.in`, and say so in the PR.
+Only the maintainer builds environments. If your workflow needs packages its lab's environment lacks, add them to that environment's `envs/<env>/requirements.in` in your PR and list them in its description. The maintainer builds version *n+1* from it (`envs/README.md`), commits its lock, and moves `lib/katana.sh` and every imaging form's `ENV_DIR` to *n+1* before merge (`bin/check` lists any copy left behind). Until then, test against a venv of your own built from that `requirements.in`, and say so in the PR.
 
 ## The workflow owner
 

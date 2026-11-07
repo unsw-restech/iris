@@ -230,6 +230,66 @@ katana_constants() {
 }
 check "Katana constants match lib/katana.sh" katana_constants
 
+# lib/katana.sh's digest map and lab table (envs/README.md). Each version
+# is <env>/<n>, counting up from 1, with its lock in envs/<env>/<n>/, and
+# every lock there is in the map; each digest is sha256:<64 hex>, or
+# "unpublished" until CI first publishes it. Each lab in the table is a lab
+# section of index.html, starting on a version in the map. Every form's
+# IRIS_ENV_VERSION is in the map, published or not: a job stops with one
+# line when its container file is missing. A later version only adds
+# packages: its lock keeps every line of the one before it.
+# tests/bin/test_env_versions.sh runs it on fixture trees.
+env_versions() {
+    local v n prev lab f labs vs
+    # shellcheck source=lib/katana.sh
+    . <(tr -d '\r' < lib/katana.sh) || return
+    in_map() { [ -n "$1" ] && [ -n "${IRIS_ENV_DIGESTS[$1]+x}" ]; }
+    mapfile -t vs < <(printf '%s\n' "${!IRIS_ENV_DIGESTS[@]}" | sort)
+    for v in "${vs[@]}"; do
+        [ -n "$v" ] || continue
+        if ! [[ "$v" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]]; then
+            echo "lib/katana.sh: $v is not <env>/<n>, with <n> counting from 1"
+            continue
+        fi
+        [[ "${IRIS_ENV_DIGESTS[$v]}" =~ ^(sha256:[0-9a-f]{64}|unpublished)$ ]] ||
+            echo "lib/katana.sh: $v's digest is ${IRIS_ENV_DIGESTS[$v]}; give sha256:<64 hex> alone, or unpublished until CI publishes it"
+        f="envs/$v/requirements.lock"
+        [ -f "$f" ] || { echo "$f: missing, but lib/katana.sh's digest map has $v"; continue; }
+        n="${v##*/}"
+        [ "$n" -gt 1 ] || continue
+        prev="${v%/*}/$((n - 1))"
+        in_map "$prev" || { echo "lib/katana.sh: $v has no $prev before it; versions count up from 1"; continue; }
+        [ -f "envs/$prev/requirements.lock" ] || continue
+        tr -d '\r' < "envs/$prev/requirements.lock" | awk -v f="$f" -v prev="$prev" '
+            function key(s) { s = tolower(s); sub(/[ =<>!~;@\[].*/, "", s); gsub(/[-_.]+/, "-", s); return s }
+            { sub(/#.*/, ""); gsub(/^[ \t]+|[ \t]+$/, "") }
+            $0 == "" { next }
+            FNR == NR { now[$0] = 1; by[key($0)] = $0; next }
+            !($0 in now) {
+                if (key($0) in by) print f ": changes " $0 " to " by[key($0)] ", which " prev " pins; a version only adds packages, so keep " $0
+                else print f ": removes " $0 ", which " prev " pins; a version only adds packages, so keep it"
+            }' <(tr -d '\r' < "$f") - | sort
+    done
+    for f in envs/*/*/requirements.lock; do
+        [ -f "$f" ] || continue
+        v="${f#envs/}"; v="${v%/requirements.lock}"
+        in_map "$v" || echo "$f: $v is not in lib/katana.sh's digest map; add it as [$v]=unpublished"
+    done
+    labs=$(tr -d '\r' 2>/dev/null < index.html | sed -nE 's/.*class="lab"[^>]* id="([^"]+)".*/\1/p')
+    for lab in $(printf '%s\n' "${!IRIS_LAB_ENVS[@]}" | sort); do
+        grep -qxF -- "$lab" <<< "$labs" || echo "lib/katana.sh: the lab table's $lab is no lab section's id in index.html"
+        in_map "${IRIS_LAB_ENVS[$lab]}" ||
+            echo "lib/katana.sh: the lab table starts $lab on ${IRIS_LAB_ENVS[$lab]}, which isn't in the digest map"
+    done
+    for f in workflows/*/form.yml.erb; do
+        [ -f "$f" ] || continue
+        tr -d '\r' < "$f" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p' | while IFS= read -r v; do
+            in_map "$v" || echo "$f: pins $v, which isn't in lib/katana.sh's digest map"
+        done
+    done
+}
+check "environment versions match the digest map" env_versions
+
 # Print form lines that break a rule, by top-level section: no heredoc in
 # script: (every line there stays indented), no Ruby #{} in check: (it
 # collides with OpenComposer's own substitution). An imaging form's script
