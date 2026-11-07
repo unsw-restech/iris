@@ -42,7 +42,7 @@ IRIS_TOOLS_ENV_VERSION=microct/1
 # unpublished version and prints the line to put here instead
 # (envs/README.md). A version's digest never changes once written.
 declare -gA IRIS_ENV_DIGESTS=(
-    [microct/1]=unpublished
+    [microct/1]=sha256:c1022d8514acbdb80dc038a72ac193699fb1a4b7a75fa1b2905c7b41fd04eb4f
 )
 
 # The lab table: each lab, by its section id in index.html, and the
