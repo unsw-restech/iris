@@ -121,6 +121,13 @@ class ImagingFormTest < Minitest::Test
     assert_fails(/no #{Regexp.escape(ImagingForm::SOURCE)}/)
   end
 
+  # The job library comes from the workflow's own copy (bin/libcopy), not
+  # the clone's shared lib/.
+  def test_a_form_that_sources_the_clones_job_library_fails
+    edit_form { |s| s.sub(/^  source .*iris-job\.sh"$/, %(  source "$CODE/../../lib/iris-job.sh")) }
+    assert_fails(/no source "\$CODE\/lib\/iris-job\.sh"/)
+  end
+
   def test_a_form_without_the_banner_fails
     drop(ImagingForm::BANNER)
     assert_fails(/no the banner/)

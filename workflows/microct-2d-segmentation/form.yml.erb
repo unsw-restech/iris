@@ -162,8 +162,9 @@ form:
 #
 # The script carries the entry script, read here at render time, so a
 # researcher can edit it for one run; the job writes it into the run
-# directory as run.py and runs it from there, while lib/ stays in the clone
-# (ADR-0006). It must hold no OpenComposer field or ERB tag, which bin/check
+# directory as run.py and runs it from there, while the library's job side
+# runs from this workflow's own copy in lib/, which bin/libcopy makes, and
+# stays out of the pane (ADR-0006). It must hold no OpenComposer field or ERB tag, which bin/check
 # enforces. COMMIT is the clone's commit at render time, the commit the
 # embedded code is from. Before Python runs run.py, iris_record_code records
 # the run's code: COMMIT, a warning if the clone has moved since, and
@@ -193,7 +194,7 @@ script: |
   RUN_DIR="${DATASET%/}/runs/${PBS_JOBID%%.*}"
 
   set -eo pipefail
-  source "$CODE/../../lib/iris-job.sh"
+  source "$CODE/lib/iris-job.sh"
 
   # ----------------------------------------------------------------------
   # Workflow code: edit below. Set the form fields first; changing a field afterwards discards these edits.

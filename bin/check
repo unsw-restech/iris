@@ -176,6 +176,23 @@ library_imports() {
 }
 check "lib/ imports nothing from workflows/" library_imports
 
+# Each workflow carries its own copy of the library's job side, which its
+# form sources, made by bin/libcopy and never edited by hand: every imaging
+# form's folder has one, and bin/libcopy --check fails each copy that
+# differs from lib/ at the commit it records in copied-from, or records a
+# commit outside HEAD's history. tests/bin/test_library_copies.sh runs it
+# on fixture repos.
+library_copies() {
+    local f d
+    for f in $(imaging_forms); do
+        d="$(dirname "$f")"
+        [ -f "$d/lib/copied-from" ] ||
+            echo "$d: an imaging form with no copy of the library's job side; make one with bin/libcopy $(basename "$d")"
+    done
+    bin/libcopy --check
+}
+check "workflows' library copies match lib/ at the commit they record" library_copies
+
 # iris.rundir names every file in a run directory, so the library and the
 # entry scripts use its constants, not a quoted name or path ending in one.
 # The names come from its constants, so a new file is covered as it is added.

@@ -29,6 +29,7 @@ import tifffile
 WORKFLOW = Path(__file__).resolve().parents[1]
 REPO = WORKFLOW.parents[1]
 LIB = REPO / "lib"
+OWN_LIB = WORKFLOW / "lib"  # this workflow's copy of the library's job side (bin/libcopy), which a job runs
 ENTRY = WORKFLOW / "src" / "run.py"
 
 sys.path.insert(0, str(LIB / "tests"))
@@ -90,7 +91,7 @@ def entry_command(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.ed
         "--batch-size", str(args["batch_size"]), "--seed", args["seed"],
         "--field", "ncpus=2", "--field", "walltime=0:30:00", "--field", "mail_events=",
     ]
-    env = dict(os.environ, PYTHONPATH=str(LIB), CUDA_VISIBLE_DEVICES="",
+    env = dict(os.environ, PYTHONPATH=str(OWN_LIB), CUDA_VISIBLE_DEVICES="",
                IRIS_HOME=str(iris_home), PBS_JOBID=job_id, PBS_QUEUE="cpuq",
                IRIS_ENV_VERSION="microct/1", IRIS_ENV_DIGEST=ENV_DIGEST)
     if code is not None:
