@@ -15,6 +15,7 @@ LIB = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(LIB))
 
 from iris import rundir  # noqa: E402
+from iris.dataset import dataset_record  # noqa: E402
 from iris.record import RunRecord  # noqa: E402
 
 ENTRY = "src/run.py"
@@ -83,8 +84,8 @@ def finished_run(home, run_dir, code, commit, experiment="bone", lr=0.01, run_py
     try:
         with mock.patch.dict(os.environ, job_env, clear=True), RunRecord(run_dir, experiment, code, extras=extras) as record:
             record.write_params({"experiment": experiment, "lr": lr, "epochs": 2})
-            record.write_dataset(lambda: dataset or {"path": str(rundir.dataset_of(run_dir)),
-                                                     "volume": {"shape": [6, 70, 50]}})
+            record.write_dataset(lambda: dataset or dataset_record(rundir.dataset_of(run_dir),
+                                                                   {"volume": {"shape": [6, 70, 50]}}))
             record.log_epoch(1, train_loss=0.6, dice={"1": 0.5, "2": None})
             record.log_epoch(2, train_loss=0.4, dice={"1": 0.7, "2": 0.2})
             if status == "FAILED":

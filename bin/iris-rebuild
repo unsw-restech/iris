@@ -5,6 +5,6 @@
 # names another folder. Run it in a Virtual Desktop or a job, not on a login
 # node. `bin/iris-rebuild --help` lists its options.
 #
-# A shim over bin/iris-python, which runs it in the imaging environment
-# lib/katana.sh pins, or another with ENV_DIR=...
+# A shim over bin/iris-python, which runs it in the researcher tools'
+# container lib/katana.sh names, or another with IRIS_TOOLS_CONTAINER=...
 exec "$(dirname "$(readlink -f "$0")")/iris-python" iris.rebuild "$@"

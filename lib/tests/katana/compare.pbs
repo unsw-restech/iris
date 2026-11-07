@@ -42,7 +42,8 @@ probe() {
         [ -n "$url" ] && break
         sleep 1
     done
-    pid=$(pgrep -u "$USER" -f "python -u -m iris.compare")
+    # Exactly the container's python: apptainer's own command line holds it too.
+    pid=$(pgrep -u "$USER" -fx "python -u -m iris.compare")
     if [ -z "$url" ]; then echo "$(ts) PROBE: no URL after 600 s"; kill -INT "$pid"; return; fi
     echo "$(ts) PROBE: UI up at $url, $(( $(date +%s) - t0 )) s after ui.log appeared (mlflow ui start-up, to 1 s)"
     port=${url##*:}

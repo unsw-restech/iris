@@ -27,7 +27,7 @@ import numpy as np
 from datasets import make_volume, two_class_labels, write_dataset
 from run_dirs import clone_with_entry, finished_run, record_code  # noqa: E402  (it puts lib/ on the path)
 
-from iris.compare import start_ui  # noqa: E402
+from iris.compare import open_browser, start_ui  # noqa: E402
 from iris.record import RunRecord  # noqa: E402
 from iris.tracking import StoreExists, import_runs, rebuild, store_uri  # noqa: E402
 from iris.view import recent_runs  # noqa: E402
@@ -36,10 +36,10 @@ from iris.volume import open_volume  # noqa: E402
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
 
 EXPERIMENT = "microct-2d-segmentation"
-DATASET_RECORD = {  # as iris.dataset describes a dataset, intensity added
-    "train": {"images": {"files": 3}, "labels": {"files": 3}},
-    "volume": {"shape": [6, 70, 50], "dtype": "uint16"},
-    "intensity": {"min": 1000, "max": 65535, "mean": 20000.0, "std": 100.0},
+DATASET_RECORD = {  # as iris.dataset describes a dataset, the microCT workflow's intensity added
+    "files": 9, "size_bytes": 42000, "mtime": "2026-11-01T00:00:00+00:00",
+    "extras": {"volume": {"shape": [6, 70, 50], "dtype": "uint16"}, "train": {"images": 3, "labels": 3},
+               "intensity": {"min": 1000, "max": 65535, "mean": 20000.0, "std": 100.0}},
 }
 
 
@@ -275,6 +275,16 @@ class Import(unittest.TestCase):
             server.wait(30)
 
 
+class Browser(unittest.TestCase):
+    def test_in_the_container_the_url_goes_to_the_file_bin_iris_compare_watches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            url_file = Path(tmp) / "url"
+            with mock.patch.dict(os.environ, {"IRIS_URL_FILE": str(url_file)}):
+                open_browser("http://127.0.0.1:5123")
+            self.assertEqual(url_file.read_text(), "http://127.0.0.1:5123\n")
+            self.assertEqual(sorted(p.name for p in Path(tmp).iterdir()), ["url"])
+
+
 def outward_address():
     """This machine's address on its default route, or None if it has none.
     Connecting a UDP socket sends nothing."""
@@ -336,7 +346,7 @@ class Rebuild(unittest.TestCase):
             self.assertEqual([m.step for m in client.get_metric_history(run.info.run_id, "dice/2")], [2])
             [dataset_input] = run.inputs.dataset_inputs
             self.assertEqual(dataset_input.dataset.name, dataset)
-            self.assertEqual(json.loads(dataset_input.dataset.profile)["volume"], {"shape": [6, 70, 50]})
+            self.assertEqual(json.loads(dataset_input.dataset.profile)["extras"], {"volume": {"shape": [6, 70, 50]}})
 
     def test_from_the_run_index(self):
         store = self.tmp / "rebuilt"

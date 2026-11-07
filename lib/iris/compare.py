@@ -61,6 +61,24 @@ def start_ui(home):
     raise RuntimeError(f"mlflow ui did not answer within {START_TIMEOUT} s; see {home / 'ui.log'}")
 
 
+def open_browser(url):
+    """Open Firefox at `url`. In the researcher tools' container, which has
+    no Firefox, bin/iris-compare sets IRIS_URL_FILE and opens the desktop's
+    Firefox once `url` is written there, whole, by rename."""
+    url_file = os.environ.get("IRIS_URL_FILE")
+    if url_file:
+        partial = f"{url_file}.partial"
+        with open(partial, "w") as f:
+            f.write(url + "\n")
+        os.replace(partial, url_file)
+        return
+    firefox = shutil.which("firefox")
+    if firefox:
+        subprocess.Popen([firefox, url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        print(f"Firefox was not found: open {url} in a browser in this desktop.")
+
+
 def main():
     home = iris_home()
     result = import_runs(home, wait=False)
@@ -74,11 +92,7 @@ def main():
 
     server, url = start_ui(home)
     print(f"MLflow is at {url}. Leave this open while you use it; Ctrl+C stops it.")
-    firefox = shutil.which("firefox")
-    if firefox:
-        subprocess.Popen([firefox, url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    else:
-        print(f"Firefox was not found: open {url} in a browser in this desktop.")
+    open_browser(url)
     try:
         server.wait()
     except KeyboardInterrupt:

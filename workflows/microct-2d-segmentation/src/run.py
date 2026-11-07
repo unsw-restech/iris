@@ -30,10 +30,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from iris import rundir
-from iris.dataset import IntensityStats, dataset_record
+from iris.dataset import dataset_record
 from iris.labels import MAX_CLASSES, write_label_volume
 from iris.record import RunRecord
-from iris.volume import open_volume, to_intensity
+from iris.volume import IntensityStats, open_volume, to_intensity, voxel_spacing
 
 # This workflow's folder in the clone; its name is the slug. A job runs a
 # copy of this script from the run directory and sets IRIS_CODE to it.
@@ -299,11 +299,23 @@ def main(argv=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     gpu = torch.cuda.get_device_name(device) if device.type == "cuda" else "none"
     with RunRecord(run_dir, args.experiment, CODE, extras={"gpu": gpu}) as record:
-        dataset = record.write_dataset(lambda: dataset_record(args.dataset, vol))
+        dataset = record.write_dataset(lambda: dataset_record(args.dataset, dataset_extras(args.dataset, vol, pairs)))
         intensity = IntensityStats()
         train_and_segment(args, record, pairs, n_classes, vol, device, intensity)
         if dataset is not None:
-            record.write_dataset(lambda: {**dataset, "intensity": intensity.summary()})
+            record.write_dataset(lambda: {**dataset, "extras": {**dataset["extras"], "intensity": intensity.summary()}})
+
+
+def dataset_extras(dataset, vol, pairs):
+    """This workflow's details for the dataset record (iris.dataset): the
+    volume's shape, data type and voxel spacing if its blocks record one,
+    and how many training images and labels it read (as many of each, since
+    they pair by name). Inference adds the volume's "intensity" statistics."""
+    volume = {"shape": list(vol.shape), "dtype": str(vol.dtype)}
+    spacing = voxel_spacing(dataset)
+    if spacing:
+        volume["voxel_spacing"] = spacing
+    return {"volume": volume, "train": {"images": len(pairs), "labels": len(pairs)}}
 
 
 def train_and_segment(args, record, pairs, n_classes, vol, device, intensity):

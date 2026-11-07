@@ -4,6 +4,23 @@
 # Firefox at it (lib/iris/compare.py). Run it in a terminal in a Virtual
 # Desktop and leave the terminal open; Ctrl+C there stops MLflow.
 #
-# A shim over bin/iris-python, which runs it in the imaging environment
-# lib/katana.sh pins, or another with ENV_DIR=...
-exec "$(dirname "$(readlink -f "$0")")/iris-python" iris.compare "$@"
+# A shim over bin/iris-python, which runs it in the researcher tools'
+# container. Firefox isn't in the container, so this opens the desktop's:
+# iris.compare writes MLflow's URL to IRIS_URL_FILE once it answers, and a
+# watcher here opens Firefox at it, or says where to go without one.
+
+here="$(dirname "$(readlink -f "$0")")"
+tmp="$(mktemp -d)" || exit 1
+export IRIS_URL_FILE="$tmp/url"
+(
+    while [ ! -s "$IRIS_URL_FILE" ]; do sleep 0.5; done
+    url="$(cat "$IRIS_URL_FILE")"
+    if command -v firefox > /dev/null; then
+        firefox "$url" > /dev/null 2>&1 &
+    else
+        echo "Firefox was not found: open $url in a browser in this desktop."
+    fi
+) &
+watcher=$!
+trap 'kill "$watcher" 2> /dev/null; rm -rf "$tmp"' EXIT
+"$here/iris-python" iris.compare "$@"

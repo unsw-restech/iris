@@ -15,15 +15,17 @@ Format 1, written until #127:
                 own tags, such as gpu}, "edited" (absent before edited
                 runs)}
   metrics.json  {"epochs": [{"epoch", "time", <metric>...}], "final"}
+  dataset.json  {"path", and microCT's "train", "volume" and "intensity"}
 
-Format 2, which iris.record writes now, describes it in full.
+Format 2, which iris.record and iris.dataset write now, describe it in
+full.
 
-Both: params.json a flat {name: value}, dataset.json the dataset record
-(iris.dataset). A record whose format is newer than this library knows is
+Both: params.json a flat {name: value}. A record whose format is newer than this library knows is
 refused with UnknownFormat, naming its format, rather than read wrong.
 
     run = read_run(run_dir)      # FileNotFoundError until run.json exists
-    run.tags, run.params(), run.metric_points(), run.dataset()
+    run.tags, run.params(), run.metric_points()
+    run.dataset(), run.dataset_extras(), run.dataset_stable()
 """
 
 import json
@@ -92,8 +94,32 @@ class Run:
         return points
 
     def dataset(self):
-        """The dataset record (iris.dataset), or None if the run wrote none."""
+        """The dataset record (iris.dataset) as the run wrote it, or None if
+        the run wrote none."""
         return _read_json(self.run_dir / rundir.DATASET, None)
+
+    def dataset_extras(self):
+        """The workflow's own details in the dataset record, such as the
+        microCT volume's "intensity", or {} if it wrote none. Format 1 held
+        them beside "path"; format 2 holds them under "extras"."""
+        record = self.dataset() or {}
+        if self.format == 1:
+            return {k: v for k, v in record.items() if k != "path"}
+        return record.get("extras", {})
+
+    def dataset_stable(self):
+        """The part of the dataset record that holds still while the run
+        goes on, which the importer's digest hashes, or None if the run
+        wrote no record. Format 2: what is true of any folder (path, files,
+        size_bytes, mtime). Format 1: all but the intensity statistics,
+        added once inference had read the whole volume, so existing runs
+        keep the digest they were imported with."""
+        record = self.dataset()
+        if record is None:
+            return None
+        if self.format == 1:
+            return {k: v for k, v in record.items() if k != "intensity"}
+        return {k: v for k, v in record.items() if k != "extras"}
 
 
 def _flat_metrics(entry):

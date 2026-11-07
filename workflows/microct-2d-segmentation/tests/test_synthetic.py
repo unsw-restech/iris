@@ -180,26 +180,26 @@ class SyntheticRun(unittest.TestCase):
         self.assertEqual(run["extras"], {"gpu": "none"})
         self.assertEqual(list(self.run_dir.glob("*.tmp")), [])
 
-    def test_dataset_record_names_the_training_folders_and_the_volume(self):
+    def test_dataset_record_describes_the_dataset_folder_without_its_runs(self):
         dataset = json.loads((self.run_dir / "dataset.json").read_text())
         root = self.dataset.resolve()
+        files = sorted((root / "volume").glob("*.nc")) + sorted((root / "train").glob("*/*"))
         self.assertEqual(dataset["path"], str(root))
-        self.assertEqual(dataset["train"], {
-            "images": {"path": str(root / "train" / "images"), "files": 3},
-            "labels": {"path": str(root / "train" / "labels"), "files": 3},
-        })
-        volume = dataset["volume"]
-        blocks = sorted((root / "volume").glob("*.nc"))
-        self.assertEqual(volume["path"], str(root / "volume"))
-        self.assertEqual(volume["size_bytes"], sum(f.stat().st_size for f in blocks))
-        newest = max(f.stat().st_mtime for f in blocks)
-        self.assertAlmostEqual(datetime.fromisoformat(volume["mtime"]).timestamp(), newest, delta=1e-3)
-        self.assertEqual(volume["shape"], list(SHAPE))
-        self.assertEqual(volume["dtype"], "uint16")
-        self.assertEqual(volume["voxel_spacing"], {"xyz": VOXEL_SIZE_XYZ, "unit": "mm"})
+        self.assertEqual(dataset["files"], len(files))  # 3 images, 3 labels and the blocks; runs/ left out
+        self.assertEqual(dataset["size_bytes"], sum(f.stat().st_size for f in files))
+        newest = max(f.stat().st_mtime for f in files)
+        self.assertAlmostEqual(datetime.fromisoformat(dataset["mtime"]).timestamp(), newest, delta=1e-3)
+        self.assertEqual(sorted(dataset), ["extras", "files", "mtime", "path", "size_bytes"])
+
+    def test_dataset_record_extras_hold_the_volume_and_the_training_pairs(self):
+        extras = json.loads((self.run_dir / "dataset.json").read_text())["extras"]
+        self.assertEqual(extras["volume"], {"shape": list(SHAPE), "dtype": "uint16",
+                                            "voxel_spacing": {"xyz": VOXEL_SIZE_XYZ, "unit": "mm"}})
+        self.assertEqual(extras["train"], {"images": 3, "labels": 3})
+        self.assertEqual(sorted(extras), ["intensity", "train", "volume"])
 
     def test_dataset_record_holds_the_volumes_intensity_statistics(self):
-        intensity = json.loads((self.run_dir / "dataset.json").read_text())["intensity"]
+        intensity = json.loads((self.run_dir / "dataset.json").read_text())["extras"]["intensity"]
         self.assertEqual(intensity["min"], int(self.vol.min()))
         self.assertEqual(intensity["max"], 65535)
         self.assertAlmostEqual(intensity["mean"], float(self.vol.mean()), places=6)

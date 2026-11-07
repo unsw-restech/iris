@@ -18,7 +18,7 @@ import run_dirs  # noqa: F401  (it puts lib/ on the path)
 
 from iris import runs  # noqa: E402
 from iris.record import FORMAT  # noqa: E402
-from iris.tracking import rebuild, store_uri  # noqa: E402
+from iris.tracking import dataset_input, rebuild, store_uri  # noqa: E402
 from iris.view import recent_runs  # noqa: E402
 
 import mlflow  # noqa: E402
@@ -89,6 +89,23 @@ class SharedToolsReadEverySample(unittest.TestCase):
                 [dataset] = run.inputs.dataset_inputs
                 self.assertEqual(dataset.dataset.name, "dataset")
                 self.assertEqual(json.loads(dataset.dataset.source), {"uri": "/srv/scratch/z0000000/dataset"})
+                sample = SAMPLES / f"format-{fmt}" / "dataset" / "runs" / "1001" / "dataset.json"
+                self.assertEqual(json.loads(dataset.dataset.profile), json.loads(sample.read_text()))
+
+    def test_the_dataset_digest_holds_still_without_the_intensity_statistics(self):
+        for fmt in sample_formats():
+            with self.subTest(format=fmt):
+                run_dir = self.copy(fmt) / "runs" / "1001"
+                whole = dataset_input(runs.read_run(run_dir)).dataset.digest
+                if fmt == 1:
+                    self.assertEqual(whole, "305b3c4c")  # what format-1 runs were imported with
+                record = json.loads((run_dir / "dataset.json").read_text())
+                (record if fmt == 1 else record["extras"]).pop("intensity")  # as a run killed before inference
+                (run_dir / "dataset.json").write_text(json.dumps(record))
+                self.assertEqual(dataset_input(runs.read_run(run_dir)).dataset.digest, whole)
+                record["size_bytes" if fmt == 2 else "path"] = "changed"
+                (run_dir / "dataset.json").write_text(json.dumps(record))
+                self.assertNotEqual(dataset_input(runs.read_run(run_dir)).dataset.digest, whole)
 
     def test_iris_view_lists_the_run_and_reads_its_intensity_range(self):
         from iris.view import intensity_range
