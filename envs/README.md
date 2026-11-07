@@ -4,7 +4,7 @@ Workflows run in environments packaged as containers ([ADR-0008](../docs/adr/000
 
 | Version | Built from | PyTorch | Compiled GPU archs | Status |
 |---|---|---|---|---|
-| `microct/1` | `imaging/1`'s lock, unchanged, on Python 3.13.2 (closed PR #106's recipe) | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Recipe committed; not yet published |
+| `microct/1` | `imaging/1`'s lock, unchanged, on Python 3.13.2 (closed PR #106's recipe) | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Published 2026-11-07 (containers run 42341886288), private until #132 |
 
 ## Files
 
