@@ -63,7 +63,8 @@ expect "$OUT/fiji.log" 'bio-formats frames 3 slices 1' "Bio-Formats range import
 expect "$OUT/fiji.log" 'crop 500x500x3' "Crop and Save As"
 
 # ParaView: TIFF Series Reader with Use Custom Data Spacing, then Contour.
-SPACING=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["volume"]["voxel_spacing"]["xyz"][0])' "$RUN/dataset.json")
+# Format 2's dataset record holds the volume under "extras"; format 1's, beside "path".
+SPACING=$(python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(d.get("extras", d)["volume"]["voxel_spacing"]["xyz"][0])' "$RUN/dataset.json")
 [ -n "$SPACING" ] || { echo "FAIL no voxel spacing in $RUN/dataset.json"; exit 1; }
 cat > "$OUT/viewers.py" <<'EOF'
 import sys

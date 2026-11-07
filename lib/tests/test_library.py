@@ -36,10 +36,10 @@ from iris.volume import open_volume  # noqa: E402
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
 
 EXPERIMENT = "microct-2d-segmentation"
-DATASET_RECORD = {  # as iris.dataset describes a dataset, intensity added
-    "train": {"images": {"files": 3}, "labels": {"files": 3}},
-    "volume": {"shape": [6, 70, 50], "dtype": "uint16"},
-    "intensity": {"min": 1000, "max": 65535, "mean": 20000.0, "std": 100.0},
+DATASET_RECORD = {  # as iris.dataset describes a dataset, the microCT workflow's intensity added
+    "files": 9, "size_bytes": 42000, "mtime": "2026-11-01T00:00:00+00:00",
+    "extras": {"volume": {"shape": [6, 70, 50], "dtype": "uint16"}, "train": {"images": 3, "labels": 3},
+               "intensity": {"min": 1000, "max": 65535, "mean": 20000.0, "std": 100.0}},
 }
 
 
@@ -346,7 +346,7 @@ class Rebuild(unittest.TestCase):
             self.assertEqual([m.step for m in client.get_metric_history(run.info.run_id, "dice/2")], [2])
             [dataset_input] = run.inputs.dataset_inputs
             self.assertEqual(dataset_input.dataset.name, dataset)
-            self.assertEqual(json.loads(dataset_input.dataset.profile)["volume"], {"shape": [6, 70, 50]})
+            self.assertEqual(json.loads(dataset_input.dataset.profile)["extras"], {"volume": {"shape": [6, 70, 50]}})
 
     def test_from_the_run_index(self):
         store = self.tmp / "rebuilt"
