@@ -38,6 +38,8 @@ iris/
 ├── bin/
 │   ├── check                         # Every check to pass before committing
 │   ├── ciwait                        # Wait for a pushed commit's CI run (desktop)
+│   ├── envpull                       # Pull the containers live forms pin onto Katana; list those nothing pins (desktop)
+│   ├── envpull-dm.sh                 # envpull's side on the data mover
 │   ├── pageswait                     # Wait for the live site to serve a change (desktop)
 │   ├── issue-tick                    # Tick checkboxes in an issue's body (desktop)
 │   ├── iris-import                   # Import new runs into your MLflow tracking store
@@ -54,7 +56,7 @@ iris/
 │   └── imaging/                      # The imaging/1 venv's build steps on Katana, until containers replace it (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (environment check, venv, run dir, commit)
-│   ├── katana.sh                     # Katana's constants: the system clone, the imaging environment, the Python module, the environments' digest map and lab table
+│   ├── katana.sh                     # Katana's constants: the system clone, the imaging environment, the Python module, the environments' digest map and lab table, the environments folder and the researcher tools' version
 │   ├── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
 │   └── tests/                        # The library's tests, run once (bin/check); the form helper and the rendered-form checks every imaging form gets; its Katana jobs in katana/ (bin/katana-test submits job_lib.pbs)
 ├── module/                           # `module load iris` (ADR-0003)
