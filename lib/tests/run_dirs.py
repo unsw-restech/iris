@@ -20,6 +20,7 @@ from iris.record import RunRecord  # noqa: E402
 ENTRY = "src/run.py"
 COMMITTED = "print('as committed')\n"
 SLUG = "microct-2d-segmentation"
+JOB_ENV = ("PBS_JOBID", "PBS_QUEUE", "IRIS_ENV_VERSION", "IRIS_ENV_DIGEST")  # what a job sets; tests set their own
 
 
 def git(repo, *args):
@@ -66,19 +67,21 @@ def record_code(run_dir, code, commit, run_py=None):
 
 
 def finished_run(home, run_dir, code, commit, experiment="bone", lr=0.01, run_py=None, status=None,
-                 dataset=None, tags=None):
+                 dataset=None, extras=None, env=None):
     """A run directory as a finished job leaves it, its job ID its folder's
     name: its code recorded, then a RunRecord around two epochs, which adds
     it to the run index in `home`. `dataset` is a dataset record
     (iris.dataset) for dataset.json, or None for one naming the run's
-    dataset folder. `status` "FAILED" ends the run with an error. Returns
-    the run directory."""
+    dataset folder. `extras` are the workflow's own details and `env` the
+    variables the job library exports, such as IRIS_ENV_VERSION. `status`
+    "FAILED" ends the run with an error. Returns the run directory."""
     run_dir = Path(run_dir)
     recorded = record_code(run_dir, code, commit, run_py)
     assert recorded.returncode == 0, recorded.stderr
-    env = {k: v for k, v in os.environ.items() if k != "PBS_JOBID"}
+    job_env = {k: v for k, v in os.environ.items() if k not in JOB_ENV}
+    job_env.update(env or {}, IRIS_HOME=str(home))
     try:
-        with mock.patch.dict(os.environ, dict(env, IRIS_HOME=str(home)), clear=True), RunRecord(run_dir, experiment, code, tags=tags) as record:
+        with mock.patch.dict(os.environ, job_env, clear=True), RunRecord(run_dir, experiment, code, extras=extras) as record:
             record.write_params({"experiment": experiment, "lr": lr, "epochs": 2})
             record.write_dataset(lambda: dataset or {"path": str(rundir.dataset_of(run_dir)),
                                                      "volume": {"shape": [6, 70, 50]}})

@@ -9,6 +9,8 @@ __pycache__/
 # committing a model.pt.
 *.pt
 metrics.json
+# except the frozen sample run directories the shared tools' tests read
+!lib/tests/samples/**/metrics.json
 
 # OS and editor cruft
 .DS_Store

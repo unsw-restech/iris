@@ -74,7 +74,7 @@ Submit `viewers.pbs` first, and fix the guide wherever it fails. It runs the gui
 - `microct-sample/` is the dataset the form was given. Its `volume` and `train` are links to the sample's, and the run is in its `runs/9573671/`, with the `.OU` log beside it.
 - `home/` was the run's `IRIS_HOME`, so its pointer is `home/run-index/9573671`. Copy the pointer into your own test home, as `compare.pbs` does. Don't import into `home/` or write in the fixture.
 
-The fixture goes stale if the run record's format changes, and breaks if the sample dataset moves, since its links point there. To make a new one, in a fresh `iris-fixtures/`, make `microct-sample/` with its `runs/` folder and links named `volume` and `train` to the sample's. Render as in step 2 with `dataset=/srv/scratch/z3224749/iris-fixtures/microct-sample`, and submit as in step 3 with `IRIS_HOME=/srv/scratch/z3224749/iris-fixtures/home`. Then update the job number here and in `compare.pbs` and `viewers.pbs`.
+Its run record is format 1, which the shared tools keep reading (`lib/iris/runs.py`), so a new format leaves it usable; a check of what a newer format records needs a new fixture. It breaks if the sample dataset moves, since its links point there. To make a new one, in a fresh `iris-fixtures/`, make `microct-sample/` with its `runs/` folder and links named `volume` and `train` to the sample's. Render as in step 2 with `dataset=/srv/scratch/z3224749/iris-fixtures/microct-sample`, and submit as in step 3 with `IRIS_HOME=/srv/scratch/z3224749/iris-fixtures/home`. Then update the job number here and in `compare.pbs` and `viewers.pbs`.
 
 ## 5. Report, then clean up
 
