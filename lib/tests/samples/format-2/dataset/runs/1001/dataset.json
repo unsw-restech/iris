@@ -1,30 +1,26 @@
 {
   "path": "/srv/scratch/z0000000/dataset",
-  "train": {
-    "images": {
-      "path": "/srv/scratch/z0000000/dataset/train/images",
-      "files": 3
+  "files": 8,
+  "size_bytes": 42000,
+  "mtime": "2026-11-01T00:00:00+00:00",
+  "extras": {
+    "volume": {
+      "shape": [
+        2,
+        4,
+        4
+      ],
+      "dtype": "uint16"
     },
-    "labels": {
-      "path": "/srv/scratch/z0000000/dataset/train/labels",
-      "files": 3
+    "train": {
+      "images": 3,
+      "labels": 3
+    },
+    "intensity": {
+      "min": 1000,
+      "max": 65535,
+      "mean": 20000.0,
+      "std": 100.0
     }
-  },
-  "volume": {
-    "path": "/srv/scratch/z0000000/dataset/volume",
-    "size_bytes": 42000,
-    "mtime": "2026-11-01T00:00:00+00:00",
-    "shape": [
-      2,
-      4,
-      4
-    ],
-    "dtype": "uint16"
-  },
-  "intensity": {
-    "min": 1000,
-    "max": 65535,
-    "mean": 20000.0,
-    "std": 100.0
   }
 }

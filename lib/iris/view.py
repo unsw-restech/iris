@@ -88,7 +88,7 @@ def intensity_range(run_dir):
     """The volume's (min, max) from the run's dataset record, so napari
     need not read the volume to set its contrast, or None."""
     try:
-        intensity = runs.read_run(run_dir).dataset()["intensity"]
+        intensity = runs.read_run(run_dir).dataset_extras()["intensity"]
         return intensity["min"], intensity["max"]
     except (OSError, ValueError, KeyError, TypeError):
         return None

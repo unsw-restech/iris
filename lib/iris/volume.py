@@ -53,3 +53,48 @@ def open_volume(dataset):
         blocks.append(var.rename(dict(zip(var.dims, ("z", "y", "x")))).chunk({"z": 1}))
     vol = xr.concat(blocks, dim="z")
     return vol.copy(data=to_intensity(vol.data))
+
+
+def voxel_spacing(dataset):
+    """The voxel size <dataset>/volume/'s first block records in its
+    voxel_size_xyz and voxel_unit attributes, as the microCT sample's do,
+    as {"xyz", "unit"}, or None."""
+    first = sorted(Path(dataset, "volume").glob("*.nc"))[0]
+    with xr.open_dataset(first, decode_cf=False) as ds:
+        xyz = ds.attrs.get("voxel_size_xyz")
+        if xyz is None:
+            return None
+        # str() first gives float32's shortest form: 0.00866752, not 0.008667520061...
+        return {"xyz": [float(str(v)) for v in np.atleast_1d(xyz)], "unit": str(ds.attrs.get("voxel_unit", ""))}
+
+
+class IntensityStats:
+    """Min, max, mean and standard deviation over arrays seen one at a time,
+    such as a volume's slices as inference reads them. Each array's count,
+    mean and sum of squared deviations are merged in (Chan et al.), which
+    stays accurate where a running sum of squares would cancel. There are
+    no percentiles: they would mean reading the whole volume again."""
+
+    def __init__(self):
+        self.n, self.mean, self.m2 = 0, 0.0, 0.0
+        self.min = self.max = None
+
+    def add(self, array):
+        a = np.asarray(array)
+        if not a.size:
+            return
+        n, mean = a.size, float(a.mean(dtype=np.float64))
+        m2 = float(np.square(a - mean, dtype=np.float64).sum())
+        total = self.n + n
+        delta = mean - self.mean
+        self.mean += delta * n / total
+        self.m2 += m2 + delta * delta * self.n * n / total
+        self.n = total
+        lo, hi = a.min().item(), a.max().item()
+        self.min = lo if self.min is None else min(self.min, lo)
+        self.max = hi if self.max is None else max(self.max, hi)
+
+    def summary(self):
+        """{"min", "max", "mean", "std"}, std being the population one."""
+        return {"min": self.min, "max": self.max, "mean": self.mean,
+                "std": (self.m2 / self.n) ** 0.5 if self.n else None}

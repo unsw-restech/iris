@@ -100,14 +100,15 @@ def param_value(value):
     return value if isinstance(value, str) else json.dumps(value)
 
 
-def dataset_input(record):
-    """A run's dataset record (iris.dataset) as an MLflow dataset input,
-    named after the dataset folder, with the whole record as its profile.
-    The digest hashes the record, never the volume's contents: everything
-    but the intensity statistics, so a run killed before inference finished gets the same
-    digest as a finished one on the same, unchanged dataset."""
-    stable = {k: v for k, v in record.items() if k != "intensity"}
-    digest = hashlib.sha256(json.dumps(stable, sort_keys=True).encode()).hexdigest()[:8]
+def dataset_input(run):
+    """The dataset record (iris.dataset) of `run` (iris.runs.Run) as an
+    MLflow dataset input, named after the dataset folder, with the whole
+    record as its profile. The digest hashes the record, never the data:
+    only its part that holds still (Run.dataset_stable), so a run killed
+    before its workflow added its last details gets the same digest as a
+    finished one on the same, unchanged dataset."""
+    record = run.dataset()
+    digest = hashlib.sha256(json.dumps(run.dataset_stable(), sort_keys=True).encode()).hexdigest()[:8]
     return DatasetInput(Dataset(
         name=Path(record["path"]).name,
         digest=digest,
@@ -144,7 +145,7 @@ def replay(client, home, record):
         log_in_batches(client, run_id, "metrics",
                        [Metric(name, value, ms, step) for name, value, ms, step in points], METRICS_PER_CALL)
         if dataset is not None:
-            client.log_inputs(run_id, datasets=[dataset_input(dataset)])
+            client.log_inputs(run_id, datasets=[dataset_input(record)])
         if record.edited is not None:
             client.set_tag(run_id, EDITED_TAG, rundir.edited_tag(record.edited))
         for name in CODE_ARTIFACTS:
