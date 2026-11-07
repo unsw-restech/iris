@@ -157,7 +157,7 @@ An image slice and its label slice, matched by filename, used to train a workflo
 _Avoid_: Sample, annotation
 
 **Run directory**:
-The folder inside a dataset where one run writes all its outputs: the label volume, the trained weights and the record of what the run did.
+The folder inside a dataset where one run writes all its outputs: the record of what the run did, plus whatever its workflow writes, such as a label volume or trained weights.
 _Avoid_: Output folder, results
 
 **Run index**:

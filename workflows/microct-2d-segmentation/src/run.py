@@ -298,7 +298,7 @@ def main(argv=None):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     gpu = torch.cuda.get_device_name(device) if device.type == "cuda" else "none"
-    with RunRecord(run_dir, args.experiment, CODE, tags={"gpu": gpu}) as record:
+    with RunRecord(run_dir, args.experiment, CODE, extras={"gpu": gpu}) as record:
         dataset = record.write_dataset(lambda: dataset_record(args.dataset, vol))
         intensity = IntensityStats()
         train_and_segment(args, record, pairs, n_classes, vol, device, intensity)

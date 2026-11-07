@@ -1,0 +1,17 @@
+{
+  "experiment": "bone",
+  "job_id": "1001",
+  "status": "FINISHED",
+  "start_time": 1794024915.0372999,
+  "end_time": 1794024915.0487216,
+  "tags": {
+    "slug": "microct-2d-segmentation",
+    "job_id": "1001",
+    "commit": "2de6ff0c97ab56a6cab2343a9e6058b842034c51",
+    "venv": "/home/z0000000/.venvs/iris-imaging",
+    "queue": "gpu",
+    "run_dir": "/srv/scratch/z0000000/dataset/runs/1001",
+    "gpu": "Tesla V100-SXM2-32GB"
+  },
+  "edited": false
+}

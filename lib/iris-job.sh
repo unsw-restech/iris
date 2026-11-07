@@ -7,6 +7,8 @@
 # and optionally:
 #   COMMIT   the clone's commit when the form rendered, which the code the
 #            script embeds dates from (ADR-0006)
+#   VIEW     "no" if the workflow writes no label volume, so the job prints
+#            how to compare runs but no iris-view line
 #
 # It creates runs/, stops the job with one line if the environment is
 # missing, then loads the Python module lib/katana.sh names, activates the
@@ -55,12 +57,18 @@ else
 fi
 
 # iris_view_lines <lead>: <lead>, then the commands to view this run and
-# compare runs.
+# compare runs, or with VIEW=no only to compare them, as a workflow that
+# writes no label volume has nothing for iris-view to show.
 iris_view_lines() {
-    echo "$1"
-    [ -z "$IRIS_LOAD" ] || echo "$IRIS_LOAD"
-    echo "$IRIS_VIEW $RUN_DIR"
-    echo "and compare your runs with:"
+    if [ "$VIEW" = no ]; then
+        echo "$1 compare your runs with:"
+        [ -z "$IRIS_LOAD" ] || echo "$IRIS_LOAD"
+    else
+        echo "$1 view the result with:"
+        [ -z "$IRIS_LOAD" ] || echo "$IRIS_LOAD"
+        echo "$IRIS_VIEW $RUN_DIR"
+        echo "and compare your runs with:"
+    fi
     echo "$IRIS_COMPARE"
 }
 
@@ -79,7 +87,7 @@ iris_record_code() {
 # What the script calls once the run has finished.
 iris_done() {
     echo ""
-    iris_view_lines "Done. In a terminal in a Virtual Desktop, view the result with:"
+    iris_view_lines "Done. In a terminal in a Virtual Desktop,"
 }
 
 echo "Job ID      : ${PBS_JOBID:-none}"
@@ -94,5 +102,5 @@ else
     echo "GPU         : none, running on CPU"
 fi
 echo ""
-iris_view_lines "When this job has finished, in a terminal in a Virtual Desktop, view the result with:"
+iris_view_lines "When this job has finished, in a terminal in a Virtual Desktop,"
 echo ""

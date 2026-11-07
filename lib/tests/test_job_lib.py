@@ -55,12 +55,13 @@ def record_step():
     return script.split(f"\n{marker}\n", 1)[1].splitlines()[0]
 
 
-def source_job_lib(env_dir, run_dir, then="echo AFTER", commit=None, code=WORKFLOW):
+def source_job_lib(env_dir, run_dir, then="echo AFTER", commit=None, code=WORKFLOW, view=None):
     """Run the rendered script's header, from #!/bin/bash to sourcing the
     library, for a run directory <dataset>/runs/<job>, then run `then`.
     ENV_DIR is `env_dir`; COMMIT, the clone's commit when the form
-    rendered, is `commit` if given. The library sourced is always this
-    tree's, whichever clone `code` is in."""
+    rendered, is `commit` if given, and VIEW is `view` if given, as a
+    workflow that writes no label volume sets it. The library sourced is
+    always this tree's, whichever clone `code` is in."""
     assert run_dir.parent.name == "runs", run_dir
     lines = rendered_script(code, run_dir.parent.parent).splitlines(keepends=True)
     end = next(i for i, line in enumerate(lines) if JOB_LIB.name in line)
@@ -72,6 +73,8 @@ def source_job_lib(env_dir, run_dir, then="echo AFTER", commit=None, code=WORKFL
             assert n == 1, f"the rendered header sets {name} {n} times"
     env = {k: v for k, v in os.environ.items() if k not in ("VIRTUAL_ENV", "PYTHONPATH")}
     env["PBS_JOBID"] = f"{run_dir.name}.kman.restech.unsw.edu.au"
+    if view is not None:
+        header = header.replace(f'source "{JOB_LIB}"\n', f'VIEW="{view}"\nsource "{JOB_LIB}"\n')
     return subprocess.run(["bash", "-c", f"{header}{then}\n"], env=env, capture_output=True, text=True, timeout=120)
 
 
@@ -196,10 +199,10 @@ class ViewLines(unittest.TestCase):
     training: the short forms `module load iris` gives from the system
     clone (ADR-0003), that clone's bin/ in full from any other."""
 
-    def output(self, code):
+    def output(self, code, view=None):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp, "dataset", "runs", "1")
-            result = source_job_lib(sys.prefix, run_dir, code=code, then="echo TRAINING; iris_done")
+            result = source_job_lib(sys.prefix, run_dir, code=code, then="echo TRAINING; iris_done", view=view)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         before, after = result.stdout.split("TRAINING\n", 1)
         return before, after, run_dir
@@ -212,6 +215,13 @@ class ViewLines(unittest.TestCase):
             self.assertNotIn("module load iris", part)
         self.assertTrue(after.startswith("\nDone. "), after)
         self.assertTrue(after.endswith(f"\n{REPO}/bin/iris-compare\n"), after)
+
+    def test_a_workflow_that_writes_no_label_volume_prints_only_how_to_compare_runs(self):
+        before, after, run_dir = self.output(WORKFLOW, view="no")
+        for part in (before, after):
+            self.assertNotIn("iris-view", part)
+            self.assertIn(f"compare your runs with:\n{REPO}/bin/iris-compare\n", part)
+        self.assertTrue(after.startswith("\nDone. "), after)
 
     @unittest.skipUnless(SYSTEM_CODE.is_dir(), "needs the system clone")
     def test_from_the_system_clone_the_job_prints_the_module_lines(self):

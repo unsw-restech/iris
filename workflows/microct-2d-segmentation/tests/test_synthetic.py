@@ -42,6 +42,8 @@ from iris.volume import open_volume  # noqa: E402
 
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
 
+ENV_DIGEST = "sha256:" + "ab" * 32  # what the job library exports as IRIS_ENV_DIGEST
+
 
 def clone_with_entry_script(root):
     """A throwaway clone holding the workflow's entry script as it is now,
@@ -89,7 +91,8 @@ def entry_command(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.ed
         "--field", "ncpus=2", "--field", "walltime=0:30:00", "--field", "mail_events=",
     ]
     env = dict(os.environ, PYTHONPATH=str(LIB), CUDA_VISIBLE_DEVICES="",
-               IRIS_HOME=str(iris_home), PBS_JOBID=job_id, PBS_QUEUE="cpuq")
+               IRIS_HOME=str(iris_home), PBS_JOBID=job_id, PBS_QUEUE="cpuq",
+               IRIS_ENV_VERSION="microct/1", IRIS_ENV_DIGEST=ENV_DIGEST)
     if code is not None:
         env["IRIS_CODE"] = str(code)
     return cmd, env
@@ -132,7 +135,7 @@ class SyntheticRun(unittest.TestCase):
 
     def test_an_unedited_run_writes_an_empty_run_diff_and_edited_false(self):
         self.assertEqual((self.run_dir / "run.diff").read_text(), "")
-        self.assertIs(json.loads((self.run_dir / "run.json").read_text())["edited"], False)
+        self.assertIs(json.loads((self.run_dir / "run.json").read_text())["code"]["edited"], False)
 
     def test_weights_written(self):
         self.assertGreater((self.run_dir / "model.pt").stat().st_size, 0)
@@ -153,30 +156,28 @@ class SyntheticRun(unittest.TestCase):
 
     def test_metrics_hold_per_class_dice_and_iou_per_epoch_and_final(self):
         metrics = json.loads((self.run_dir / "metrics.json").read_text())
-        self.assertEqual([e["epoch"] for e in metrics["epochs"]], [1, 2])
-        self.assertEqual(metrics["final"], metrics["epochs"][-1])
-        for record in metrics["epochs"]:
+        self.assertEqual([e["epoch"] for e in metrics["log"]], [1, 2])
+        self.assertEqual(metrics["final"], {k: v for k, v in metrics["log"][-1].items() if k not in ("epoch", "time")})
+        for record in metrics["log"]:
             self.assertIsInstance(record["train_loss"], float)
             for name in ("dice", "iou"):
                 self.assertEqual(sorted(record[name]), ["1", "2"])
                 for v in record[name].values():
                     self.assertTrue(v is None or 0.0 <= v <= 1.0)
 
-    def test_run_record_names_the_experiment_job_tags_and_ending(self):
+    def test_run_record_names_the_experiment_job_code_environment_and_ending(self):
         run = json.loads((self.run_dir / "run.json").read_text())
-        self.assertEqual(run["experiment"], "microct-2d-segmentation")
-        self.assertEqual(run["job_id"], "1234")
-        self.assertEqual(run["status"], "FINISHED")
-        self.assertLessEqual(run["start_time"], run["end_time"])
-        tags = run["tags"]
-        self.assertEqual(tags["slug"], "microct-2d-segmentation")
-        self.assertEqual(tags["job_id"], "1234")
-        self.assertEqual(tags["queue"], "cpuq")
-        self.assertEqual(tags["gpu"], "none")
-        self.assertEqual(tags["venv"], sys.prefix)
-        self.assertEqual(tags["run_dir"], str(self.run_dir.resolve()))
-        self.assertRegex(tags["commit"], r"^[0-9a-f]{40}$")
-        self.assertNotIn("lib_commit", tags)
+        self.assertEqual(run["format"], 2)
+        self.assertEqual(run["run"]["experiment"], "microct-2d-segmentation")
+        self.assertEqual(run["run"]["workflow"], "microct-2d-segmentation")
+        self.assertEqual(run["run"]["status"], "FINISHED")
+        self.assertEqual(run["run"]["dir"], str(self.run_dir.resolve()))
+        self.assertLessEqual(run["run"]["start_time"], run["run"]["end_time"])
+        self.assertEqual(run["job"], {"id": "1234", "queue": "cpuq"})
+        self.assertRegex(run["code"]["commit"], r"^[0-9a-f]{40}$")
+        self.assertNotIn("lib_commit", run["code"])
+        self.assertEqual(run["environment"], {"version": "microct/1", "digest": ENV_DIGEST})
+        self.assertEqual(run["extras"], {"gpu": "none"})
         self.assertEqual(list(self.run_dir.glob("*.tmp")), [])
 
     def test_dataset_record_names_the_training_folders_and_the_volume(self):
@@ -260,7 +261,7 @@ class EditedRun(unittest.TestCase):
         self.assertEqual(added, ["+" + self.EDIT[1]])
 
     def test_run_json_says_edited(self):
-        self.assertIs(json.loads((self.run_dir / "run.json").read_text())["edited"], True)
+        self.assertIs(json.loads((self.run_dir / "run.json").read_text())["code"]["edited"], True)
 
     def test_the_job_prints_the_diff_before_python_runs_run_py(self):
         out = self.recorded.stdout
@@ -276,9 +277,9 @@ class EditedRun(unittest.TestCase):
         self.assertIn("set the form's fields first and edit the code last", out)
 
     def test_run_json_records_the_lib_commit(self):
-        tags = json.loads((self.run_dir / "run.json").read_text())["tags"]
-        self.assertEqual(tags["commit"], self.commit)
-        self.assertEqual(tags["lib_commit"], self.moved)
+        code = json.loads((self.run_dir / "run.json").read_text())["code"]
+        self.assertEqual(code["commit"], self.commit)
+        self.assertEqual(code["lib_commit"], self.moved)
 
     def test_a_run_py_that_python_cannot_parse_still_leaves_run_py_and_run_diff(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -309,8 +310,8 @@ class EditedRun(unittest.TestCase):
             self.assertFalse((run_dir / "model.pt").exists())
             self.assertIn("+    raise RuntimeError('broken by the edit')\n", (run_dir / "run.diff").read_text())
             run = json.loads((run_dir / "run.json").read_text())
-            self.assertEqual(run["status"], "FAILED")
-            self.assertIs(run["edited"], True)
+            self.assertEqual(run["run"]["status"], "FAILED")
+            self.assertIs(run["code"]["edited"], True)
 
 
 class UnknownEdits(unittest.TestCase):
@@ -333,8 +334,8 @@ class UnknownEdits(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((run_dir / "run.diff").exists())
             run = json.loads((run_dir / "run.json").read_text())
-            self.assertEqual(run["status"], "FINISHED")
-            self.assertEqual(run["edited"], "unknown")
+            self.assertEqual(run["run"]["status"], "FINISHED")
+            self.assertEqual(run["code"]["edited"], "unknown")
 
     def test_without_a_render_time_commit(self):
         self.run_without(None)
@@ -353,7 +354,7 @@ def only_run(iris_home, experiment="microct-2d-segmentation"):
 def logged_histories(run_dir):
     """{metric: [(epoch, value)]} as the run logged them in metrics.json,
     named as the importer names them."""
-    epochs = json.loads((run_dir / "metrics.json").read_text())["epochs"]
+    epochs = json.loads((run_dir / "metrics.json").read_text())["log"]
     logged = {"train_loss": [(e["epoch"], e["train_loss"]) for e in epochs]}
     for name in ("dice", "iou"):
         for cls_ in ("1", "2"):
@@ -372,7 +373,7 @@ def wait_for_first_epoch(job, metrics, timeout=300):
     while time.monotonic() < deadline:
         if job.poll() is not None:
             raise AssertionError(f"the run ended before its first epoch: {job.stderr.read()}")
-        if metrics.exists() and json.loads(metrics.read_text())["epochs"]:
+        if metrics.exists() and json.loads(metrics.read_text())["log"]:
             return
         time.sleep(0.1)
     raise AssertionError(f"no epoch in {metrics} after {timeout} s")
@@ -392,7 +393,7 @@ class FailedRun(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("labels.tif", result.stderr)
             self.assertTrue((run_dir / "model.pt").exists())  # it failed after training
-            self.assertEqual(json.loads((run_dir / "run.json").read_text())["status"], "FAILED")
+            self.assertEqual(json.loads((run_dir / "run.json").read_text())["run"]["status"], "FAILED")
             self.assertEqual((iris_home / "run-index" / "1234").read_text(), str(run_dir.resolve()) + "\n")
 
             self.assertEqual(import_runs(iris_home), {"imported": 1, "pending": 0})
@@ -426,8 +427,8 @@ class KilledRun(unittest.TestCase):
             finally:
                 job.kill()
             self.assertEqual(job.returncode, 143, stderr)
-            self.assertEqual(json.loads((run_dir / "run.json").read_text())["status"], "KILLED")
-            completed = [e["epoch"] for e in json.loads((run_dir / "metrics.json").read_text())["epochs"]]
+            self.assertEqual(json.loads((run_dir / "run.json").read_text())["run"]["status"], "KILLED")
+            completed = [e["epoch"] for e in json.loads((run_dir / "metrics.json").read_text())["log"]]
             self.assertGreaterEqual(len(completed), 1)
             self.assertLess(len(completed), 10000)
             self.assertFalse((run_dir / "labels.tif").exists())
@@ -453,7 +454,7 @@ class UnwritableDatasetRecord(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("dataset.json", result.stderr)
             self.assertNotIn("Traceback", result.stderr)
-            self.assertEqual(json.loads((run_dir / "run.json").read_text())["status"], "FINISHED")
+            self.assertEqual(json.loads((run_dir / "run.json").read_text())["run"]["status"], "FINISHED")
 
 
 class TooManyClasses(unittest.TestCase):
