@@ -196,7 +196,7 @@ check "run directory file names come from iris.rundir" run_dir_names
 # in git's index, notes (*.md, *.in) aside, keeps a constant of its own.
 # tests/bin/test_katana_constants.sh runs it on fixture trees.
 katana_constants() {
-    local IRIS_SYSTEM_CLONE IRIS_ENV_DIR IRIS_PYTHON_MODULE f vals
+    local IRIS_SYSTEM_CLONE IRIS_ENV_DIR IRIS_PYTHON_MODULE IRIS_ENVS_FOLDER f vals
     # shellcheck source=lib/katana.sh
     . lib/katana.sh || return
     # keep <file> <what> <want> <value>...: each <value> is <want>, and there is one.
@@ -224,7 +224,7 @@ katana_constants() {
         mapfile -t vals < <(tr -d '\r' < "$f" | sed -nE 's/^ *SYSTEM_APPS_DIR = "([^"]*)".*/\1/p')
         [ ${#vals[@]} = 0 ] || keep "$f" "SYSTEM_APPS_DIR" "$IRIS_SYSTEM_CLONE/workflows" "${vals[@]}"
     done
-    git grep -nF -e "$IRIS_SYSTEM_CLONE" -e "$IRIS_ENV_DIR" -e "$IRIS_PYTHON_MODULE" -- bin lib module envs ':(exclude)*.md' ':(exclude)*.in' \
+    git grep -nF -e "$IRIS_SYSTEM_CLONE" -e "$IRIS_ENV_DIR" -e "$IRIS_PYTHON_MODULE" -e "$IRIS_ENVS_FOLDER" -- bin lib module envs ':(exclude)*.md' ':(exclude)*.in' \
         ':(exclude)lib/katana.sh' ':(exclude)module/modulefiles/iris' |
         sed 's/$/  (take it from lib\/katana.sh)/'
 }
@@ -234,8 +234,8 @@ check "Katana constants match lib/katana.sh" katana_constants
 # is <env>/<n>, counting up from 1, with its lock in envs/<env>/<n>/, and
 # every lock there is in the map; each digest is sha256:<64 hex>, or
 # "unpublished" until CI first publishes it. Each lab in the table is a lab
-# section of index.html, starting on a version in the map. Every form's
-# IRIS_ENV_VERSION is in the map, published or not: a job stops with one
+# section of index.html, starting on a version in the map. The researcher
+# tools' IRIS_TOOLS_ENV_VERSION and every form's IRIS_ENV_VERSION are in the map, published or not: a job stops with one
 # line when its container file is missing. A later version only adds
 # packages: its lock keeps every line of the one before it.
 # tests/bin/test_env_versions.sh runs it on fixture trees.
@@ -281,6 +281,8 @@ env_versions() {
         in_map "${IRIS_LAB_ENVS[$lab]}" ||
             echo "lib/katana.sh: the lab table starts $lab on ${IRIS_LAB_ENVS[$lab]}, which isn't in the digest map"
     done
+    in_map "$IRIS_TOOLS_ENV_VERSION" ||
+        echo "lib/katana.sh: IRIS_TOOLS_ENV_VERSION is ${IRIS_TOOLS_ENV_VERSION:-unset}, which isn't in the digest map"
     for f in workflows/*/form.yml.erb; do
         [ -f "$f" ] || continue
         tr -d '\r' < "$f" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p' | while IFS= read -r v; do
