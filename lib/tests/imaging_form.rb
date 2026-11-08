@@ -13,7 +13,8 @@
 #     OpenComposer re-reads the form without @apps_dir; the one
 #     IRIS_ENV_VERSION=<env>/<n> line pinning its environment version,
 #     which bin/check's "environment versions" check finds in the digest map
-#   - sourcing the job library
+#   - sourcing the job library from the workflow's own copy of the
+#     library's job side, $CODE/lib/ (bin/libcopy), not the clone's lib/
 #   - the banner
 #   - the quoted heredoc writing run.py, holding the entry script byte for
 #     byte up to its end marker (ADR-0006)
@@ -31,7 +32,7 @@
 require_relative "form_helper"
 
 module ImagingForm
-  SOURCE = %(source "$CODE/../../lib/iris-job.sh")
+  SOURCE = %(source "$CODE/lib/iris-job.sh")
   CODE_GUARD = %([ -n "$CODE" ] || { echo "ERROR: the form could not locate its IRIS clone."; exit 1; })
   BANNER = "# Workflow code: edit below. Set the form fields first; changing a field afterwards discards these edits."
   END_MARKER = "IRIS_RUN_PY_END"

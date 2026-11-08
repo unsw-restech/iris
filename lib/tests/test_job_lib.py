@@ -96,14 +96,17 @@ def envs_folder(tmp, container=None, digest=DIGEST):
     return folder
 
 
-def source_job_lib(envs, run_dir, then="echo AFTER", commit=None, code=WORKFLOW, view=None, env=None):
+def source_job_lib(envs, run_dir, then="echo AFTER", commit=None, code=WORKFLOW, view=None, env=None,
+                   own_copy=False):
     """Run the rendered script's header, from #!/bin/bash to sourcing the
     library, for a run directory <dataset>/runs/<job>, then run `then`.
     The environments folder is `envs`; COMMIT, the clone's commit when the
     form rendered, is `commit` if given, and VIEW is `view` if given, as a
     workflow that writes no label volume sets it. `env` adds to the job's
-    environment. The library sourced is always this tree's, whichever
-    clone `code` is in."""
+    environment. The library sourced is this tree's lib/, whichever clone
+    `code` is in, so these tests test the library rather than a
+    workflow's copy of it; with `own_copy` it is the form's own source
+    line, the workflow's copy (bin/libcopy)."""
     assert run_dir.parent.name == "runs", run_dir
     lines = rendered_script(code, run_dir.parent.parent).splitlines(keepends=True)
     end = next(i for i, line in enumerate(lines) if JOB_LIB.name in line)
@@ -114,7 +117,7 @@ def source_job_lib(envs, run_dir, then="echo AFTER", commit=None, code=WORKFLOW,
     header += f'ENVS_FOLDER="{envs}"\n'
     if view is not None:
         header += f'VIEW="{view}"\n'
-    header += f'source "{JOB_LIB}"\n'
+    header += lines[end] if own_copy else f'source "{JOB_LIB}"\n'
     job_env = {k: v for k, v in os.environ.items()
                if k not in ("VIRTUAL_ENV", "PYTHONPATH", "CUDA_VISIBLE_DEVICES", "IRIS_HOME")}
     job_env.update({"PBS_JOBID": f"{run_dir.name}.kman.restech.unsw.edu.au", "PBS_QUEUE": "cpu",
@@ -160,12 +163,12 @@ class StartLine(unittest.TestCase):
         self.path = f"{bin_dir}:{os.environ['PATH']}"
         self.n = 0
 
-    def start(self, then=None, env=None):
+    def start(self, then=None, env=None, own_copy=False):
         """What the stand-in apptainer printed, as (arguments, variables)."""
         self.n += 1
         run_dir = Path(self.tmp.name, "dataset", "runs", str(self.n))
         result = source_job_lib(self.envs, run_dir, then=f"echo START\n{then or rendered_lines(1)}",
-                                env={"PATH": self.path, **(env or {})})
+                                env={"PATH": self.path, **(env or {})}, own_copy=own_copy)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         args, variables = result.stdout.split("START\n", 1)[1].split("ENV\n", 1)
         return args.splitlines(), dict(line.split("=", 1) for line in variables.splitlines())
@@ -191,6 +194,11 @@ class StartLine(unittest.TestCase):
         self.assertEqual(variables["PBS_JOBID"], "1.kman.restech.unsw.edu.au")
         self.assertEqual(variables["PBS_QUEUE"], "cpu")
         self.assertEqual(variables["PYTHONUNBUFFERED"], "1")
+
+    def test_a_job_as_the_form_renders_it_runs_the_workflows_own_copy_of_the_library(self):
+        _, variables = self.start(own_copy=True)
+        self.assertEqual(variables["PYTHONPATH"], str(WORKFLOW / "lib"))
+        self.assertEqual(variables["IRIS_CODE"], str(WORKFLOW))
 
     def test_iris_home_is_passed_in_when_it_is_set(self):
         _, variables = self.start(env={"IRIS_HOME": "/srv/scratch/z0000000/elsewhere"})

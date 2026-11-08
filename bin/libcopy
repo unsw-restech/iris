@@ -1,0 +1,99 @@
+#!/bin/bash
+# Each workflow carries its own copy of the job side of the library, so a
+# change to lib/ reaches a workflow only when its owner copies it again
+# (#129). The job side is what a job runs: the job library and the
+# constants it sources, the run record writer, the code recorder, the
+# dataset record and the readers an entry script imports, JOB_SIDE below.
+# The shared side (the importer, iris-view, iris-compare, rebuild,
+# tracking) stays one copy in the clone's lib/. A form sources its copy,
+# workflows/<slug>/lib/iris-job.sh, which puts that copy on the job's
+# Python path.
+#
+#   bin/libcopy <slug>     copy the job side, as HEAD holds it, into
+#                          workflows/<slug>/lib/, and write the commit it
+#                          is copied from to workflows/<slug>/lib/copied-from;
+#                          when a workflow is made, and whenever its owner
+#                          updates it. Commit the result.
+#   bin/libcopy --check    print each copy that differs from lib/ at the
+#                          commit it records, or records a commit outside
+#                          HEAD's history; bin/check runs it
+#
+# The commit recorded is the last one that changed the job side at HEAD,
+# whose job side is HEAD's, so a copy made on a branch that leaves lib/
+# alone records a commit already on main. A branch that changes lib/
+# records its own commit, which reaches main with it, as long as it is
+# merged, not rebased or squashed: the check fails a recorded commit
+# outside HEAD's history, so copy again after rewriting a branch. It reads
+# history, so it needs a full clone; CI checks out full history.
+
+cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
+
+# The job side, as paths in lib/.
+JOB_SIDE=(iris-job.sh katana.sh iris/__init__.py iris/dataset.py iris/labels.py iris/record.py iris/rundir.py iris/volume.py)
+RECORD=copied-from
+
+die() { echo "libcopy: $*" >&2; exit 1; }
+
+copy() {
+    local slug="$1" dest="workflows/$1/lib" paths source f
+    [ -d "workflows/$slug" ] || die "no workflow folder workflows/$slug"
+    paths=("${JOB_SIDE[@]/#/lib/}")
+    git diff --quiet HEAD -- "${paths[@]}" ||
+        die "lib/'s job side has uncommitted changes; commit them first, since the copy records a commit"
+    source="$(git log -1 --format=%H HEAD -- "${paths[@]}")"
+    [ -n "$source" ] && git diff --quiet "$source" HEAD -- "${paths[@]}" || source="$(git rev-parse HEAD)"
+    for f in "${JOB_SIDE[@]}"; do
+        mkdir -p "$(dirname "$dest/$f")" || exit 1
+        git show "$source:lib/$f" > "$dest/$f" || die "lib/$f is not in $source"
+    done
+    echo "$source" > "$dest/$RECORD"
+    echo "Copied lib/'s job side from $(git log -1 --format='%h %s' "$source") into $dest/; commit it."
+}
+
+# Each problem with the copy in $1, a workflow's lib/.
+check_copy() {
+    local dir="$1" slug commit f want listed
+    slug="$(basename "$(dirname "$dir")")"
+    local again="copy again with bin/libcopy $slug"
+    if [ ! -f "$dir/$RECORD" ]; then
+        echo "$dir: no $RECORD, so which commit it is a copy of is unknown; $again"
+        return
+    fi
+    commit="$(head -n 1 "$dir/$RECORD" | tr -d '\r')"
+    if ! [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || ! git cat-file -e "$commit^{commit}" 2> /dev/null; then
+        echo "$dir/$RECORD: $commit is not a commit in this clone; $again"
+        return
+    fi
+    if ! git merge-base --is-ancestor "$commit" HEAD; then
+        echo "$dir/$RECORD: $commit is not in HEAD's history, as after a rebase or a squash merge; $again"
+        return
+    fi
+    for f in "${JOB_SIDE[@]}"; do
+        want="$(git rev-parse -q --verify "$commit:lib/$f")"
+        if [ ! -f "$dir/$f" ]; then
+            echo "$dir/$f: missing; $again"
+        elif [ -z "$want" ]; then
+            echo "$dir/$f: lib/$f is not in $commit; $again"
+        elif [ "$(git hash-object --path="$dir/$f" "$dir/$f")" != "$want" ]; then
+            echo "$dir/$f: differs from lib/$f at ${commit:0:12}, which $RECORD records. A copy is never edited by hand: change lib/, then $again"
+        fi
+    done
+    listed=" $RECORD ${JOB_SIDE[*]} "
+    git ls-files -- "$dir" | while IFS= read -r f; do
+        [[ "$listed" == *" ${f#"$dir"/} "* ]] || echo "$f: not part of the library's job side (bin/libcopy's JOB_SIDE); remove it"
+    done
+}
+
+case "$1" in
+    --check)
+        [ $# -eq 1 ] || die "usage: bin/libcopy <slug> | bin/libcopy --check"
+        for d in workflows/*/lib; do
+            [ -d "$d" ] && check_copy "$d"
+        done
+        ;;
+    -*|"") die "usage: bin/libcopy <slug> | bin/libcopy --check" ;;
+    *)
+        [ $# -eq 1 ] || die "usage: bin/libcopy <slug> | bin/libcopy --check"
+        copy "$1"
+        ;;
+esac

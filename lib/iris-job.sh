@@ -1,5 +1,11 @@
 # The run-time steps of every imaging job, in one place.
 #
+# Each workflow runs its own copy of the library's job side, this file
+# among them, which bin/libcopy makes in workflows/<slug>/lib/ (#129): a
+# form sources "$CODE/lib/iris-job.sh", and the job's Python imports the
+# iris package beside it, so a change to lib/ reaches a workflow only when
+# its owner copies it again. Edit lib/, never a copy.
+#
 # Source this from a job script after setting:
 #   CODE              the workflow folder in the clone that served the form
 #   IRIS_ENV_VERSION  the environment version the form pins, <env>/<n>
@@ -51,7 +57,8 @@ mkdir -p "$RUN_DIR"
 # would fail on missing drivers. --cleanenv keeps the job's modules and
 # host libraries out; only what the run needs is passed in, through
 # Apptainer's APPTAINERENV_ variables, which no value can break as a comma
-# breaks --env: lib/ on the Python path, the workflow folder as IRIS_CODE
+# breaks --env: this copy's folder on the Python path, so the run imports
+# the workflow's own copy of the iris package, the workflow folder as IRIS_CODE
 # for the entry script, IRIS_HOME if set, USER, the PBS job ID and queue,
 # unbuffered Python output, the environment version and digest, and
 # CUDA_VISIBLE_DEVICES if PBS set it. Katana binds /srv and home, so the
