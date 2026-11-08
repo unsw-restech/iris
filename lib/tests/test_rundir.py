@@ -1,9 +1,9 @@
 """Tests for iris.rundir, the run directory module: recording a run's code
 into a run directory in a scratch git clone, as lib/iris-job.sh's
 iris_record_code does, and reading back its commit and whether it is an
-edited run. Run from the repo root in the desktop CPU venv:
+edited run. bin/check runs it in the researcher tools' container; by hand:
 
-    ~/.venvs/iris-imaging/bin/python -m unittest discover -s lib/tests
+    cd lib/tests && ../../bin/envrun microct/1 python -m unittest test_rundir
 """
 
 import json

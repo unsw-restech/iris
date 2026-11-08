@@ -34,7 +34,7 @@ You don't need anything here to use IRIS; the website and forms are enough. The 
 | `workflows/<workflow>/lib/` | The workflow's own copy of the shared code its jobs run: reading volumes, writing label volumes, recording runs |
 | `lib/iris/` | Code shared by imaging workflows, which each workflow copies, and the code behind your tools |
 | `module/bin/`, `bin/iris-rebuild` | Your tools: `module load iris` gives you `iris-view`, to view a run, and `iris-compare`, to compare runs. If your tracking store is ever lost, `/srv/scratch/katana_ai/iris/code/bin/iris-rebuild` rebuilds it |
-| `envs/imaging/` | The software, with exact versions, that imaging runs use |
+| `envs/` | The software, with exact versions, that imaging runs use, as one container per environment version |
 
 Every run writes `commit.txt` into its run directory: the commit of this repo its form was opened at, so you can see the code behind any result. A run whose code you edited on the form also keeps your changes against that commit, in `run.diff`.
 

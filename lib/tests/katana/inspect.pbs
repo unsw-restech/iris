@@ -20,7 +20,8 @@
 : "${JOBS:?pass JOBS=<job>:<job> with qsub -v}"
 CODE="${CLONE:?pass CLONE=<system clone> with qsub -v}"
 . "$CODE/lib/katana.sh" || exit 1
-ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
+# The researcher tools' container, which bin/iris-import runs in too.
+TOOLS="${IRIS_TOOLS_CONTAINER:-$IRIS_ENVS_FOLDER/$IRIS_TOOLS_ENV_VERSION.sif}"
 "$CODE/bin/iris-import" || exit 1
 second=$("$CODE/bin/iris-import") || exit 1
 echo "$second"
@@ -28,9 +29,9 @@ case "$second" in
     "Imported 0 "*) ;;
     *) echo "FAIL: the second import imported runs"; exit 1 ;;
 esac
-. /etc/profile.d/modules.sh
-module load "$IRIS_PYTHON_MODULE"
-MLFLOW_DISABLE_AGENT_HINT=1 PYTHONPATH=$CODE/lib "$ENV_DIR/bin/python" - "$JOBS" <<'PY'
+pass=(--env MLFLOW_DISABLE_AGENT_HINT=1 --env "PYTHONPATH=$CODE/lib" --env "USER=$USER")
+[ -z "$IRIS_HOME" ] || pass+=(--env "IRIS_HOME=$IRIS_HOME")
+apptainer exec --cleanenv "${pass[@]}" "$TOOLS" python - "$JOBS" <<'PY'
 import sys
 from mlflow import MlflowClient
 from iris.record import iris_home

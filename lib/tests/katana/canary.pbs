@@ -4,18 +4,20 @@
 #PBS -l select=1:ncpus=1:mem=1gb
 #PBS -l walltime=0:05:00
 #PBS -j oe
-# Can a compute node read the pinned environment? `import mlflow` takes
-# about 20 s (job 9571395); exit 124 means it hung past 120 s, so stop
-# submitting and tell Patrick (docs/agents/katana-test-run.md).
+# Can a compute node read an environment's container? It times `import
+# mlflow` in the container, as a job's start does; in the imaging/1 venv
+# that took about 20 s (job 9571395). Exit 124 means it hung past 120 s, so
+# stop submitting and tell Patrick (docs/agents/katana-test-run.md).
 #
 #   qsub -m abe -v CLONE=<clone>,PYTHONUNBUFFERED=1 canary.pbs
 #
-# CLONE is the clone whose lib/katana.sh names the environment and its
-# Python module: the system clone, or a test folder's copy, T/iris.
+# CLONE is the clone whose lib/katana.sh names the environments folder and
+# the researcher tools' version: the system clone, or a test folder's copy,
+# T/iris. Add VERSION=<env>/<n> to -v for the version a form pins instead.
 : "${CLONE:?pass CLONE=<clone> with qsub -v}"
 . "$CLONE/lib/katana.sh" || exit 1
-ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
-. /etc/profile.d/modules.sh; module load "$IRIS_PYTHON_MODULE"
-echo "host $(hostname) $(date +%T)"
-time timeout 120 "$ENV_DIR/bin/python" -X faulthandler -c 'import mlflow; print("mlflow", mlflow.__version__)'
+sif="$IRIS_ENVS_FOLDER/${VERSION:-$IRIS_TOOLS_ENV_VERSION}.sif"
+[ -f "$sif" ] || { echo "no container file at $sif"; exit 1; }
+echo "host $(hostname) $(date +%T) $sif"
+time timeout 120 apptainer exec --cleanenv "$sif" python -X faulthandler -c 'import mlflow; print("mlflow", mlflow.__version__)'
 echo "exit $? $(date +%T)"

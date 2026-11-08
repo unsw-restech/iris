@@ -1,10 +1,10 @@
 """Synthetic-dataset test for the microCT reference workflow (seam 2 in #24).
 
 Builds a tiny dataset on the fly, runs the entry point on CPU for one epoch
-and asserts only on what lands in the run directory. Run from the repo root
-in the desktop CPU venv (envs/imaging/desktop.sh):
+and asserts only on what lands in the run directory. bin/check runs it in
+the container the workflow's form pins (bin/envrun); by hand:
 
-    ~/.venvs/iris-imaging/bin/python -m unittest discover -s workflows/microct-2d-segmentation/tests
+    cd workflows/microct-2d-segmentation/tests && ../../../bin/envrun microct/1 python -m unittest test_synthetic
 
 The shared library's tests are in lib/tests, so copying this folder for a
 new workflow copies none of them. The dataset and the clone come from the
