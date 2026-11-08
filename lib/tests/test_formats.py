@@ -3,9 +3,9 @@ written. samples/format-<n>/ keeps one dataset per format, holding the run
 directory 1001 as the run record writer of that format left it, frozen:
 nothing rewrites it, so a change to the shared tools that drops a format
 fails here. Each sample's dataset folder is /srv/scratch/z0000000/dataset
-in its records. Run from the repo root in the desktop CPU venv:
+in its records. bin/check runs it in the researcher tools' container; by hand:
 
-    ~/.venvs/iris-imaging/bin/python -m unittest discover -s lib/tests
+    cd lib/tests && ../../bin/envrun microct/1 python -m unittest test_formats
 """
 
 import json

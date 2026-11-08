@@ -22,7 +22,8 @@
 RUN="${RUN:-/srv/scratch/z3224749/iris-fixtures/home/run-index/9573671}"
 [ -f "$RUN" ] || { echo "No run-index pointer at $RUN"; exit 1; }
 . "$T/iris/lib/katana.sh" || exit 1
-ENV_DIR="${ENV_DIR:-$IRIS_ENV_DIR}"
+# The researcher tools' container, which bin/iris-python runs iris-compare in too.
+TOOLS="${IRIS_TOOLS_CONTAINER:-$IRIS_ENVS_FOLDER/$IRIS_TOOLS_ENV_VERSION.sif}"
 export IRIS_HOME=$T/home-compare PYTHONUNBUFFERED=1 PYTHONFAULTHANDLER=1
 [ -e "$IRIS_HOME" ] && { echo "$IRIS_HOME exists: the store must be fresh"; exit 1; }
 cd "$T" || exit 1
@@ -49,7 +50,7 @@ probe() {
     port=${url##*:}
     echo "== sockets on port $port"; ss -ltn "sport = :$port"
     echo "== runs the UI shows"
-    MLFLOW_DISABLE_AGENT_HINT=1 "$ENV_DIR/bin/python" - "$url" <<'PY'
+    apptainer exec --cleanenv --env MLFLOW_DISABLE_AGENT_HINT=1 "$TOOLS" python - "$url" <<'PY'
 import sys
 from mlflow import MlflowClient
 c = MlflowClient(sys.argv[1])
@@ -71,7 +72,6 @@ PY
         echo "port $port closed after Ctrl+C"
     fi
 }
-. /etc/profile.d/modules.sh; module load "$IRIS_PYTHON_MODULE"
 : > compare.out
 probe &
 echo "$(ts) starting iris-compare"

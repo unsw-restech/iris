@@ -1,0 +1,54 @@
+#!/bin/bash
+# bin/envrun <env>/<n> <command> [<arg>...]: run a command in an
+# environment version's container on the desktop or in CI, on CPU, with
+# this clone bound at its own path and the working folder kept. bin/check
+# runs the Python tests with it, each workflow's in the version its form
+# pins (envs/README.md). Not for Katana, where jobs run the container files
+# bin/envpull puts there.
+#
+# The container is the version's digest in lib/katana.sh's digest map; an
+# unpublished version, or one not in the map, fails with one line.
+#
+# With Apptainer, which the desktop's WSL has, as Katana does, the command
+# runs under `apptainer exec --cleanenv` in a container file cached by
+# digest in IRIS_ENV_CACHE (default ~/.cache/iris/envs): the first run
+# pulls it, about 4.7 GB, which takes some minutes. Until the package is
+# public the pull needs a login: APPTAINER_DOCKER_USERNAME and
+# APPTAINER_DOCKER_PASSWORD if set, otherwise the gh CLI's own login, whose
+# token needs read:packages (gh auth refresh -s read:packages).
+#
+# Without Apptainer, or with IRIS_CONTAINER_RUNTIME=docker, it runs under
+# `docker run` as this user, as CI does after `docker login ghcr.io`.
+
+set -eo pipefail
+[[ "$1" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]] && [ $# -ge 2 ] ||
+    { echo "usage: bin/envrun <env>/<n> <command> [<arg>...]" >&2; exit 2; }
+version="$1"
+shift
+repo="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+# shellcheck source=lib/katana.sh
+. "$repo/lib/katana.sh"
+ref="$(iris_env_ref "$version")"
+runtime="${IRIS_CONTAINER_RUNTIME:-$(command -v apptainer > /dev/null && echo apptainer || echo docker)}"
+
+if [ "$runtime" = docker ]; then
+    exec docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp --env PYTHONUNBUFFERED=1 \
+        --volume "$repo:$repo" --workdir "$PWD" "$ref" "$@"
+fi
+
+cache="${IRIS_ENV_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/iris/envs}"
+sif="$cache/${ref##*@sha256:}.sif"
+if [ ! -f "$sif" ]; then
+    mkdir -p "$cache"
+    if [ -z "${APPTAINER_DOCKER_USERNAME-}" ] && command -v gh > /dev/null; then
+        APPTAINER_DOCKER_PASSWORD="$(gh auth token 2> /dev/null)" &&
+            APPTAINER_DOCKER_USERNAME="$(gh api user --jq .login 2> /dev/null)" &&
+            export APPTAINER_DOCKER_USERNAME APPTAINER_DOCKER_PASSWORD ||
+            unset APPTAINER_DOCKER_USERNAME APPTAINER_DOCKER_PASSWORD
+    fi
+    echo "envrun: pulling $version ($ref) into $cache, once" >&2
+    apptainer pull --disable-cache --force "$sif.part" "docker://$ref" >&2 ||
+        { rm -f "$sif.part"; echo "envrun: the pull of $version failed; a private package needs a login with read:packages (bin/envrun's header)" >&2; exit 1; }
+    mv "$sif.part" "$sif"
+fi
+exec apptainer exec --cleanenv --env PYTHONUNBUFFERED=1 --bind "$repo" --pwd "$PWD" "$sif" "$@"

@@ -52,3 +52,4 @@ A container built from #106's recipe runs the reference workflow on Katana befor
 ## Consequences
 
 - `AGENTS.md`, `CONTRIBUTING.md`, `envs/imaging/README.md`, `lib/iris-job.sh`, `lib/katana.sh` and `bin/check` keep describing venvs until the move is built, and change with it.
+  - Done in #131 (2026-11-09): `envs/imaging/`, its build, seal, smoke and test jobs and the desktop CPU venv are gone from the repo, `lib/katana.sh` no longer names the venv, and `bin/check` runs each workflow's tests on CPU in the container its form pins (`bin/envrun`), in CI as on the desktop. The `imaging/1` venv and its wheelhouse stay on Katana until the deletion above.
