@@ -15,8 +15,13 @@ Katana, in the stand-in container IRIS_STAND_IN names (lib/tests/katana/
 stand-in.sh), which job_lib.pbs sets; bin/katana-test submits that job.
 That job requests no GPUs, so it is also the CPU-only run.
 
-    python3 -m unittest discover -s lib/tests
+The job library runs on the job's node, outside any container, so these
+tests need only the standard library, Ruby and bash, and bin/check runs
+them with the host's python3, not in a container like the other tests:
+
+    cd lib/tests && python3 -m unittest test_job_lib
 """
+# bin/check: on the host
 
 import functools
 import os

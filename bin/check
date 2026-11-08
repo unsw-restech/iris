@@ -9,15 +9,14 @@
 #                       "card status"), for a quick loop while editing;
 #                       commit on a full run
 #
-# The Python tests, lib/tests once and then each workflow's tests/, run in
-# the desktop CPU venv, which envs/imaging/desktop.sh builds (IRIS_PYTHON
-# names another interpreter). The rendered-form checks and their tests need
+# The Python tests, lib/tests once and then each workflow's tests/, run on
+# CPU in containers through bin/envrun, whose header says how it pulls
+# them the first time. The rendered-form checks and their tests need
 # Ruby (once in WSL: sudo apt install ruby; CI's image has it).
 # The form tests that need /srv/scratch and the module test need Katana
 # and are not run here: see AGENTS.md.
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
-PYTHON="${IRIS_PYTHON:-$HOME/.venvs/iris-imaging/bin/python}"
 [ $# -le 1 ] || { echo "usage: bin/check [<text>]; quote a name with spaces" >&2; exit 2; }
 only="$1"
 failed=0
@@ -196,7 +195,7 @@ check "run directory file names come from iris.rundir" run_dir_names
 # in git's index, notes (*.md, *.in) aside, keeps a constant of its own.
 # tests/bin/test_katana_constants.sh runs it on fixture trees.
 katana_constants() {
-    local IRIS_SYSTEM_CLONE IRIS_ENV_DIR IRIS_PYTHON_MODULE IRIS_ENVS_FOLDER f vals
+    local IRIS_SYSTEM_CLONE IRIS_PYTHON_MODULE IRIS_ENVS_FOLDER f vals
     # shellcheck source=lib/katana.sh
     . lib/katana.sh || return
     # keep <file> <what> <want> <value>...: each <value> is <want>, and there is one.
@@ -220,7 +219,7 @@ katana_constants() {
         mapfile -t vals < <(tr -d '\r' < "$f" | sed -nE 's/^ *SYSTEM_APPS_DIR = "([^"]*)".*/\1/p')
         [ ${#vals[@]} = 0 ] || keep "$f" "SYSTEM_APPS_DIR" "$IRIS_SYSTEM_CLONE/workflows" "${vals[@]}"
     done
-    git grep -nF -e "$IRIS_SYSTEM_CLONE" -e "$IRIS_ENV_DIR" -e "$IRIS_PYTHON_MODULE" -e "$IRIS_ENVS_FOLDER" -- bin lib module envs ':(exclude)*.md' ':(exclude)*.in' \
+    git grep -nF -e "$IRIS_SYSTEM_CLONE" -e "$IRIS_PYTHON_MODULE" -e "$IRIS_ENVS_FOLDER" -- bin lib module envs ':(exclude)*.md' ':(exclude)*.in' \
         ':(exclude)lib/katana.sh' ':(exclude)module/modulefiles/iris' |
         sed 's/$/  (take it from lib\/katana.sh)/'
 }
@@ -766,21 +765,46 @@ done
 # Mechanical Python checks only; ruff.toml holds the rule set.
 check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format concise .'
 
-if selected "synthetic-dataset test"; then
-    if [ -x "$PYTHON" ]; then
-        # The library's tests once, then each workflow's own.
-        for dir in lib/tests workflows/*/tests; do
-            ls "$dir"/test_*.py > /dev/null 2>&1 || continue
-            out="$("$PYTHON" -m unittest discover -s "$dir" 2>&1)" || {
-                echo "FAIL: synthetic-dataset test: $dir"
-                echo "$out" | tail -40 | sed 's/^/  /'
-                failed=1
-            }
-        done
-    else
-        echo "FAIL: synthetic-dataset test: no venv at $PYTHON; build it with envs/imaging/desktop.sh"
-        failed=1
+# The Python tests: lib/tests once, in the researcher tools' version
+# (IRIS_TOOLS_ENV_VERSION), then each workflow's tests/ in the version its
+# form pins, each in that version's container (bin/envrun), on CPU. A test
+# file holding the line "# bin/check: on the host" runs with the host's
+# python3 instead: the job library's, which runs outside any container,
+# as a job's does.
+# py_tests <dir> <version>: runs <dir>'s test_*.py; prints any failure.
+py_tests() {
+    local dir="$1" version="$2" root="$PWD" t out host=() boxed=()
+    for t in "$dir"/test_*.py; do
+        t="${t##*/}"
+        if tr -d '\r' < "$dir/$t" | grep -qx '# bin/check: on the host'; then host+=("${t%.py}"); else boxed+=("${t%.py}"); fi
+    done
+    if [ ${#boxed[@]} -gt 0 ]; then
+        [ -n "$version" ] || { echo "FAIL: synthetic-dataset test: $dir: no IRIS_ENV_VERSION in its form to run it in"; failed=1; return; }
+        out="$(cd "$dir" && "$root/bin/envrun" "$version" python -m unittest "${boxed[@]}" 2>&1)" || {
+            echo "FAIL: synthetic-dataset test: $dir in $version"
+            echo "$out" | tail -40 | sed 's/^/  /'
+            failed=1
+        }
     fi
+    if [ ${#host[@]} -gt 0 ]; then
+        out="$(cd "$dir" && python3 -m unittest "${host[@]}" 2>&1)" || {
+            echo "FAIL: synthetic-dataset test: $dir on the host"
+            echo "$out" | tail -40 | sed 's/^/  /'
+            failed=1
+        }
+    fi
+}
+if selected "synthetic-dataset test"; then
+    for dir in lib/tests workflows/*/tests; do
+        ls "$dir"/test_*.py > /dev/null 2>&1 || continue
+        if [ "$dir" = lib/tests ]; then
+            # shellcheck source=lib/katana.sh
+            version="$(. lib/katana.sh && echo "$IRIS_TOOLS_ENV_VERSION")"
+        else
+            version="$(tr -d '\r' 2>/dev/null < "${dir%/tests}/form.yml.erb" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p' | head -n1)"
+        fi
+        py_tests "$dir" "$version"
+    done
 fi
 
 if [ "$ran" = 0 ]; then

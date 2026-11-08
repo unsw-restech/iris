@@ -6,6 +6,8 @@ Workflows run in environments packaged as containers ([ADR-0008](../docs/adr/000
 |---|---|---|---|---|
 | `microct/1` | `imaging/1`'s lock, unchanged, on Python 3.13.2 (closed PR #106's recipe) | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Recipe committed; not yet published |
 
+`torch 2.9.1+cu128` has no `sm_70`, so it would not run on the V100s, and the `cu128` build needs NVIDIA driver 570 or newer: Katana's V100s run 580 and every other GPU node 610. L40S (sm_89) runs the `sm_86` code.
+
 ## Files
 
 - `core.in`: the shared core list, the top-level packages `lib/iris` needs (numpy, xarray, dask, tifffile, mlflow). Every environment holds them.
@@ -15,7 +17,6 @@ Workflows run in environments packaged as containers ([ADR-0008](../docs/adr/000
 - `next.Dockerfile`: every later version: the version before it, pulled by digest, plus one layer installing what its lock adds. The registry stores what versions share only once.
 - `build-container.sh <env>/<n> <local name>`: builds a version with Docker, as CI does.
 - `check-container.sh <local name> <env>/<n>`: CI's checks on a built container: the installed packages are exactly the lock, every package imports (`check_imports.py`), PyTorch has `sm_70` for the V100s, and, for a version with napari, Qt finds its libraries and napari draws a frame under Xvfb. Offscreen Qt has no OpenGL and draws nothing, so the check needs an X display.
-- `imaging/`: the `imaging/1` venv's build steps on Katana, kept until the move to containers is done.
 
 ## The digest map and the lab table
 
@@ -74,3 +75,22 @@ DISPLAY=:99 envs/check-container.sh iris-env-build:local microct/1
 ```
 
 Docker Desktop's Windows credential helper breaks the base pull unless the build runs with a home folder that lacks it, such as `HOME=$(mktemp -d)`.
+
+## The Python tests
+
+`bin/check` runs the library's tests, `lib/tests`, in the researcher tools' version, and each workflow's `tests/`, its synthetic-dataset test among them, in the version its form pins, on CPU. The CUDA PyTorch in a container runs on CPU when there is no GPU. A test file holding the line `# bin/check: on the host` runs with the host's `python3` instead: the job library's, `test_job_lib.py`, since the job library runs on the job's node, outside any container.
+
+`bin/envrun <env>/<n> <command>…` runs a command in a published version's container, with the clone bound at its own path:
+
+- **On the desktop**, in WSL's Apptainer, which Katana has too. The first run pulls the version by digest into `~/.cache/iris/envs/<hex>.sif`, about 4.7 GB, which takes some minutes; later runs start at once. Until the package is public, the pull logs in with the `gh` CLI's token, which needs `read:packages` (`gh auth refresh -s read:packages`).
+- **In CI**, in Docker (`.github/workflows/check.yml`), logged in to GHCR with the workflow's own token, which has `packages: read`.
+
+A workflow whose form pins an unpublished version fails its tests in `bin/check`, since there is no container to run them in yet.
+
+## Model weights (convention only)
+
+Nothing in `microct/1` uses pretrained weights; the reference workflow trains from scratch. When a workflow does need them:
+
+- Stage them once, on the data mover, into `/srv/scratch/katana_ai/iris/models/<name>/<version>/`, and make that folder read-only.
+- The job script points the library caches there (`TORCH_HOME`, `HF_HOME`, and any tool-specific variable such as `CELLPOSE_LOCAL_MODELS_PATH`) and sets `HF_HUB_OFFLINE=1`. That way an unexpected download fails loudly instead of fetching at run time.
+- The weights' version is part of the job script, like the environment version.

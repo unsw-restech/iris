@@ -4,10 +4,9 @@ recent runs, the volume reader and a run whose run index can't be written.
 Their run directories are built as a job builds them, through the run
 directory module and RunRecord (run_dirs.py), and the volume reader's
 synthetic dataset by datasets.py, so nothing here depends on a workflow's
-folder. Run from the repo root in the desktop CPU venv
-(envs/imaging/desktop.sh):
+folder. bin/check runs them in the researcher tools' container; by hand:
 
-    ~/.venvs/iris-imaging/bin/python -m unittest discover -s lib/tests
+    cd lib/tests && ../../bin/envrun microct/1 python -m unittest test_library
 """
 
 import contextlib

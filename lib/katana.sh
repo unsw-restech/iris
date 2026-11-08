@@ -12,11 +12,9 @@
 # The system clone (Patrick, 2026-10-23; see AGENTS.md): the system
 # OpenComposer serves its workflows/ and `module load iris` its module/bin.
 IRIS_SYSTEM_CLONE=/srv/scratch/katana_ai/iris/code
-# The imaging/1 venv (envs/imaging/), which only some of the library's
-# Katana test jobs still use until the venv is retired; workflow jobs run
-# in the container their form pins.
-IRIS_ENV_DIR=/srv/scratch/katana_ai/iris/envs/imaging/1
-# The Python module that environment was built on (../available-modules.md).
+# Katana's Python module (../available-modules.md), for the job library's
+# Katana test (lib/tests/katana/job_lib.pbs), which needs only the
+# standard library. Workflows and the researcher tools run in containers.
 IRIS_PYTHON_MODULE=python/3.13.2
 
 # Environments as containers (ADR-0007, ADR-0008; envs/README.md). An
@@ -42,7 +40,7 @@ IRIS_TOOLS_ENV_VERSION=microct/1
 # unpublished version and prints the line to put here instead
 # (envs/README.md). A version's digest never changes once written.
 declare -gA IRIS_ENV_DIGESTS=(
-    [microct/1]=unpublished
+    [microct/1]=sha256:c1022d8514acbdb80dc038a72ac193699fb1a4b7a75fa1b2905c7b41fd04eb4f
 )
 
 # The lab table: each lab, by its section id in index.html, and the
