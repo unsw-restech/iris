@@ -86,6 +86,9 @@ out="$(run IRIS_CONTAINER_RUNTIME=docker -- microct/1 python -V)"
 out="$(log docker)"
 has "docker run" "$out" "[run][--rm]"
 has "docker run" "$out" "[--user][$(id -u):$(id -g)]"
+# The uid has no passwd entry in the container, so the user's name goes by
+# environment, or torch's getpass.getuser() fails (CI run 42537470699).
+has "docker run" "$out" "[--env][USER=$(id -un)]"
 has "docker run" "$out" "[--volume][$repo:$repo]"
 has "docker run" "$out" "[--workdir][$repo/workflows/seg]"
 has "docker run" "$out" "[$IRIS_ENV_REGISTRY@$a][python][-V]"

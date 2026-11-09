@@ -32,7 +32,9 @@ ref="$(iris_env_ref "$version")"
 runtime="${IRIS_CONTAINER_RUNTIME:-$(command -v apptainer > /dev/null && echo apptainer || echo docker)}"
 
 if [ "$runtime" = docker ]; then
-    exec docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp --env PYTHONUNBUFFERED=1 \
+    # The uid has no passwd entry in the container, so USER carries the
+    # name getpass.getuser() needs; torch calls it (CI run 42537470699).
+    exec docker run --rm --user "$(id -u):$(id -g)" --env USER="$(id -un)" --env HOME=/tmp --env PYTHONUNBUFFERED=1 \
         --volume "$repo:$repo" --workdir "$PWD" "$ref" "$@"
 fi
 
