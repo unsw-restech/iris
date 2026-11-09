@@ -7,7 +7,8 @@
 #                                    nothing pins
 #   bin/envpull --pull <env>/<n>     pull one version by digest, pinned or not
 #   bin/envpull --remove <env>/<n>   remove a version's container file and
-#                                    its digest file, if nothing pins it
+#                                    its digest file, if nothing pins it and
+#                                    --pull could bring it back
 #
 # A version is pinned by a form in this checkout's workflows/ or the system
 # clone's, with an "  IRIS_ENV_VERSION=<env>/<n>" line, and by the

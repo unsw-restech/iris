@@ -61,7 +61,7 @@ bin/envpull --remove <env>/<n>   remove a version's file and its digest file, if
 
 - A version is pinned by a form in the checkout it runs from, by one in the system clone, or by `IRIS_TOOLS_ENV_VERSION`. Digests come from the checkout's digest map, so run it from `main`.
 - An unpublished version is skipped. A pull is `apptainer pull docker://ghcr.io/unsw-restech/iris-env@sha256:<hex>`, by digest alone, and never replaces a file already there: one whose digest file disagrees with the map is reported, and replacing it needs Patrick's go-ahead naming that file.
-- **Removing needs Patrick's go-ahead naming the file.** The listing prints each unpinned file and its `--remove` line, and `--remove` refuses a version anything pins. It is not a one-way door: `--pull` brings any published version back by digest.
+- **Removing needs Patrick's go-ahead naming the file.** The listing prints each unpinned file and its `--remove` line, and `--remove` refuses a version anything pins. It is not a one-way door: `--pull` brings any published version back by digest, so `--remove` also refuses a version that is unpublished or not in the digest map.
 - **Until the package is public, pulls need a read-only token** on Katana, in `~/.config/iris/ghcr-token`, mode 600: one line, `<GitHub login>:<token>`, from a classic token with `read:packages` alone. `bin/envpull-dm.sh` passes it to Apptainer as `APPTAINER_DOCKER_USERNAME` and `APPTAINER_DOCKER_PASSWORD`, never on a command line, and refuses a file others can read. Without the file, it pulls without a login, which works once the package is public; the token can then go.
 
 ## Building on the desktop
