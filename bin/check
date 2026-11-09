@@ -610,6 +610,14 @@ check "workflow page repeats the guide (link guide/#stage or #view)" guide_copie
 check "page uses a glossary Avoid word (see GLOSSARY.md)" \
     git grep -niE '\bscans?\b|\bupload|files app' -- '*.html' ':(exclude)_archive'
 
+# Code keeps to GLOSSARY.md's terms too. Only the Avoid words no code
+# needs in another sense are matched, as a word or a name's part: "SIF"
+# for Container, though the .sif extension stays. The glossary and the
+# ADRs name them on purpose, as this rule and its test do.
+check "name uses a glossary Avoid word (see GLOSSARY.md)" \
+    git grep -nIE '(^|[^.A-Za-z0-9])[sS][iI][fF]([^A-Za-z0-9]|$)' -- ':(exclude)_archive' ':(exclude)GLOSSARY.md' ':(exclude)docs/adr' \
+    ':(exclude)bin/check' ':(exclude)tests/bin/test_avoid_names.sh'
+
 # Every catalogue workflow with a form names its workflow owner on its
 # page, under the description, as <p class="wf-owner"> linking their GitHub
 # profile, and .github/CODEOWNERS has a "/workflows/<slug>/ @<login>" line

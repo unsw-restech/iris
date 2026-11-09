@@ -1,0 +1,42 @@
+#!/bin/bash
+# bin/check's rule that names keep to GLOSSARY.md's terms against throwaway
+# trees. Prints each failed case and nothing on success, so bin/check can
+# run it.
+#
+#   tests/bin/test_avoid_names.sh
+#
+# bin/check name: glossary names test
+
+cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
+. tests/bin/lib.sh
+
+name="name uses a glossary Avoid word"
+
+# make_tree <name> <file> <line>: a passing site with <line> in <file>.
+make_tree() {
+    local tree="$scratch/$1"
+    site_tree "$tree"
+    mkdir -p "$tree/$(dirname "$2")"
+    printf '%s\n' "$3" > "$tree/$2"
+    git -C "$tree" add -A
+}
+
+make_tree extension lib/job.sh 'apptainer exec "$IRIS_ENVS_FOLDER/microct/1.sif" python run.py'
+expect pass "$scratch/extension" "$name"
+make_tree inside-a-word lib/job.sh 'classify=1  # sift through the volumes'
+expect pass "$scratch/inside-a-word" "$name"
+make_tree glossary GLOSSARY.md '_Avoid_: Image, container image, SIF'
+expect pass "$scratch/glossary" "$name"
+make_tree adr docs/adr/0004-one-image.md 'into a sealed SIF beside the venv versions'
+expect pass "$scratch/adr" "$name"
+
+make_tree env-var lib/iris-job.sh 'IRIS_ENV_SIF="$folder/$v.sif"'
+expect fail "$scratch/env-var" "$name"
+make_tree local bin/envrun 'local sif="$cache/$digest.sif"'
+expect fail "$scratch/local" "$name"
+make_tree python-name lib/tests/test_job_lib.py 'sif_path = os.environ["IRIS_ENV_FILE"]'
+expect fail "$scratch/python-name" "$name"
+make_tree prose CONTRIBUTING.md 'Each version is one SIF on Katana.'
+expect fail "$scratch/prose" "$name"
