@@ -23,7 +23,7 @@ RUN="${RUN:-/srv/scratch/z3224749/iris-fixtures/home/run-index/9573671}"
 [ -f "$RUN" ] || { echo "No run-index pointer at $RUN"; exit 1; }
 . "$T/iris/lib/katana.sh" || exit 1
 # The researcher tools' container, which bin/iris-python runs iris-compare in too.
-TOOLS="${IRIS_TOOLS_CONTAINER:-$IRIS_ENVS_FOLDER/$IRIS_TOOLS_ENV_VERSION.sif}"
+TOOLS="${IRIS_TOOLS_CONTAINER:-$(iris_env_file "$IRIS_TOOLS_ENV_VERSION")}"
 export IRIS_HOME=$T/home-compare PYTHONUNBUFFERED=1 PYTHONFAULTHANDLER=1
 [ -e "$IRIS_HOME" ] && { echo "$IRIS_HOME exists: the store must be fresh"; exit 1; }
 cd "$T" || exit 1

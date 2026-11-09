@@ -9,7 +9,10 @@
 # `apptainer exec --cleanenv`, passing only what the tools need: this
 # clone's lib/ on the Python path, USER, and IRIS_HOME, the display
 # (DISPLAY, XAUTHORITY, for iris-view's napari) and IRIS_URL_FILE (for
-# bin/iris-compare) when set. Katana binds /srv, home and /tmp. A missing
+# bin/iris-compare) when set. Katana's Apptainer binds /srv, as ADR-0008's
+# container jobs 9680569 and 9680570 showed by reading and writing
+# /srv/scratch with no --bind, and home and /tmp, which Apptainer binds
+# unless its config says otherwise (mount home, mount tmp). A missing
 # container stops it with one line. It isn't in module/bin, so `module load
 # iris` never puts it on the PATH (ADR-0003).
 
@@ -19,7 +22,7 @@ name="$1"
 shift
 LIB="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib" && pwd)"
 . "$LIB/katana.sh"
-container="${IRIS_TOOLS_CONTAINER:-$IRIS_ENVS_FOLDER/$IRIS_TOOLS_ENV_VERSION.sif}"
+container="${IRIS_TOOLS_CONTAINER:-$(iris_env_file "$IRIS_TOOLS_ENV_VERSION")}"
 if [ ! -f "$container" ]; then
     echo "ERROR: the IRIS tools' container ($IRIS_TOOLS_ENV_VERSION) is missing at $container. See https://docs.restech.unsw.edu.au/iris/guide/#help." >&2
     exit 1

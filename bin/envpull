@@ -27,7 +27,6 @@ here="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=lib/katana.sh
 . "$here/../lib/katana.sh" || exit 2
 usage() { echo "usage: bin/envpull [--pull <env>/<n> | --remove <env>/<n>]" >&2; exit 2; }
-version='^[a-z0-9-]+/[1-9][0-9]*$'
 
 case "$#:${1-}" in
     0:) mode=list target=- ;;
@@ -35,13 +34,13 @@ case "$#:${1-}" in
     2:--remove) mode=remove target="$2" ;;
     *) usage ;;
 esac
-[ "$target" = - ] || [[ "$target" =~ $version ]] || usage
+[ "$target" = - ] || iris_is_env_version "$target" || usage
 
 # The digest map and this checkout's pins, as words the remote shell keeps
 # whole: bin/check holds both to these forms.
 args=()
 for v in "${!IRIS_ENV_DIGESTS[@]}"; do
-    [[ "$v" =~ $version ]] && [[ "${IRIS_ENV_DIGESTS[$v]}" =~ ^(sha256:[0-9a-f]{64}|unpublished)$ ]] ||
+    iris_is_env_version "$v" && iris_is_env_digest "${IRIS_ENV_DIGESTS[$v]}" ||
         { echo "envpull: lib/katana.sh's digest map has [$v]=${IRIS_ENV_DIGESTS[$v]}; run bin/check" >&2; exit 2; }
     args+=("map:$v=${IRIS_ENV_DIGESTS[$v]}")
 done
@@ -49,9 +48,9 @@ for f in "$here"/../workflows/*/form.yml.erb; do
     [ -f "$f" ] || continue
     slug="$(basename "$(dirname "$f")")"
     while IFS= read -r v; do
-        [[ "$v" =~ $version ]] || { echo "envpull: workflows/$slug pins '$v'; run bin/check" >&2; exit 2; }
+        iris_is_env_version "$v" || { echo "envpull: workflows/$slug pins '$v'; run bin/check" >&2; exit 2; }
         args+=("pin:$v=$slug")
-    done < <(tr -d '\r' < "$f" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p')
+    done < <(iris_form_pins "$f")
 done
 
 ssh katana-dm bash -s -- "$mode" "$target" "$IRIS_ENVS_FOLDER" "$IRIS_SYSTEM_CLONE" "$IRIS_ENV_REGISTRY" \

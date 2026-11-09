@@ -10,7 +10,9 @@
 # watcher here opens Firefox at it, or says where to go without one.
 
 here="$(dirname "$(readlink -f "$0")")"
-tmp="$(mktemp -d)" || exit 1
+# In /tmp, which the container sees (bin/iris-python), not TMPDIR, which
+# may be outside its binds and leave the watcher waiting forever.
+tmp="$(mktemp -d -p /tmp)" || exit 1
 export IRIS_URL_FILE="$tmp/url"
 (
     while [ ! -s "$IRIS_URL_FILE" ]; do sleep 0.5; done

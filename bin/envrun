@@ -21,13 +21,13 @@
 # `docker run` as this user, as CI does after `docker login ghcr.io`.
 
 set -eo pipefail
-[[ "$1" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]] && [ $# -ge 2 ] ||
-    { echo "usage: bin/envrun <env>/<n> <command> [<arg>...]" >&2; exit 2; }
-version="$1"
-shift
 repo="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 # shellcheck source=lib/katana.sh
 . "$repo/lib/katana.sh"
+iris_is_env_version "$1" && [ $# -ge 2 ] ||
+    { echo "usage: bin/envrun <env>/<n> <command> [<arg>...]" >&2; exit 2; }
+version="$1"
+shift
 ref="$(iris_env_ref "$version")"
 runtime="${IRIS_CONTAINER_RUNTIME:-$(command -v apptainer > /dev/null && echo apptainer || echo docker)}"
 

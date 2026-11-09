@@ -16,8 +16,8 @@
 # T/iris. Add VERSION=<env>/<n> to -v for the version a form pins instead.
 : "${CLONE:?pass CLONE=<clone> with qsub -v}"
 . "$CLONE/lib/katana.sh" || exit 1
-sif="$IRIS_ENVS_FOLDER/${VERSION:-$IRIS_TOOLS_ENV_VERSION}.sif"
-[ -f "$sif" ] || { echo "no container file at $sif"; exit 1; }
-echo "host $(hostname) $(date +%T) $sif"
-time timeout 120 apptainer exec --cleanenv "$sif" python -X faulthandler -c 'import mlflow; print("mlflow", mlflow.__version__)'
+file="$(iris_env_file "${VERSION:-$IRIS_TOOLS_ENV_VERSION}")"
+[ -f "$file" ] || { echo "no container file at $file"; exit 1; }
+echo "host $(hostname) $(date +%T) $file"
+time timeout 120 apptainer exec --cleanenv "$file" python -X faulthandler -c 'import mlflow; print("mlflow", mlflow.__version__)'
 echo "exit $? $(date +%T)"

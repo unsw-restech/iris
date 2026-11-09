@@ -23,11 +23,12 @@ IRIS_PYTHON_MODULE=python/3.13.2
 # envs/<env>/<n>/, and its container is published to IRIS_ENV_REGISTRY
 # tagged <env>-<n> (microct-1).
 IRIS_ENV_REGISTRY=ghcr.io/unsw-restech/iris-env
-# The IRIS environments folder in katana_ai scratch: version <env>/<n>'s
-# container file is <folder>/<env>/<n>.sif, with the digest it was pulled
-# by in <folder>/<env>/<n>.digest beside it. bin/envpull fills it, through
-# the data mover, with the versions live forms pin and the researcher
-# tools' version.
+# The IRIS environments folder in katana_ai scratch, a place chosen for it
+# (ADR-0008, Patrick, 2026-11-06), not one Katana sets: version <env>/<n>'s
+# container file is <folder>/<env>/<n>.sif (iris_env_file), with the
+# digest it was pulled by in <folder>/<env>/<n>.digest beside it.
+# bin/envpull fills it, through the data mover, with the versions live
+# forms pin and the researcher tools' version (#125).
 IRIS_ENVS_FOLDER=/srv/scratch/katana_ai/iris/envs
 # The version the researcher tools (iris-view, iris-compare, the importer,
 # rebuild) run in, whichever lab a run is from.
@@ -50,6 +51,21 @@ declare -gA IRIS_ENV_DIGESTS=(
 declare -gA IRIS_LAB_ENVS=(
     [microct-lab]=microct/1
 )
+
+# iris_is_env_version <word>: whether <word> names an environment version,
+# <env>/<n> with <n> counting from 1. iris_is_env_digest <word>: whether
+# <word> is a digest map value, sha256:<64 hex> or unpublished.
+# iris_form_pins <form>: the versions a form pins, one a line, from its
+# "  IRIS_ENV_VERSION=<env>/<n>" lines. bin/envpull-dm.sh, which runs on
+# the data mover and can't source this file, keeps its own copies of the
+# first and last.
+iris_is_env_version() { [[ "$1" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]]; }
+iris_is_env_digest() { [[ "$1" =~ ^(sha256:[0-9a-f]{64}|unpublished)$ ]]; }
+iris_form_pins() { tr -d '\r' < "$1" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p'; }
+
+# iris_env_file <env>/<n> [<folder>]: prints the version's container file
+# in <folder>, IRIS_ENVS_FOLDER unless given.
+iris_env_file() { echo "${2:-$IRIS_ENVS_FOLDER}/$1.sif"; }
 
 # iris_env_ref <env>/<n>: prints the version's container by digest alone,
 # <registry>@sha256:<hex>, the form Apptainer and docker pull; fails with

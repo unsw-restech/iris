@@ -259,11 +259,11 @@ env_versions() {
     mapfile -t vs < <(printf '%s\n' "${!IRIS_ENV_DIGESTS[@]}" | sort)
     for v in "${vs[@]}"; do
         [ -n "$v" ] || continue
-        if ! [[ "$v" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]]; then
+        if ! iris_is_env_version "$v"; then
             echo "lib/katana.sh: $v is not <env>/<n>, with <n> counting from 1"
             continue
         fi
-        [[ "${IRIS_ENV_DIGESTS[$v]}" =~ ^(sha256:[0-9a-f]{64}|unpublished)$ ]] ||
+        iris_is_env_digest "${IRIS_ENV_DIGESTS[$v]}" ||
             echo "lib/katana.sh: $v's digest is ${IRIS_ENV_DIGESTS[$v]}; give sha256:<64 hex> alone, or unpublished until CI publishes it"
         f="envs/$v/requirements.lock"
         [ -f "$f" ] || { echo "$f: missing, but lib/katana.sh's digest map has $v"; continue; }
@@ -297,7 +297,7 @@ env_versions() {
         echo "lib/katana.sh: IRIS_TOOLS_ENV_VERSION is ${IRIS_TOOLS_ENV_VERSION:-unset}, which isn't in the digest map"
     for f in workflows/*/form.yml.erb; do
         [ -f "$f" ] || continue
-        tr -d '\r' < "$f" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p' | while IFS= read -r v; do
+        iris_form_pins "$f" | while IFS= read -r v; do
             in_map "$v" || echo "$f: pins $v, which isn't in lib/katana.sh's digest map"
         done
     done
@@ -790,14 +790,14 @@ check "ruff" bash -c 'uvx --quiet ruff@0.17.1 check --quiet --output-format conc
 # as a job's does.
 # py_tests <dir> <version>: runs <dir>'s test_*.py; prints any failure.
 py_tests() {
-    local dir="$1" version="$2" root="$PWD" t out host=() boxed=()
+    local dir="$1" version="$2" root="$PWD" t out host=() in_container=()
     for t in "$dir"/test_*.py; do
         t="${t##*/}"
-        if tr -d '\r' < "$dir/$t" | grep -qx '# bin/check: on the host'; then host+=("${t%.py}"); else boxed+=("${t%.py}"); fi
+        if tr -d '\r' < "$dir/$t" | grep -qx '# bin/check: on the host'; then host+=("${t%.py}"); else in_container+=("${t%.py}"); fi
     done
-    if [ ${#boxed[@]} -gt 0 ]; then
+    if [ ${#in_container[@]} -gt 0 ]; then
         [ -n "$version" ] || { echo "FAIL: synthetic-dataset test: $dir: no IRIS_ENV_VERSION in its form to run it in"; failed=1; return; }
-        out="$(cd "$dir" && "$root/bin/envrun" "$version" python -m unittest "${boxed[@]}" 2>&1)" || {
+        out="$(cd "$dir" && "$root/bin/envrun" "$version" python -m unittest "${in_container[@]}" 2>&1)" || {
             echo "FAIL: synthetic-dataset test: $dir in $version"
             echo "$out" | tail -40 | sed 's/^/  /'
             failed=1
@@ -818,7 +818,8 @@ if selected "synthetic-dataset test"; then
             # shellcheck source=lib/katana.sh
             version="$(. lib/katana.sh && echo "$IRIS_TOOLS_ENV_VERSION")"
         else
-            version="$(tr -d '\r' 2>/dev/null < "${dir%/tests}/form.yml.erb" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p' | head -n1)"
+            # shellcheck source=lib/katana.sh
+            version="$(. lib/katana.sh && iris_form_pins "${dir%/tests}/form.yml.erb" 2>/dev/null | head -n1)"
         fi
         py_tests "$dir" "$version"
     done

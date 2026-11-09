@@ -90,14 +90,14 @@ def envs_folder(tmp, container=None, digest=DIGEST):
     container file, a link to `container` (an empty file if None), and its
     digest file, holding `digest` unless that is None."""
     folder = Path(tmp, "envs")
-    sif = folder / f"{pinned_version()}.sif"
-    sif.parent.mkdir(parents=True)
+    container_file = folder / f"{pinned_version()}.sif"
+    container_file.parent.mkdir(parents=True)
     if container:
-        sif.symlink_to(container)
+        container_file.symlink_to(container)
     else:
-        sif.touch()
+        container_file.touch()
     if digest is not None:
-        sif.with_suffix(".digest").write_text(digest + "\n")
+        container_file.with_suffix(".digest").write_text(digest + "\n")
     return folder
 
 
@@ -180,8 +180,8 @@ class StartLine(unittest.TestCase):
 
     def test_a_cpu_only_run_starts_the_container_clean_without_gpu_support(self):
         args, _ = self.start()
-        sif = str(self.envs / f"{pinned_version()}.sif")
-        self.assertEqual(args[:3], ["exec", "--cleanenv", sif])
+        container_file = str(self.envs / f"{pinned_version()}.sif")
+        self.assertEqual(args[:3], ["exec", "--cleanenv", container_file])
         self.assertEqual(args[3:5], ["python", str(Path(self.tmp.name, "dataset", "runs", "1", "run.py"))])
         self.assertNotIn("--nv", args)
 

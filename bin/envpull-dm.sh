@@ -11,6 +11,8 @@
 
 mode="$1" target="$2" folder="$3" clone="$4" registry="$5" tools="$6"
 shift 6
+# Copies of lib/katana.sh's iris_is_env_version pattern and iris_form_pins,
+# since this runs on the data mover over stdin and can't source the clone.
 version='^[a-z0-9-]+/[1-9][0-9]*$'
 token="$HOME/.config/iris/ghcr-token"
 declare -A digest=() pinned=()
