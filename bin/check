@@ -777,6 +777,11 @@ shellcheck_all() {
 }
 check "shellcheck" shellcheck_all
 
+# The CI workflows in .github/workflows/: their syntax, expressions and
+# action inputs, and their run: scripts through the same shellcheck. A
+# workflow change otherwise meets its first check on GitHub's runner.
+check "actionlint" uvx --quiet --from actionlint-py==1.7.12.25 --with shellcheck-py==0.11.0.1 actionlint -oneline
+
 # Every tests/bin/test_*.sh, each against fakes or throwaway trees: a
 # test prints its failed cases and nothing on success. Each runs under the
 # name its "# bin/check name: <name>" line gives, or its path if it has
