@@ -106,7 +106,10 @@ def dataset_input(run):
     record as its profile. The digest hashes the record, never the data:
     only its part that holds still (Run.dataset_stable), so a run killed
     before its workflow added its last details gets the same digest as a
-    finished one on the same, unchanged dataset."""
+    finished one on the same, unchanged dataset. That part differs between
+    run record formats, so a dataset shows once per format: runs written
+    before the move to format 2 appear under one dataset entry, and runs
+    after it under another, even on unchanged data (#128)."""
     record = run.dataset()
     digest = hashlib.sha256(json.dumps(run.dataset_stable(), sort_keys=True).encode()).hexdigest()[:8]
     return DatasetInput(Dataset(

@@ -113,7 +113,10 @@ class Run:
         wrote no record. Format 2: what is true of any folder (path, files,
         size_bytes, mtime). Format 1: all but the intensity statistics,
         added once inference had read the whole volume, so existing runs
-        keep the digest they were imported with."""
+        keep the digest they were imported with. The two hash different
+        fields, since format 1 recorded no folder totals, so one dataset
+        gets one digest in format 1 runs and another in format 2 runs, and
+        the change can't be undone without reading the data again."""
         record = self.dataset()
         if record is None:
             return None
