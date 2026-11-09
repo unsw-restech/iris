@@ -120,6 +120,30 @@ _Avoid_: Image, venv, setup
 The single file one version of an environment is packaged as, which a run starts inside. Registries and container tools call it an image; IRIS never does, since an image in IRIS is imaging data.
 _Avoid_: Image, container image, SIF
 
+**Environment version**:
+One fixed build of an environment, named `<env>/<n>` after the lab it was first built for and counting from 1, such as `microct/1`. A later version only adds packages, and a form pins the version its workflow was proved in.
+_Avoid_: Tag, release, image version
+
+**Digest map**:
+The one list that ties each environment version to the exact container it means, by digest, or marks it unpublished until it is published.
+_Avoid_: Lock, pin file
+
+**Lab table**:
+The one list of labs and the environment version each lab's new workflows start on. Labs may share a version.
+_Avoid_: Lab map, lab config
+
+**Container file**:
+Katana's copy of one environment version's container, the file a job runs.
+_Avoid_: SIF, image file
+
+**Environments folder**:
+The folder in `katana_ai` scratch holding a container file for each environment version a live form pins, plus the researcher tools' version, and nothing else.
+_Avoid_: Env cache, envs directory
+
+**Researcher tools**:
+`iris-view`, `iris-compare`, the importer and rebuild: what a researcher views and compares runs with. They run in one environment version whatever the run's lab.
+_Avoid_: IRIS tools, utilities
+
 **`iris` module**:
 The Katana module that `module load iris` loads. It puts `iris-view` and `iris-compare`, from the system clone, on the researcher's PATH and does nothing else. It is not an environment: it installs no software and has no version.
 _Avoid_: IRIS environment, iris package
@@ -160,6 +184,10 @@ _Avoid_: Sample, annotation
 The folder inside a dataset where one run writes all its outputs: the record of what the run did, plus whatever its workflow writes, such as a label volume or trained weights.
 _Avoid_: Output folder, results
 
+**Run record format**:
+The numbered layout of a run's record of what it did; a record that names none is format 1. The shared side reads every format ever written.
+_Avoid_: Schema version, record version
+
 **Run index**:
 The folder `/srv/scratch/$USER/iris/run-index/` in which every finished run leaves one file, named by its job ID, pointing at its run directory. It is how the importer finds runs.
 _Avoid_: Registry, queue
@@ -167,3 +195,15 @@ _Avoid_: Registry, queue
 **Importer**:
 The single process that replays run directories from the run index into the tracking store. Jobs never write the store themselves (ADR-0001). Rebuilding a lost store is the same importer run into a fresh store, from the run index or, if that is gone too, from the `runs/` folders of named datasets.
 _Avoid_: Sync, uploader
+
+**Job side**:
+The part of IRIS's library a job runs: starting the run in its container, writing the run record, recording the code, the dataset record and the readers an entry script imports. Each workflow runs its own library copy of it.
+_Avoid_: Runtime, core
+
+**Shared side**:
+The part of IRIS's library that reads the runs of every workflow: the importer, the researcher tools and the tracking store. One copy in the system clone serves every workflow.
+_Avoid_: Common library, core
+
+**Library copy**:
+A workflow's own copy of the job side, kept in its folder and taken from one recorded commit. Its owner updates it only by choice, with a new proof.
+_Avoid_: Vendored library, fork
