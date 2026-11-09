@@ -37,7 +37,7 @@ A container built from #106's recipe runs the reference workflow on Katana befor
 
 - **Workflows stay on the version they were proved in.** Each form pins one exact version. A lab's newest version is for new workflows, and an owner moves up only by choice, with a new proof (Patrick, 2026-11-06).
 - **The author makes each new version.** Their pull request changes the lab's recipe, adding packages and updating its lock; a new version can only add packages, never remove them. CI on their fork builds the container and publishes it under their own GitHub account, and they prove their workflow in it on the test instance. The maintainer builds only a lab's first version (Patrick, 2026-11-06).
-- **One public package holds every version**: `ghcr.io/unsw-restech/iris-env`, tagged by lab and version. An org owner makes it public once. The review batch copies the exact container the author proved, by digest, into it, rather than rebuilding. GHCR keeps every version, sharing their common layers, and a version a citable version's commit pins is never deleted (Patrick, 2026-11-06).
+- **One public package holds every version**: `ghcr.io/unsw-restech/iris-env`, tagged by lab and version. An org owner makes it public once. The package is private for now, and pulls log in with a read-only token (below). The review batch copies the exact container the author proved, by digest, into it, rather than rebuilding. GHCR keeps every version, sharing their common layers, and a version a citable version's commit pins is never deleted (Patrick, 2026-11-06).
 - **Katana keeps only what live forms pin**, in `/srv/scratch/katana_ai/iris/envs/`, one container file per version. Any other version is pulled again by digest when needed (Patrick, 2026-11-06).
 - **The `imaging/1` venv and its wheelhouse are deleted** once `microct-2d-segmentation` has had a real run from `/pun/sys/` in its container (Patrick, 2026-11-06).
 - **Each environment is named after the lab it was first built for**, with versions counting from 1: the first is `microct/1`, tagged `iris-env:microct-1` and kept on Katana as `envs/microct/1.sif`. A lab that shares another's environment points at it (Patrick, 2026-11-06).
@@ -47,7 +47,7 @@ A container built from #106's recipe runs the reference workflow on Katana befor
 
 ## Still open
 
-- Whether an org owner can make the package public once for every later version.
+- Whether the package can be public. Making it public is disabled by the org's package policy ("Setting is disabled by organization administrators", 2026-11-09), so it needs an org owner to change that policy or make an exception, not only to flip one package. Nothing waits for it: jobs run the container files on Katana and never touch the registry, `bin/envpull` pulls with a read-only token, CI with the workflow's own token and `bin/envrun` with `gh`'s. If it stays private, two things are lost: pulls depend on a person's token, and readers outside the org can't pull the container a citable version pins, though its lock stays public. GHCR stays the registry either way; publishing under a personal account instead would tie every cited container to that account, which is worse than the token (Patrick, 2026-11-09).
 
 ## Consequences
 

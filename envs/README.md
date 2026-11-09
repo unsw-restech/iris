@@ -4,7 +4,7 @@ Workflows run in environments packaged as containers ([ADR-0008](../docs/adr/000
 
 | Version | Built from | PyTorch | Compiled GPU archs | Status |
 |---|---|---|---|---|
-| `microct/1` | `imaging/1`'s lock, unchanged, on Python 3.13.2 (closed PR #106's recipe) | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Published 2026-11-07 (containers run 42341886288), private until #132 |
+| `microct/1` | `imaging/1`'s lock, unchanged, on Python 3.13.2 (closed PR #106's recipe) | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Published 2026-11-07 (containers run 42341886288), private ([#132](https://github.com/unsw-restech/iris/issues/132)) |
 
 `torch 2.9.1+cu128` has no `sm_70`, so it would not run on the V100s, and the `cu128` build needs NVIDIA driver 570 or newer: Katana's V100s run 580 and every other GPU node 610. L40S (sm_89) runs the `sm_86` code.
 
@@ -38,7 +38,7 @@ A form pins its version with an `  IRIS_ENV_VERSION=<env>/<n>` line in its scrip
 
 1. **Recipe**: commit the version's lock, `envs/<env>/<n>/requirements.lock`, with `[<env>/<n>]=unpublished` added to the digest map. A first version also needs its `Dockerfile`; a later one uses `next.Dockerfile`.
 2. **Build and check**: the `containers` workflow (`.github/workflows/containers.yml`) runs on any push that changes `envs/`, `lib/katana.sh` or the workflow itself, on any branch, and can be started by hand from the Actions tab. It builds and checks every version whose digest is `unpublished`, and nothing else. A container that fails a check is never published. A later version needs the one before it published first.
-3. **Publish**: on `main` only, a container that passes is pushed to `ghcr.io/unsw-restech/iris-env`, tagged `<env>-<n>` (`microct-1`). GHCR starts the package as private, which needs no org owner; making it public is its own step, done once by an org owner. Until then, pulling it needs a read-only token.
+3. **Publish**: on `main` only, a container that passes is pushed to `ghcr.io/unsw-restech/iris-env`, tagged `<env>-<n>` (`microct-1`). GHCR starts the package as private, which needs no org owner. It stays private: the org's package policy disables public visibility for members ("Setting is disabled by organization administrators", 2026-11-09), so only an org owner, by changing that policy or this package, could make it public ([#132](https://github.com/unsw-restech/iris/issues/132)). Every pull logs in with a read-only token, which is all IRIS needs: jobs never touch the registry.
 4. **Pin the digest**: the run's summary prints the line to put in `lib/katana.sh`, `    [<env>/<n>]=sha256:<hex>`, in place of `[<env>/<n>]=unpublished`. Commit it, with the version's Status above, as its own commit. From then on CI never builds that version again, and its lock never changes. Until the digest is pinned, each push that triggers the workflow on `main` rebuilds the version and moves its tag, so pin it after the first green run.
 
 5. **Put it on Katana**: once the digest is on `main`, run `bin/envpull` from the desktop (below), before `bin/syspull` deploys a form that pins the version.
@@ -62,7 +62,7 @@ bin/envpull --remove <env>/<n>   remove a version's file and its digest file, if
 - A version is pinned by a form in the checkout it runs from, by one in the system clone, or by `IRIS_TOOLS_ENV_VERSION`. Digests come from the checkout's digest map, so run it from `main`.
 - An unpublished version is skipped. A pull is `apptainer pull docker://ghcr.io/unsw-restech/iris-env@sha256:<hex>`, by digest alone, and never replaces a file already there: one whose digest file disagrees with the map is reported, and replacing it needs Patrick's go-ahead naming that file.
 - **Removing needs Patrick's go-ahead naming the file.** The listing prints each unpinned file and its `--remove` line, and `--remove` refuses a version anything pins. It is not a one-way door: `--pull` brings any published version back by digest, so `--remove` also refuses a version that is unpublished or not in the digest map.
-- **Until the package is public, pulls need a read-only token** on Katana, in `~/.config/iris/ghcr-token`, mode 600: one line, `<GitHub login>:<token>`, from a classic token with `read:packages` alone. `bin/envpull-dm.sh` passes it to Apptainer as `APPTAINER_DOCKER_USERNAME` and `APPTAINER_DOCKER_PASSWORD`, never on a command line, and refuses a file others can read. Without the file, it pulls without a login, which works once the package is public; the token can then go.
+- **Pulls need a read-only token**, since the package is private, on Katana in `~/.config/iris/ghcr-token`, mode 600: one line, `<GitHub login>:<token>`, from a classic token with `read:packages` alone. `bin/envpull-dm.sh` passes it to Apptainer as `APPTAINER_DOCKER_USERNAME` and `APPTAINER_DOCKER_PASSWORD`, never on a command line, and refuses a file others can read. Without the file, it pulls without a login, which would work only if the package were made public. The token is a person's own, so it expires and goes with them: when it does, whoever runs `bin/envpull` next puts their own in the file.
 
 ## Building on the desktop
 
@@ -82,7 +82,7 @@ Docker Desktop's Windows credential helper breaks the base pull unless the build
 
 `bin/envrun <env>/<n> <command>…` runs a command in a published version's container, with the clone bound at its own path:
 
-- **On the desktop**, in WSL's Apptainer, which Katana has too. The first run pulls the version by digest into `~/.cache/iris/envs/<hex>.sif`, about 4.7 GB, which takes some minutes; later runs start at once. Until the package is public, the pull logs in with the `gh` CLI's token, which needs `read:packages` (`gh auth refresh -s read:packages`).
+- **On the desktop**, in WSL's Apptainer, which Katana has too. The first run pulls the version by digest into `~/.cache/iris/envs/<hex>.sif`, about 4.7 GB, which takes some minutes; later runs start at once. Since the package is private, the pull logs in with the `gh` CLI's token, which needs `read:packages` (`gh auth refresh -s read:packages`).
 - **In CI**, in Docker (`.github/workflows/check.yml`), logged in to GHCR with the workflow's own token, which has `packages: read`.
 
 A workflow whose form pins an unpublished version fails its tests in `bin/check`, since there is no container to run them in yet.
