@@ -18,7 +18,7 @@ cd "$(dirname "$(readlink -f "$0")")/.."
 # shellcheck source=lib/katana.sh
 . lib/katana.sh
 
-[[ "$VERSION" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]] && [ -n "${IRIS_ENV_DIGESTS[$VERSION]+x}" ] ||
+iris_is_env_version "$VERSION" && [ -n "${IRIS_ENV_DIGESTS[$VERSION]+x}" ] ||
     { echo "$VERSION is not a version in lib/katana.sh's digest map"; exit 1; }
 n="${VERSION##*/}"
 args=(--provenance=false --load -t "$NAME"

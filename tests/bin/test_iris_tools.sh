@@ -89,6 +89,12 @@ out="$(FIREFOX_LOG="$fake/firefox.log" PATH="$fake/compare:$PATH" IRIS_TOOLS_CON
     echo "bin/iris-compare: failed with Firefox: $out"
 [ "$(cat "$fake/firefox.log" 2>/dev/null)" = "http://127.0.0.1:5123" ] ||
     echo "bin/iris-compare: Firefox wasn't opened once at the URL; it got: $(cat "$fake/firefox.log" 2>/dev/null)"
+# The URL file is in /tmp, which the container sees, whatever TMPDIR says:
+# one outside the container's binds would leave the watcher waiting forever.
+mkdir -p "$fake/tmpdir"
+out="$(TMPDIR="$fake/tmpdir" run bin/iris-compare)"
+has "bin/iris-compare with TMPDIR set" "$out" "[--env][IRIS_URL_FILE=/tmp/"
+lacks "bin/iris-compare with TMPDIR set" "$out" "IRIS_URL_FILE=$fake/tmpdir"
 # With no Firefox on the host, it says where to go instead.
 mkdir -p "$fake/nofox"
 ln -s "$fake/compare/apptainer" "$fake/nofox/apptainer"

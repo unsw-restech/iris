@@ -138,6 +138,42 @@ holds pull-back "$envs/microct/2.digest" "$b"
 expect 1 "pinned by seg in this checkout" --remove microct/1
 [ -e "$envs/microct/1.sif" ] || echo "envpull --remove: removed a pinned file"
 expect 1 "there is no" --remove microct/3
+# A version that couldn't be pulled back, unpublished or not in the map, is
+# never removed: removing is only safe because --pull undoes it.
+reset; map "[microct/1]=$a" "[microct/2]=unpublished"; pin "$repo" seg microct/1
+mkdir -p "$envs/microct"
+for n in 2 3; do echo old > "$envs/microct/$n.sif"; echo "$b" > "$envs/microct/$n.digest"; done
+expect 1 "microct/2 is unpublished, so bin/envpull --pull couldn't bring it back; nothing removed" --remove microct/2
+expect 1 "microct/3 is not in lib/katana.sh's digest map, so bin/envpull --pull couldn't bring it back; nothing removed" --remove microct/3
+for n in 2 3; do
+    [ -e "$envs/microct/$n.sif" ] && [ -e "$envs/microct/$n.digest" ] || echo "envpull --remove: removed microct/$n, which can't be pulled back"
+done
+
+# A pull puts its two files in place by rename, the digest file first, so
+# one killed at either rename leaves no container file, and never one
+# without its digest: the next run pulls it again. The fake mv dies on its
+# <n>th call, as walltime or a kill would.
+cat > "$fake/mv" <<'EOF'
+#!/bin/bash
+dir="$(dirname "$0")"
+n=$(($(cat "$dir/mv-calls" 2>/dev/null || echo 0) + 1))
+echo "$n" > "$dir/mv-calls"
+[ "$n" = "$(cat "$dir/mv-dies-at")" ] && exit 137
+exec /bin/mv "$@"
+EOF
+chmod +x "$fake/mv"
+for n in 1 2; do
+    reset; map "[microct/1]=$a"; pin "$repo" seg microct/1
+    echo "$n" > "$fake/mv-dies-at"; rm -f "$fake/mv-calls"
+    expect 1 "" --pull microct/1
+    echo 0 > "$fake/mv-dies-at"
+    [ ! -e "$envs/microct/1.sif" ] || echo "envpull killed at rename $n: left a container file"
+    expect 0 "microct/1: pulled"
+    holds "killed at rename $n" "$envs/microct/1.sif" "container docker://$IRIS_ENV_REGISTRY@$a"
+    holds "killed at rename $n" "$envs/microct/1.digest" "$a"
+    [ -z "$(find "$envs" -name '.*')" ] || { echo "envpull killed at rename $n: left temporary files"; find "$envs" -name '.*' | sed 's/^/  /'; }
+done
+rm -f "$fake/mv" "$fake/mv-calls" "$fake/mv-dies-at"
 
 # The researcher tools' version and the system clone's forms pin versions
 # too: they are pulled, and never listed for removal or removed.

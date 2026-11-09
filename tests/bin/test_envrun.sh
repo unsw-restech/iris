@@ -62,23 +62,23 @@ log() { cat "$fake/$1.log" 2>/dev/null; }
 # cache, logged in with gh's token by environment, never on a command line,
 # then runs the command in it under --cleanenv, the clone bound at its own
 # path and the working folder kept.
-sif="$cache/${a#sha256:}.sif"
+file="$cache/${a#sha256:}.sif"
 run -- microct/1 python -m unittest "a b" > /dev/null
 out="$(log apptainer)"
 has "first apptainer run" "$out" "docker://$IRIS_ENV_REGISTRY@$a]"
 has "first apptainer run" "$out" "[exec][--cleanenv]"
 has "first apptainer run" "$out" "[--bind][$repo]"
 has "first apptainer run" "$out" "[--pwd][$repo/workflows/seg]"
-has "first apptainer run" "$out" "[$sif][python][-m][unittest][a b]"
+has "first apptainer run" "$out" "[$file][python][-m][unittest][a b]"
 lacks "first apptainer run" "$out" "gho_secret"
 lacks "first apptainer run" "$out" "--nv"
-[ "$(cat "$sif" 2>/dev/null)" = "container docker://$IRIS_ENV_REGISTRY@$a" ] || echo "first apptainer run: no container file at $sif"
+[ "$(cat "$file" 2>/dev/null)" = "container docker://$IRIS_ENV_REGISTRY@$a" ] || echo "first apptainer run: no container file at $file"
 [ "$(cat "$fake/auth" 2>/dev/null)" = "user=PatrickTung password=gho_secret" ] || echo "first apptainer run: pulled with $(cat "$fake/auth")"
 # The second run pulls nothing.
 rm "$fake/apptainer.log"
 run -- microct/1 python -V > /dev/null
 lacks "second apptainer run" "$(log apptainer)" "[pull]"
-has "second apptainer run" "$(log apptainer)" "[$sif][python][-V]"
+has "second apptainer run" "$(log apptainer)" "[$file][python][-V]"
 
 # With Docker, as in CI, the command runs in the container by digest, as
 # this user, with the clone mounted at its own path; docker pulls it.
@@ -86,6 +86,9 @@ out="$(run IRIS_CONTAINER_RUNTIME=docker -- microct/1 python -V)"
 out="$(log docker)"
 has "docker run" "$out" "[run][--rm]"
 has "docker run" "$out" "[--user][$(id -u):$(id -g)]"
+# The uid has no passwd entry in the container, so the user's name goes by
+# environment, or torch's getpass.getuser() fails (CI run 42537470699).
+has "docker run" "$out" "[--env][USER=$(id -un)]"
 has "docker run" "$out" "[--volume][$repo:$repo]"
 has "docker run" "$out" "[--workdir][$repo/workflows/seg]"
 has "docker run" "$out" "[$IRIS_ENV_REGISTRY@$a][python][-V]"

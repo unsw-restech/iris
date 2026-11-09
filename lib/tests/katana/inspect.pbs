@@ -21,7 +21,7 @@
 CODE="${CLONE:?pass CLONE=<system clone> with qsub -v}"
 . "$CODE/lib/katana.sh" || exit 1
 # The researcher tools' container, which bin/iris-import runs in too.
-TOOLS="${IRIS_TOOLS_CONTAINER:-$IRIS_ENVS_FOLDER/$IRIS_TOOLS_ENV_VERSION.sif}"
+TOOLS="${IRIS_TOOLS_CONTAINER:-$(iris_env_file "$IRIS_TOOLS_ENV_VERSION")}"
 "$CODE/bin/iris-import" || exit 1
 second=$("$CODE/bin/iris-import") || exit 1
 echo "$second"

@@ -41,12 +41,12 @@ mkdir -p "$(dirname "$RUN_DIR")"
 IRIS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$IRIS_LIB/katana.sh"
 
-IRIS_ENV_SIF="${ENVS_FOLDER:-$IRIS_ENVS_FOLDER}/$IRIS_ENV_VERSION.sif"
-if [ ! -f "$IRIS_ENV_SIF" ]; then
-    echo "ERROR: the IRIS environment $IRIS_ENV_VERSION is missing: there is no container file at $IRIS_ENV_SIF. For help, see https://docs.restech.unsw.edu.au/iris/guide/#help" >&2
+IRIS_ENV_FILE="$(iris_env_file "$IRIS_ENV_VERSION" "${ENVS_FOLDER-}")"
+if [ ! -f "$IRIS_ENV_FILE" ]; then
+    echo "ERROR: the IRIS environment $IRIS_ENV_VERSION is missing: there is no container file at $IRIS_ENV_FILE. For help, see https://docs.restech.unsw.edu.au/iris/guide/#help" >&2
     exit 1
 fi
-IRIS_ENV_DIGEST="$(head -n 1 "${IRIS_ENV_SIF%.sif}.digest" 2> /dev/null)"
+IRIS_ENV_DIGEST="$(head -n 1 "${IRIS_ENV_FILE%.sif}.digest" 2> /dev/null)"
 export IRIS_ENV_VERSION IRIS_ENV_DIGEST
 
 mkdir -p "$RUN_DIR"
@@ -61,8 +61,11 @@ mkdir -p "$RUN_DIR"
 # the workflow's own copy of the iris package, the workflow folder as IRIS_CODE
 # for the entry script, IRIS_HOME if set, USER, the PBS job ID and queue,
 # unbuffered Python output, the environment version and digest, and
-# CUDA_VISIBLE_DEVICES if PBS set it. Katana binds /srv and home, so the
-# clone, the dataset and the run directory are all in the container.
+# CUDA_VISIBLE_DEVICES if PBS set it. Katana's Apptainer binds /srv, as
+# ADR-0008's container jobs 9680569 and 9680570 showed by reading and
+# writing /srv/scratch with no --bind, and home, which Apptainer binds
+# unless its config says otherwise (mount home), so the clone, the dataset
+# and the run directory are all in the container.
 iris_container() {
     local v strip=() gpu=() pass=(
         "APPTAINERENV_PYTHONPATH=$IRIS_LIB"
@@ -80,7 +83,7 @@ iris_container() {
         gpu=(--nv)
         pass+=("APPTAINERENV_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
     fi
-    env "${strip[@]}" "${pass[@]}" apptainer exec --cleanenv "${gpu[@]}" "$IRIS_ENV_SIF" "$@"
+    env "${strip[@]}" "${pass[@]}" apptainer exec --cleanenv "${gpu[@]}" "$IRIS_ENV_FILE" "$@"
 }
 
 # The commands to view and compare runs: the short forms `module load iris`
@@ -133,8 +136,8 @@ echo "Job ID      : ${PBS_JOBID:-none}"
 echo "Host        : $(hostname)"
 echo "Code        : $CODE"
 echo "Commit      : ${COMMIT:-$(git -C "$CODE" rev-parse HEAD 2> /dev/null)}"
-echo "Environment : $IRIS_ENV_VERSION (${IRIS_ENV_DIGEST:-digest unknown: no ${IRIS_ENV_SIF%.sif}.digest})"
-echo "Container   : $IRIS_ENV_SIF"
+echo "Environment : $IRIS_ENV_VERSION (${IRIS_ENV_DIGEST:-digest unknown: no ${IRIS_ENV_FILE%.sif}.digest})"
+echo "Container   : $IRIS_ENV_FILE"
 echo "Run dir     : $RUN_DIR"
 if command -v nvidia-smi > /dev/null 2>&1 && nvidia-smi -L > /dev/null 2>&1; then
     echo "GPU         : $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"

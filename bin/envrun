@@ -21,24 +21,26 @@
 # `docker run` as this user, as CI does after `docker login ghcr.io`.
 
 set -eo pipefail
-[[ "$1" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]] && [ $# -ge 2 ] ||
-    { echo "usage: bin/envrun <env>/<n> <command> [<arg>...]" >&2; exit 2; }
-version="$1"
-shift
 repo="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 # shellcheck source=lib/katana.sh
 . "$repo/lib/katana.sh"
+iris_is_env_version "$1" && [ $# -ge 2 ] ||
+    { echo "usage: bin/envrun <env>/<n> <command> [<arg>...]" >&2; exit 2; }
+version="$1"
+shift
 ref="$(iris_env_ref "$version")"
 runtime="${IRIS_CONTAINER_RUNTIME:-$(command -v apptainer > /dev/null && echo apptainer || echo docker)}"
 
 if [ "$runtime" = docker ]; then
-    exec docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp --env PYTHONUNBUFFERED=1 \
+    # The uid has no passwd entry in the container, so USER carries the
+    # name getpass.getuser() needs; torch calls it (CI run 42537470699).
+    exec docker run --rm --user "$(id -u):$(id -g)" --env USER="$(id -un)" --env HOME=/tmp --env PYTHONUNBUFFERED=1 \
         --volume "$repo:$repo" --workdir "$PWD" "$ref" "$@"
 fi
 
 cache="${IRIS_ENV_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/iris/envs}"
-sif="$cache/${ref##*@sha256:}.sif"
-if [ ! -f "$sif" ]; then
+file="$cache/${ref##*@sha256:}.sif"
+if [ ! -f "$file" ]; then
     mkdir -p "$cache"
     if [ -z "${APPTAINER_DOCKER_USERNAME-}" ] && command -v gh > /dev/null; then
         APPTAINER_DOCKER_PASSWORD="$(gh auth token 2> /dev/null)" &&
@@ -47,8 +49,8 @@ if [ ! -f "$sif" ]; then
             unset APPTAINER_DOCKER_USERNAME APPTAINER_DOCKER_PASSWORD
     fi
     echo "envrun: pulling $version ($ref) into $cache, once" >&2
-    apptainer pull --disable-cache --force "$sif.part" "docker://$ref" >&2 ||
-        { rm -f "$sif.part"; echo "envrun: the pull of $version failed; a private package needs a login with read:packages (bin/envrun's header)" >&2; exit 1; }
-    mv "$sif.part" "$sif"
+    apptainer pull --disable-cache --force "$file.part" "docker://$ref" >&2 ||
+        { rm -f "$file.part"; echo "envrun: the pull of $version failed; a private package needs a login with read:packages (bin/envrun's header)" >&2; exit 1; }
+    mv "$file.part" "$file"
 fi
-exec apptainer exec --cleanenv --env PYTHONUNBUFFERED=1 --bind "$repo" --pwd "$PWD" "$sif" "$@"
+exec apptainer exec --cleanenv --env PYTHONUNBUFFERED=1 --bind "$repo" --pwd "$PWD" "$file" "$@"
