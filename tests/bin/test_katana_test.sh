@@ -157,8 +157,8 @@ echo 1 > "$fake/exit-code"
 run > /dev/null
 if tested; then fail "--tested: exit 0 after a failing run"; fi
 rm "$fake/exit-code"
-mkdir -p "$repo/workflows/seg/lib"
-for f in workflows/seg/form.yml.erb workflows/seg/lib/katana.sh lib/iris-job.sh; do
+mkdir -p "$repo/workflows/seg/lib/iris"
+for f in workflows/seg/form.yml.erb workflows/seg/lib/katana.sh workflows/seg/lib/iris/rundir.py lib/iris-job.sh; do
     run > /dev/null
     echo "# $f" >> "$repo/$f"; git -C "$repo" add "$f"; commit "$f"
     if tested; then fail "--tested: exit 0 after a change to $f"; fi
