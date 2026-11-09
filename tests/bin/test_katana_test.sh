@@ -189,3 +189,11 @@ printf '#!/bin/bash\necho "usage: bin/katana-test" >&2; exit 2\n' > "$repo/bin/k
 out="$(push refs/heads/main "$head" "$prev")" && fail "pre-push: let a push through with a bin/katana-test that has no --tested"
 grep -qF "has no --tested" <<< "$out" || { fail "pre-push: didn't say bin/katana-test has no --tested:"; echo "$out" | sed 's/^/  /'; }
 cp "$fake/katana-test" "$repo/bin/katana-test"
+
+# A workflow's own tests and code outside lib/ aren't the library's.
+run > /dev/null
+mkdir -p "$repo/workflows/seg/tests" "$repo/workflows/seg/src"
+for f in workflows/seg/tests/test_synthetic.py workflows/seg/src/run.py; do
+    echo "# $f" >> "$repo/$f"; git -C "$repo" add "$f"; commit "$f"
+    tested || fail "--tested: exit $? after a change to $f only, expected 0"
+done

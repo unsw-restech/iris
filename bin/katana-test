@@ -19,9 +19,11 @@
 # A run that passes records the tree it tested in this clone's git folder
 # (iris/katana-tested), by the tested files alone: every form.yml.erb,
 # module/, lib/iris-job.sh and lib/katana.sh, and each workflow's whole
-# library copy, workflows/<slug>/lib/, which its jobs run. --tested exits 0 if a passing run tested those files
-# exactly as <commit> holds them, or if they are the same in <base>, and 1
-# if not; .githooks/pre-push uses it to refuse an untested push to main.
+# library copy, workflows/<slug>/lib/, which its jobs run, copied-from
+# included, so every bin/libcopy needs a run. --tested exits 0 if a
+# passing run tested those files exactly as <commit> holds them, or if
+# they are the same in <base>, and 1 if not; .githooks/pre-push uses it to
+# refuse an untested push to main.
 #
 # Exits 0 only if every test passed. Files git doesn't track stay behind,
 # so it names any under workflows/, module/ or lib/: `git add` a new test
