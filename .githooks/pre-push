@@ -1,0 +1,35 @@
+#!/bin/bash
+# Refuses a push to main that changes the files bin/katana-test tests (its
+# header lists them) unless a passing bin/katana-test in this clone tested
+# them exactly as the pushed commit holds them: bin/katana-test --tested.
+# Pushing main is the public deploy, and the dev clone pulls it next.
+# Pushes to any other branch go through, so CI can run on untested work.
+#
+# IRIS_KATANA_UNTESTED=<reason> lets the push through, naming the reason,
+# for a change Patrick has agreed to ship before Katana can run it.
+# Turn it on once per clone: git config core.hooksPath .githooks
+
+katana_test="$(git rev-parse --show-toplevel)/bin/katana-test"
+[ -x "$katana_test" ] || exit 0
+zero=0000000000000000000000000000000000000000
+status=0
+while read -r _ local_sha remote_ref remote_sha; do
+    [ "$remote_ref" = refs/heads/main ] && [ "$local_sha" != "$zero" ] || continue
+    # main's commit as the base: tested files it already holds need no run.
+    base=""
+    [ "$remote_sha" != "$zero" ] && git cat-file -e "$remote_sha^{commit}" 2> /dev/null && base="$remote_sha"
+    "$katana_test" --tested "$local_sha" ${base:+"$base"}
+    case $? in
+        0) continue ;;
+        2) echo "pre-push: this checkout's bin/katana-test has no --tested; push from a checkout that has it (since 1182a53)." >&2
+           status=1; continue ;;
+    esac
+    if [ -n "$IRIS_KATANA_UNTESTED" ]; then
+        echo "pre-push: ${local_sha:0:7} goes to main untested on Katana: $IRIS_KATANA_UNTESTED" >&2
+        continue
+    fi
+    echo "pre-push: ${local_sha:0:7} changes what bin/katana-test tests, and no passing bin/katana-test in this clone tested it." >&2
+    echo "  Run bin/katana-test with that commit checked out, or set IRIS_KATANA_UNTESTED=<reason> once Patrick agrees." >&2
+    status=1
+done
+exit $status

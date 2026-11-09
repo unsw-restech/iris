@@ -1,5 +1,5 @@
 # bin/check on every push and pull request: the shipping greps, shellcheck,
-# ruff and the Python tests, the synthetic-dataset test among them, each
+# actionlint, ruff and the Python tests, the synthetic-dataset test among them, each
 # run on CPU in the container its form pins (bin/envrun, through Docker
 # here).
 name: check
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # bin/check reads every commit message
-      - uses: astral-sh/setup-uv@v10.3.0  # no major tags since v8; bin/check runs ruff with uvx
+      - uses: astral-sh/setup-uv@v10.3.0  # no major tags since v8; bin/check runs ruff, shellcheck and actionlint with uvx
       # A container is about 9 GB unpacked; the runner starts with less free.
       - name: Free disk space
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL

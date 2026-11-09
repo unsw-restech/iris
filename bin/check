@@ -610,6 +610,14 @@ check "workflow page repeats the guide (link guide/#stage or #view)" guide_copie
 check "page uses a glossary Avoid word (see GLOSSARY.md)" \
     git grep -niE '\bscans?\b|\bupload|files app' -- '*.html' ':(exclude)_archive'
 
+# Code keeps to GLOSSARY.md's terms too. Only the Avoid words no code
+# needs in another sense are matched, as a word or a name's part: "SIF"
+# for Container or Container file, though the .sif extension stays. The glossary and the
+# ADRs name them on purpose, as this rule and its test do.
+check "name uses a glossary Avoid word (see GLOSSARY.md)" \
+    git grep -nIE '(^|[^.A-Za-z0-9])[sS][iI][fF]([^A-Za-z0-9]|$)' -- ':(exclude)_archive' ':(exclude)GLOSSARY.md' ':(exclude)docs/adr' \
+    ':(exclude)bin/check' ':(exclude)tests/bin/test_avoid_names.sh'
+
 # Every catalogue workflow with a form names its workflow owner on its
 # page, under the description, as <p class="wf-owner"> linking their GitHub
 # profile, and .github/CODEOWNERS has a "/workflows/<slug>/ @<login>" line
@@ -753,6 +761,8 @@ check "IRIS contact is patrick.tung@unsw.edu.au" git grep -niE '(restech|imaging
 # Shell scripts (by .sh or a sh/bash shebang, outside _archive), warnings
 # and errors only. CRs are stripped: a Windows working copy can still hold
 # CRLF files from before .gitattributes pinned LF.
+# One shellcheck for scripts and for the CI workflows' run: scripts.
+shellcheck_pin=shellcheck-py==0.11.0.1
 shellcheck_all() {
     local f files
     mapfile -t files < <(git ls-files | grep -v '^_archive/' | while IFS= read -r f; do
@@ -763,11 +773,18 @@ shellcheck_all() {
     done)
     for f in "${files[@]}"; do
         tr -d '\r' < "$f" |
-            uvx --quiet --from shellcheck-py==0.11.0.1 shellcheck -s bash -S warning -f gcc - |
+            uvx --quiet --from "$shellcheck_pin" shellcheck -s bash -S warning -f gcc - |
             sed "s|^-:|$f:|"
     done
 }
 check "shellcheck" shellcheck_all
+
+# The CI workflows in .github/workflows/: their syntax, expressions and
+# action inputs, and their run: scripts through the same shellcheck
+# version, at its default severity, so info findings fail here as they
+# don't in shellcheck_all. A workflow change otherwise meets its first
+# check on GitHub's runner.
+check "actionlint" uvx --quiet --from actionlint-py==1.7.12.25 --with "$shellcheck_pin" actionlint -oneline
 
 # Every tests/bin/test_*.sh, each against fakes or throwaway trees: a
 # test prints its failed cases and nothing on success. Each runs under the

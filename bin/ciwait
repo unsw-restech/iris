@@ -1,16 +1,34 @@
 #!/bin/bash
-# Wait for the `check` CI run of one pushed commit, then show how it ended,
-# with the failed steps' log if it failed. The last line is the verdict,
-# "ciwait: check <sha> passed" or "... failed (run <id>)", so a tail of the
-# output still carries it.
+# Wait for one CI workflow's run of one pushed commit, `check` unless
+# --workflow names another (its file in .github/workflows/ without .yml),
+# then show how it ended, with the failed steps' log if it failed. The last
+# line is the verdict, "ciwait: <workflow> <sha> passed" or "... failed
+# (run <id>)", so a tail of the output still carries it. A passing
+# `containers` run also prints its "Published <tag> as <registry>@<digest>"
+# lines, the digest to pin in lib/katana.sh's digest map.
 #
-#   bin/ciwait [<commit>]        (default HEAD)
+#   bin/ciwait [--workflow <name>] [<commit>]        (default check, HEAD)
+#   bin/ciwait --workflow containers 93d3a39
 #
 # Exits with the run's result (0 passed, 1 failed), or 2 if the commit isn't
 # on origin or no run for it appears within two minutes. The run is matched
 # by headSha: the desktop's gh 2.4.0 has no `gh run list --commit`.
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
+
+# One of the run's logs (--log or --log-failed), as plain lines: no job and
+# step columns, byte-order mark or timestamp.
+clean_log() {
+    gh run view "$id" "$1" | cut -f3- | sed 's/^\xEF\xBB\xBF//; s/^[0-9T:.-]*Z //'
+}
+
+workflow=check
+if [ "$1" = --workflow ]; then
+    workflow="$2"
+    shift 2
+fi
+[ $# -le 1 ] && [ -f ".github/workflows/$workflow.yml" ] ||
+    { echo "usage: bin/ciwait [--workflow <name in .github/workflows/>] [<commit>]" >&2; exit 2; }
 git fetch -q origin || exit 2
 sha="$(git rev-parse "${1:-HEAD}")" || exit 2
 
@@ -21,22 +39,25 @@ fi
 
 id=""
 for _ in $(seq 24); do
-    id="$(gh run list --workflow check.yml --limit 20 --json databaseId,headSha \
+    id="$(gh run list --workflow "$workflow.yml" --limit 20 --json databaseId,headSha \
         --jq ".[] | select(.headSha == \"$sha\") | .databaseId" | head -1)" || exit 2
     [ -n "$id" ] && break
     sleep 5
 done
-[ -n "$id" ] || { echo "ciwait: no check run for ${sha:0:7} after 2 min" >&2; exit 2; }
+[ -n "$id" ] || { echo "ciwait: no $workflow run for ${sha:0:7} after 2 min" >&2; exit 2; }
 
-echo "== check run $id for ${sha:0:7}"
+echo "== $workflow run $id for ${sha:0:7}"
 gh run watch "$id" --exit-status --interval 15 > /dev/null 2>&1
 status=$?
 gh run view "$id"
 if [ $status -ne 0 ]; then
-    gh run view "$id" --log-failed | cut -f3- | sed 's/^\xEF\xBB\xBF//; s/^[0-9T:.-]*Z //' | tail -40
+    clean_log --log-failed | tail -40
     status=1
-    echo "ciwait: check ${sha:0:7} failed (run $id)"
+    echo "ciwait: $workflow ${sha:0:7} failed (run $id)"
 else
-    echo "ciwait: check ${sha:0:7} passed"
+    # Only a run on main publishes; a branch's run builds and checks.
+    [ "$workflow" != containers ] || clean_log --log | grep '^Published .* as ' ||
+        echo "No Published line: this run published nothing."
+    echo "ciwait: $workflow ${sha:0:7} passed"
 fi
 exit $status

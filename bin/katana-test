@@ -14,6 +14,16 @@
 # library, so it is submitted once, however many workflows.
 #
 #   bin/katana-test
+#   bin/katana-test --tested [<commit> [<base>]]    (default HEAD)
+#
+# A run that passes records the tree it tested in this clone's git folder
+# (iris/katana-tested), by the tested files alone: every form.yml.erb,
+# module/, lib/iris-job.sh and lib/katana.sh, and each workflow's whole
+# library copy, workflows/<slug>/lib/, which its jobs run, copied-from
+# included, so every bin/libcopy needs a run. --tested exits 0 if a
+# passing run tested those files exactly as <commit> holds them, or if
+# they are the same in <base>, and 1 if not; .githooks/pre-push uses it to
+# refuse an untested push to main.
 #
 # Exits 0 only if every test passed. Files git doesn't track stay behind,
 # so it names any under workflows/, module/ or lib/: `git add` a new test
@@ -23,8 +33,25 @@
 # stand-in container.
 
 set -o pipefail
-[ $# -eq 0 ] || { echo "usage: bin/katana-test" >&2; exit 2; }
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
+
+# The files this tests, as AGENTS.md lists them: a change to any needs a
+# run before it goes to main.
+tested_files='^(workflows/[^/]+/form[.]yml[.]erb|module/.*|workflows/[^/]+/lib/.*|lib/(iris-job|katana)[.]sh)$'
+stamps="$(git rev-parse --git-common-dir)/iris/katana-tested"
+
+# tested_hash <commit>: one hash of the tested files as <commit> holds them.
+tested_hash() {
+    git ls-tree -r --full-tree "$1" | awk -F'\t' -v re="$tested_files" '$2 ~ re' | git hash-object --stdin
+}
+
+if [ "$1" = --tested ] && [ $# -le 3 ]; then
+    f="$(tested_hash "${2:-HEAD}")" || exit 2
+    [ -n "$3" ] && [ "$f" = "$(tested_hash "$3")" ] && exit 0
+    grep -q "^$f " "$stamps" 2> /dev/null && exit 0
+    exit 1
+fi
+[ $# -eq 0 ] || { echo "usage: bin/katana-test [--tested [<commit> [<base>]]]" >&2; exit 2; }
 # A commit holding the working tree's tracked files; empty when it's clean.
 tree="$(git stash create)" || { echo "katana-test: git stash create failed; finish the merge or rebase first" >&2; exit 1; }
 untracked="$(git ls-files --others --exclude-standard workflows module lib)"
@@ -61,4 +88,8 @@ git archive --format=tar "${tree:-HEAD}" | ssh katana '
     cat "$log" 2> /dev/null
     grep -q "^exit [0-9]" "$log" 2> /dev/null ||
         { echo "katana-test: $log has no last line, exit <status>, so the job-library test output is missing" >&2; s=1; }
-    exit $s'
+    exit $s' || exit
+
+# Every test passed: record the tree, so a push of it to main goes through.
+mkdir -p "${stamps%/*}" &&
+    echo "$(tested_hash "${tree:-HEAD}") $(date -u +%FT%TZ) $(git rev-parse --short "${tree:-HEAD}")" >> "$stamps"
