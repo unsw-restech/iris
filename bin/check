@@ -612,7 +612,7 @@ check "page uses a glossary Avoid word (see GLOSSARY.md)" \
 
 # Code keeps to GLOSSARY.md's terms too. Only the Avoid words no code
 # needs in another sense are matched, as a word or a name's part: "SIF"
-# for Container, though the .sif extension stays. The glossary and the
+# for Container or Container file, though the .sif extension stays. The glossary and the
 # ADRs name them on purpose, as this rule and its test do.
 check "name uses a glossary Avoid word (see GLOSSARY.md)" \
     git grep -nIE '(^|[^.A-Za-z0-9])[sS][iI][fF]([^A-Za-z0-9]|$)' -- ':(exclude)_archive' ':(exclude)GLOSSARY.md' ':(exclude)docs/adr' \

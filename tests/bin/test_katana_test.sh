@@ -141,15 +141,15 @@ grep -qF "job_lib.log" <<< "$out" || { fail "didn't name the missing job-library
 # A passing run records the tree it tested, by the tested files alone, and
 # a failing one records nothing.
 rm -f "$fake/no-log" "$fake/run-remote" "$fake/exit-code"
-c() { git -C "$repo" -c user.name=t -c user.email=t@t commit -qam "$1"; }
+commit() { git -C "$repo" -c user.name=t -c user.email=t@t commit -qam "$1"; }
 tested() { (cd "$repo" && bin/katana-test --tested "$@"); }
-c "state so far"
+commit "state so far"
 run > /dev/null || fail "clean tree before the stamp cases: exit $?, expected 0"
 tested || fail "--tested: exit $?, expected 0 for the tree a passing run tested"
 tested HEAD HEAD || fail "--tested HEAD HEAD: exit $?, expected 0"
-echo again > "$repo/tracked.txt"; c "an untested file"
+echo again > "$repo/tracked.txt"; commit "an untested file"
 tested || fail "--tested: exit $? after a change to an untested file, expected 0"
-echo 'exit 0 # edited' > "$repo/module/tests/test_module.sh"; c "a tested file"
+echo 'exit 0 # edited' > "$repo/module/tests/test_module.sh"; commit "a tested file"
 if tested; then fail "--tested: exit 0 after a change to module/"; fi
 if tested HEAD HEAD~; then fail "--tested HEAD HEAD~: exit 0, though module/ differs from the base"; fi
 tested HEAD~ HEAD~2 || fail "--tested HEAD~ HEAD~2: exit $?, expected 0 for unchanged tested files"
@@ -160,12 +160,13 @@ rm "$fake/exit-code"
 mkdir -p "$repo/workflows/seg/lib"
 for f in workflows/seg/form.yml.erb workflows/seg/lib/katana.sh lib/iris-job.sh; do
     run > /dev/null
-    echo "# $f" >> "$repo/$f"; git -C "$repo" add "$f"; c "$f"
+    echo "# $f" >> "$repo/$f"; git -C "$repo" add "$f"; commit "$f"
     if tested; then fail "--tested: exit 0 after a change to $f"; fi
 done
 
 # The push hook: a push to main whose tested files changed needs a passing
 # run of that commit, or IRIS_KATANA_UNTESTED; any other push goes through.
+# A checkout whose bin/katana-test has no --tested says so.
 zero=0000000000000000000000000000000000000000
 push() { # push <remote ref> <local sha> <remote sha>
     (cd "$repo" && echo "refs/heads/x $2 $1 $3" | .githooks/pre-push origin url 2>&1)
@@ -176,10 +177,15 @@ grep -qF "${head:0:7}" <<< "$out" || { fail "pre-push: refusal doesn't name the 
 push refs/heads/main "$head" "$zero" > /dev/null && fail "pre-push: let an untested commit through as main's first"
 push refs/heads/spec "$head" "$prev" > /dev/null || fail "pre-push: refused a push to a branch other than main"
 push refs/heads/main "$zero" "$prev" > /dev/null || fail "pre-push: refused deleting a ref"
-out="$(cd "$repo" && echo "refs/heads/x $head refs/heads/main $prev" | IRIS_KATANA_UNTESTED="Katana down" .githooks/pre-push origin url 2>&1)" ||
+out="$(IRIS_KATANA_UNTESTED="Katana down" push refs/heads/main "$head" "$prev")" ||
     fail "pre-push: refused with IRIS_KATANA_UNTESTED set"
 grep -qF "Katana down" <<< "$out" || fail "pre-push: didn't repeat IRIS_KATANA_UNTESTED's reason"
 run > /dev/null
 push refs/heads/main "$head" "$prev" > /dev/null || fail "pre-push: refused a commit a passing run tested"
-echo late > "$repo/tracked.txt"; c "untested file after the run"
+echo late > "$repo/tracked.txt"; commit "untested file after the run"
 push refs/heads/main "$(git -C "$repo" rev-parse HEAD)" "$head" > /dev/null || fail "pre-push: refused a change to untested files only"
+cp "$repo/bin/katana-test" "$fake/katana-test"
+printf '#!/bin/bash\necho "usage: bin/katana-test" >&2; exit 2\n' > "$repo/bin/katana-test"
+out="$(push refs/heads/main "$head" "$prev")" && fail "pre-push: let a push through with a bin/katana-test that has no --tested"
+grep -qF "has no --tested" <<< "$out" || { fail "pre-push: didn't say bin/katana-test has no --tested:"; echo "$out" | sed 's/^/  /'; }
+cp "$fake/katana-test" "$repo/bin/katana-test"

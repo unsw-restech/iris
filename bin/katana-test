@@ -38,14 +38,14 @@ cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 tested_files='^(workflows/[^/]+/form[.]yml[.]erb|module/.*|(workflows/[^/]+/)?lib/(iris-job|katana)[.]sh)$'
 stamps="$(git rev-parse --git-common-dir)/iris/katana-tested"
 
-# fingerprint <commit>: one hash of the tested files as <commit> holds them.
-fingerprint() {
+# tested_hash <commit>: one hash of the tested files as <commit> holds them.
+tested_hash() {
     git ls-tree -r --full-tree "$1" | awk -F'\t' -v re="$tested_files" '$2 ~ re' | git hash-object --stdin
 }
 
 if [ "$1" = --tested ] && [ $# -le 3 ]; then
-    f="$(fingerprint "${2:-HEAD}")" || exit 2
-    [ -n "$3" ] && [ "$f" = "$(fingerprint "$3")" ] && exit 0
+    f="$(tested_hash "${2:-HEAD}")" || exit 2
+    [ -n "$3" ] && [ "$f" = "$(tested_hash "$3")" ] && exit 0
     grep -q "^$f " "$stamps" 2> /dev/null && exit 0
     exit 1
 fi
@@ -90,4 +90,4 @@ git archive --format=tar "${tree:-HEAD}" | ssh katana '
 
 # Every test passed: record the tree, so a push of it to main goes through.
 mkdir -p "${stamps%/*}" &&
-    echo "$(fingerprint "${tree:-HEAD}") $(date -u +%FT%TZ) $(git rev-parse --short "${tree:-HEAD}")" >> "$stamps"
+    echo "$(tested_hash "${tree:-HEAD}") $(date -u +%FT%TZ) $(git rev-parse --short "${tree:-HEAD}")" >> "$stamps"

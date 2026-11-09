@@ -15,6 +15,13 @@
 # by headSha: the desktop's gh 2.4.0 has no `gh run list --commit`.
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
+
+# One of the run's logs (--log or --log-failed), as plain lines: no job and
+# step columns, byte-order mark or timestamp.
+clean_log() {
+    gh run view "$id" "$1" | cut -f3- | sed 's/^\xEF\xBB\xBF//; s/^[0-9T:.-]*Z //'
+}
+
 workflow=check
 if [ "$1" = --workflow ]; then
     workflow="$2"
@@ -44,12 +51,13 @@ gh run watch "$id" --exit-status --interval 15 > /dev/null 2>&1
 status=$?
 gh run view "$id"
 if [ $status -ne 0 ]; then
-    gh run view "$id" --log-failed | cut -f3- | sed 's/^\xEF\xBB\xBF//; s/^[0-9T:.-]*Z //' | tail -40
+    clean_log --log-failed | tail -40
     status=1
     echo "ciwait: $workflow ${sha:0:7} failed (run $id)"
 else
-    [ "$workflow" != containers ] ||
-        gh run view "$id" --log | cut -f3- | sed 's/^\xEF\xBB\xBF//; s/^[0-9T:.-]*Z //' | grep '^Published .* as '
+    # Only a run on main publishes; a branch's run builds and checks.
+    [ "$workflow" != containers ] || clean_log --log | grep '^Published .* as ' ||
+        echo "No Published line: this run published nothing."
     echo "ciwait: $workflow ${sha:0:7} passed"
 fi
 exit $status

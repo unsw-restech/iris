@@ -66,6 +66,12 @@ grep -qx 'Published ghcr.io/o/iris-env:microct-1 as ghcr.io/o/iris-env@sha256:ab
 [ "$(grep -c 'Published' <<< "$out")" = 1 ] || fail "containers passing: printed the step's echo command too"
 [ "$(tail -1 <<< "$out")" = "ciwait: containers $sha passed" ] || fail "containers passing: last line isn't the verdict"
 
+# A branch's run publishes nothing, and says so.
+printf '#!/bin/bash\n[ "$4" = --log ] && exit 0\nexec "%s" "$@"\n' "$fake/bin/gh" > "$fake/gh-nolog"
+mkdir "$fake/nolog"; mv "$fake/gh-nolog" "$fake/nolog/gh"; chmod +x "$fake/nolog/gh"
+out="$(cd "$repo" && PATH="$fake/nolog:$fake/bin:$PATH" bin/ciwait --workflow containers 2>&1)" || fail "containers passing on a branch: exit $?, expected 0"
+grep -qx "No Published line: this run published nothing." <<< "$out" || fail "containers passing on a branch: didn't say nothing was published"
+
 echo 1 > "$fake/conclusion"
 out="$(run --workflow containers HEAD)"; rc=$?
 [ "$rc" = 1 ] || fail "containers failing: exit $rc, expected 1"
