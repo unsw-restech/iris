@@ -165,11 +165,20 @@ class StartLine(unittest.TestCase):
         fake = bin_dir / "apptainer"
         fake.write_text('#!/bin/bash\nprintf "%s\\n" "$@" ENV\nenv | sed -n "s/^APPTAINERENV_//p" | sort\n')
         fake.chmod(0o755)
+        # The host's GPUs, as a stand-in nvidia-smi lists them: Katana's
+        # PBS sets no CUDA_VISIBLE_DEVICES, and shows a GPU job only the
+        # GPUs it was given (job 9736945).
+        self.smi = bin_dir / "nvidia-smi"
         self.path = f"{bin_dir}:{os.environ['PATH']}"
         self.n = 0
 
-    def start(self, then=None, env=None, own_copy=False):
-        """What the stand-in apptainer printed, as (arguments, variables)."""
+    def start(self, then=None, env=None, own_copy=False, gpus=0):
+        """What the stand-in apptainer printed, as (arguments, variables),
+        on a host whose nvidia-smi lists `gpus` GPUs."""
+        listing = "".join(f"echo 'GPU {i}: NVIDIA L40S (UUID: GPU-{i})'\n" for i in range(gpus))
+        self.smi.write_text(f"#!/bin/bash\n{listing}" if gpus else
+                            "#!/bin/bash\necho 'No devices were found'\nexit 6\n")
+        self.smi.chmod(0o755)
         self.n += 1
         run_dir = Path(self.tmp.name, "dataset", "runs", str(self.n))
         result = source_job_lib(self.envs, run_dir, then=f"echo START\n{then or rendered_lines(1)}",
@@ -186,7 +195,12 @@ class StartLine(unittest.TestCase):
         self.assertNotIn("--nv", args)
 
     def test_a_run_with_gpus_starts_the_container_with_gpu_support(self):
-        args, variables = self.start(env={"CUDA_VISIBLE_DEVICES": "GPU-1234"})
+        args, variables = self.start(gpus=1)
+        self.assertEqual(args[:3], ["exec", "--cleanenv", "--nv"])
+        self.assertNotIn("CUDA_VISIBLE_DEVICES", variables)
+
+    def test_cuda_visible_devices_is_passed_in_when_set(self):
+        args, variables = self.start(gpus=1, env={"CUDA_VISIBLE_DEVICES": "GPU-1234"})
         self.assertEqual(args[:3], ["exec", "--cleanenv", "--nv"])
         self.assertEqual(variables["CUDA_VISIBLE_DEVICES"], "GPU-1234")
 

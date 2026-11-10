@@ -51,10 +51,17 @@ export IRIS_ENV_VERSION IRIS_ENV_DIGEST
 
 mkdir -p "$RUN_DIR"
 
+# iris_has_gpu: whether the host shows this job a GPU, by nvidia-smi.
+iris_has_gpu() {
+    command -v nvidia-smi > /dev/null 2>&1 && nvidia-smi -L > /dev/null 2>&1
+}
+
 # iris_container <command>...: runs <command> in the pinned container, with
-# the GPU (--nv) when PBS gave the job any, which it says by setting
-# CUDA_VISIBLE_DEVICES, and without for a CPU-only run (0 GPUs), where --nv
-# would fail on missing drivers. --cleanenv keeps the job's modules and
+# the GPU (--nv) when PBS gave the job any, and without for a CPU-only run
+# (0 GPUs), where --nv would fail on missing drivers. Katana's PBS sets no
+# CUDA_VISIBLE_DEVICES: it shows a job only the GPUs it was given, so
+# nvidia-smi lists one GPU for a 1-GPU job and fails for a job with none
+# (job 9736945, after #133's first run, 9736586, trained on the CPU). --cleanenv keeps the job's modules and
 # host libraries out; only what the run needs is passed in, through
 # Apptainer's APPTAINERENV_ variables, which no value can break as a comma
 # breaks --env: this copy's folder on the Python path, so the run imports
@@ -79,10 +86,8 @@ iris_container() {
     )
     for v in $(compgen -v APPTAINERENV_) $(compgen -v SINGULARITYENV_); do strip+=(-u "$v"); done
     [ -z "$IRIS_HOME" ] || pass+=("APPTAINERENV_IRIS_HOME=$IRIS_HOME")
-    if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
-        gpu=(--nv)
-        pass+=("APPTAINERENV_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
-    fi
+    iris_has_gpu && gpu=(--nv)
+    [ -z "$CUDA_VISIBLE_DEVICES" ] || pass+=("APPTAINERENV_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
     env "${strip[@]}" "${pass[@]}" apptainer exec --cleanenv "${gpu[@]}" "$IRIS_ENV_FILE" "$@"
 }
 
@@ -139,7 +144,7 @@ echo "Commit      : ${COMMIT:-$(git -C "$CODE" rev-parse HEAD 2> /dev/null)}"
 echo "Environment : $IRIS_ENV_VERSION (${IRIS_ENV_DIGEST:-digest unknown: no ${IRIS_ENV_FILE%.sif}.digest})"
 echo "Container   : $IRIS_ENV_FILE"
 echo "Run dir     : $RUN_DIR"
-if command -v nvidia-smi > /dev/null 2>&1 && nvidia-smi -L > /dev/null 2>&1; then
+if iris_has_gpu; then
     echo "GPU         : $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
 else
     echo "GPU         : none, running on CPU"
