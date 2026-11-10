@@ -47,9 +47,12 @@ dir="$(dirname "$0")"
 echo "$*" >> "$dir/pulls"
 echo "user=${APPTAINER_DOCKER_USERNAME-} password=${APPTAINER_DOCKER_PASSWORD-}" >> "$dir/auth"
 [ -e "$dir/pull-fails" ] && { echo "FATAL: unauthorized: authentication required" >&2; exit 255; }
-[ "$1" = pull ] || exit 2
+[ "$1" = build ] || exit 2
 shift
-while [[ "$1" == --* ]]; do shift; done
+while [[ "$1" == --* ]]; do
+    [ "$1" = --mksquashfs-args ] && shift
+    shift
+done
 echo "container $2" > "$1"
 EOF
 chmod +x "$fake/ssh" "$fake/apptainer"
@@ -105,6 +108,10 @@ reset; map "[microct/1]=$a"; pin "$repo" seg microct/1
 expect 0 "pulled"
 holds pull "$envs/microct/1.sif" "container docker://$IRIS_ENV_REGISTRY@$a"
 holds pull "$envs/microct/1.digest" "$a"
+# The data mover caps each user at 4 GB, and Katana's apptainer.conf gives
+# mksquashfs every CPU (procs = 0), which goes over it: the pull caps both.
+grep -qF -- "--mksquashfs-args -processors 4 -mem 1G" "$fake/pulls" ||
+    echo "envpull pull: mksquashfs isn't capped to 4 CPUs and 1G: $(cat "$fake/pulls")"
 # Run again, the file is there and nothing is pulled.
 rm -f "$fake/pulls"
 expect 0 "microct/1: present"

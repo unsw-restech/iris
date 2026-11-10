@@ -91,7 +91,11 @@ get() {
     part="$dir/.${v##*/}.sif.part" dpart="$dir/.${v##*/}.digest.part" tmp="$dir/.${v##*/}.tmp"
     mkdir -p "$tmp" || return 1
     echo "$v: pulling $registry@$d"
-    if ! APPTAINER_TMPDIR="$tmp" apptainer pull --disable-cache --force "$part" "docker://$registry@$d"; then
+    # build, not pull, for --mksquashfs-args: the data mover caps each user
+    # at 4 GB, and Katana's apptainer.conf gives mksquashfs every CPU
+    # (procs = 0), whose buffers went over it and got it killed (2026-11-10).
+    if ! APPTAINER_TMPDIR="$tmp" apptainer build --disable-cache --force \
+        --mksquashfs-args "-processors 4 -mem 1G" "$part" "docker://$registry@$d"; then
         rm -rf -- "$tmp" "$part"
         echo "$v: the pull failed; nothing written. Until the package is public, a pull needs $token."
         return 1
