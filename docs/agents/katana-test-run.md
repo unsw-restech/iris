@@ -10,7 +10,7 @@ It runs from `/pun/sys/`, since the pilot's only users are testers (Patrick, 202
 
 1. Patrick says the review of the integration branch is done.
 2. Push the branch to `main` with Patrick's push go-ahead (AGENTS.md, Deploying), then pull the dev clone.
-3. Run `bin/syspull` and get its own go-ahead, quoting verbatim every commit it lists, before `--apply`.
+3. Run `bin/syspull` and get its own go-ahead, quoting verbatim every commit it lists, before `--apply`. The push's go-ahead covers it when it named the system clone and quoted those commits (AGENTS.md, Deploying).
 4. Submit the runs from `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>`, with Patrick reloading the form page first: a page loaded before `--apply` renders from the old commit (#147, job 9736586). They land in Patrick's own run index and store, not a throwaway home, so ask before removing any of them. Check each run as soon as its run directory has them, not when it ends: `commit.txt` names the deployed commit, and `params.json`'s `device` is `cuda` for a GPU run and `cpu` for a CPU-only one. Job 9736586 trained on the CPU for 94 minutes before anyone looked.
 5. Inspect with `inspect.pbs`: make `/srv/scratch/$USER/iris-test-<ticket>/`, copy the helper in from the system clone's `lib/tests/katana/`, and submit it from there with `CLONE` naming the system clone and `JOBS` naming the runs. It imports into Patrick's own tracking store, as `iris-compare` would, so the first import counts whatever is new and the second must import nothing. It must finish before Patrick opens `iris-compare`: both write `tracking.db`. Report as in step 5, citing each job ID.
 
