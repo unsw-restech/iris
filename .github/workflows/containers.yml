@@ -1,7 +1,8 @@
 # Environment containers (ADR-0008, envs/README.md). Every version that
 # lib/katana.sh's digest map lists as unpublished is built from its recipe
-# in envs/, checked by envs/check-container.sh, and, on main only,
-# published to ghcr.io/unsw-restech/iris-env tagged <env>-<n>. GHCR starts
+# in envs/, as a layer or fresh as envs/build-kind.sh decides (ADR-0010),
+# checked by envs/check-container.sh the same way for either kind, and, on
+# main only, published to ghcr.io/unsw-restech/iris-env tagged <env>-<n>. GHCR starts
 # a new package as private, which needs no org owner. The run's summary
 # prints the digest line to put in lib/katana.sh in place of unpublished;
 # once it is there, no later run builds that version again. On any other
@@ -46,7 +47,7 @@ jobs:
     if: needs.plan.outputs.versions != '[]'
     strategy:
       fail-fast: false
-      max-parallel: 1  # a later version builds on the one before it
+      max-parallel: 1  # a version built as a layer builds on the one before it
       matrix:
         version: ${{ fromJSON(needs.plan.outputs.versions) }}
     runs-on: ubuntu-24.04
@@ -60,7 +61,7 @@ jobs:
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h /
-      # A later version pulls the one before it, which may be private.
+      # A version built as a layer pulls the one before it, which may be private.
       - name: Log in to GHCR
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,9 +2,10 @@
 # bin/check's environment versions check against throwaway trees, each with
 # its own copy of bin/check and lib/katana.sh: the digest map and lab table
 # in lib/katana.sh are well formed and match envs/, every form pins a
-# version in the digest map, and a later version of an environment only
-# adds packages to the one before it. Prints each failed case and nothing
-# on success, so bin/check can run it.
+# version in the digest map, and a later version of an environment may add,
+# change or remove packages: envs/build-kind.sh calls one that only adds a
+# layer and any other fresh, and bin/check notes the changes. Prints each
+# failed case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_env_versions.sh
 #
@@ -26,6 +27,7 @@ make_tree() {
     site_tree "$tree" seg:microct-lab:active
     mkdir -p "$tree/lib" "$tree/envs/microct/1"
     cp lib/katana.sh "$tree/lib/katana.sh"
+    cp envs/build-kind.sh "$tree/envs/build-kind.sh"
     sed -i -e '/^declare -gA IRIS_ENV_DIGESTS=(/,/^)/c\declare -gA IRIS_ENV_DIGESTS=(\n    [microct/1]=unpublished\n)' \
         -e '/^declare -gA IRIS_LAB_ENVS=(/,/^)/c\declare -gA IRIS_LAB_ENVS=(\n    [microct-lab]=microct/1\n)' \
         "$tree/lib/katana.sh"
@@ -129,17 +131,46 @@ make_tree tools-missing
 edit tools-missing lib/katana.sh 's|^IRIS_TOOLS_ENV_VERSION=.*|IRIS_TOOLS_ENV_VERSION=microct/2|'
 expect fail "$scratch/tools-missing" "$name"
 
-# A later version only adds packages to the one before it.
+# A later version may add, change or remove packages (ADR-0010). One that
+# keeps every line of the lock before it is a layer on it; any other, and a
+# first version, is built fresh. bin/check notes a version that changes
+# pins, naming the packages, without failing it.
+# kind <tree> <version> <want>: envs/build-kind.sh's first line is <want>.
+kind() {
+    local got
+    got="$("$scratch/$1/envs/build-kind.sh" "$2" 2>&1 | head -n1)"
+    [ "$got" = "$3" ] || echo "$1: envs/build-kind.sh $2 printed '$got', expected $3"
+}
+# note <tree> <pattern>: bin/check's output has a NOTE line matching it.
+note() {
+    local out
+    out="$("$scratch/$1/bin/check" "$name" 2>&1)"
+    grep -qE "^NOTE: .*$2" <<< "$out" ||
+        { echo "$1: no NOTE line matching '$2'"; echo "$out" | sed 's/^/  /'; }
+}
+kind clean microct/1 fresh
 make_tree adds
 add_version adds microct/2 unpublished 'numpy==2.3.0' 'scipy==1.16.0' 'xarray==2025.6.1'
 expect pass "$scratch/adds" "$name"
+kind adds microct/2 layer
+out="$("$scratch/adds/bin/check" "$name" 2>&1)"
+! grep -q '^NOTE: ' <<< "$out" || { echo "adds: a NOTE for a version that only adds"; echo "$out" | sed 's/^/  /'; }
 make_tree removes
 add_version removes microct/2 unpublished 'numpy==2.3.0' 'scipy==1.16.0'
-expect fail "$scratch/removes" "$name"
+expect pass "$scratch/removes" "$name"
+kind removes microct/2 fresh
+note removes 'microct/2 removes xarray==2025\.6\.1.*built fresh'
 make_tree changes
 add_version changes microct/2 unpublished 'numpy==2.3.1' 'xarray==2025.6.1'
-expect fail "$scratch/changes" "$name"
-# Its message says why, for the author who made it.
-out="$("$scratch/changes/bin/check" "$name" 2>&1)"
-grep -q 'numpy==2.3.0.*only add' <<< "$out" ||
-    { echo "changes: the message doesn't name numpy==2.3.0 and say versions only add packages"; echo "$out" | sed 's/^/  /'; }
+expect pass "$scratch/changes" "$name"
+kind changes microct/2 fresh
+note changes 'microct/2 changes numpy==2\.3\.0 to numpy==2\.3\.1.*built fresh'
+make_tree both
+add_version both microct/2 unpublished 'NumPy==2.3.1 # pinned' 'scipy==1.16.0'
+expect pass "$scratch/both" "$name"
+note both 'changes numpy==2\.3\.0 to NumPy==2\.3\.1 and removes xarray==2025\.6\.1'
+# The version after a fresh one that only adds is a layer on it.
+make_tree after-fresh
+add_version after-fresh microct/2 unpublished 'numpy==2.3.1' 'xarray==2025.6.1'
+add_version after-fresh microct/3 unpublished 'numpy==2.3.1' 'scipy==1.16.0' 'xarray==2025.6.1'
+kind after-fresh microct/3 layer

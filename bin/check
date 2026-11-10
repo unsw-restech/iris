@@ -248,8 +248,10 @@ check "Katana constants match lib/katana.sh" katana_constants
 # "unpublished" until CI first publishes it. Each lab in the table is a lab
 # section of index.html, starting on a version in the map. The researcher
 # tools' IRIS_TOOLS_ENV_VERSION and every form's IRIS_ENV_VERSION are in the map, published or not: a job stops with one
-# line when its container file is missing. A later version only adds
-# packages: its lock keeps every line of the one before it.
+# line when its container file is missing. A later version may add, change
+# or remove packages (ADR-0010): env_version_notes, outside the check,
+# prints a NOTE for each one that changes pins, from envs/build-kind.sh,
+# which also tells the build whether it is a layer or fresh.
 # tests/bin/test_env_versions.sh runs it on fixture trees.
 env_versions() {
     local v n prev lab f labs vs
@@ -271,16 +273,6 @@ env_versions() {
         [ "$n" -gt 1 ] || continue
         prev="${v%/*}/$((n - 1))"
         in_map "$prev" || { echo "lib/katana.sh: $v has no $prev before it; versions count up from 1"; continue; }
-        [ -f "envs/$prev/requirements.lock" ] || continue
-        tr -d '\r' < "envs/$prev/requirements.lock" | awk -v f="$f" -v prev="$prev" '
-            function key(s) { s = tolower(s); sub(/[ =<>!~;@\[].*/, "", s); gsub(/[-_.]+/, "-", s); return s }
-            { sub(/#.*/, ""); gsub(/^[ \t]+|[ \t]+$/, "") }
-            $0 == "" { next }
-            FNR == NR { now[$0] = 1; by[key($0)] = $0; next }
-            !($0 in now) {
-                if (key($0) in by) print f ": changes " $0 " to " by[key($0)] ", which " prev " pins; a version only adds packages, so keep " $0
-                else print f ": removes " $0 ", which " prev " pins; a version only adds packages, so keep it"
-            }' <(tr -d '\r' < "$f") - | sort
     done
     for f in envs/*/*/requirements.lock; do
         [ -f "$f" ] || continue
@@ -302,7 +294,22 @@ env_versions() {
         done
     done
 }
-check "environment versions match the digest map" env_versions
+env_versions_check="environment versions match the digest map"
+check "$env_versions_check" env_versions
+
+# A NOTE, not a failure, for each later version whose lock changes or
+# removes a line of the one before it, so its author and the maintainer
+# reviewing it see that it is built fresh and what it changes.
+env_version_notes() {
+    local v note
+    # shellcheck source=lib/katana.sh
+    . <(tr -d '\r' < lib/katana.sh) 2>/dev/null || return 0
+    for v in $(printf '%s\n' "${!IRIS_ENV_DIGESTS[@]}" | sort); do
+        note="$(envs/build-kind.sh "$v" 2>/dev/null | sed -n 2p)"
+        [ -z "$note" ] || echo "NOTE: $note"
+    done
+}
+[[ "$env_versions_check" != *"$only"* ]] || env_version_notes
 
 # Print form lines that break a rule, by top-level section: no heredoc in
 # script: (every line there stays indented), no Ruby #{} in check: (it

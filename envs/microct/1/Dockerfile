@@ -6,8 +6,11 @@
 # driver from the host (apptainer --nv).
 #
 # CI builds, checks and publishes it (.github/workflows/containers.yml);
-# ../../README.md covers how. Later versions are built on top of it by
-# ../../next.Dockerfile, so this file is never edited once published.
+# ../../README.md covers how. A later version whose lock only adds is built
+# on top of the one before it by ../../next.Dockerfile; one that changes or
+# removes a pin is built fresh from this file with its own lock
+# (../../build-kind.sh, ADR-0010). This file is never edited once
+# published.
 
 # python:3.13.2-slim-bookworm, pinned by digest alone: Apptainer refuses a
 # reference that has both a tag and a digest.
