@@ -217,6 +217,25 @@ reset; map "[microct/1]=$a"
 expect 0 "pulled"
 holds no-token "$fake/auth" "user= password="
 
+# --check-login says whether the token file would log a pull in, pulling
+# nothing and printing no line of the file, whatever it holds.
+reset; map "[microct/1]=$a"
+expect 1 "no $FAKE_HOME/.config/iris/ghcr-token" --check-login
+mkdir -p "$FAKE_HOME/.config/iris"
+for line in "PatrickTungghp_secret" "PatrickTung:ghp_secret"; do
+    echo "$line" > "$FAKE_HOME/.config/iris/ghcr-token"
+    chmod 600 "$FAKE_HOME/.config/iris/ghcr-token"
+    out="$(PATH="$fake:$PATH" "$repo/bin/envpull" --check-login 2>&1)"
+    ! grep -qF secret <<< "$out" || echo "envpull --check-login: printed the token: $out"
+done
+expect 0 "logs a pull in as PatrickTung" --check-login
+echo "PatrickTungghp_secret" > "$FAKE_HOME/.config/iris/ghcr-token"
+expect 1 "should hold one line" --check-login
+chmod 640 "$FAKE_HOME/.config/iris/ghcr-token"
+expect 1 "chmod 600" --check-login
+no_pull check-login
+expect 2 "usage:" --check-login microct/1
+
 # A failed pull leaves nothing behind, and points at the token.
 reset; map "[microct/1]=$a"; touch "$fake/pull-fails"
 expect 1 ".config/iris/ghcr-token"

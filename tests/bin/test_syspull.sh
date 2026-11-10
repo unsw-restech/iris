@@ -14,12 +14,20 @@ trap 'rm -rf "$fake"' EXIT
 # Adds its arguments to $fake/args and prints a stand-in report. A file
 # named ssh-down makes it fail as ssh itself does (255), one named
 # check-down does that to the readability check alone, and one named
-# unreadable makes that check list a path and fail.
+# unreadable makes that check list a path and fail. The container check
+# (bash -s) records the commit it was given; one named unpinned makes it
+# name a version and fail, and one named pins-down makes it fail as ssh does.
 cat > "$fake/ssh" <<'EOF'
 #!/bin/bash
 dir="$(dirname "$0")"
 printf '%s\n' "$@" >> "$dir/args"
 [ -e "$dir/ssh-down" ] && { echo "ssh: connect to host katana: Connection refused" >&2; exit 255; }
+if [ "$2" = bash ]; then
+    cat > /dev/null
+    [ -e "$dir/pins-down" ] && exit 255
+    [ -e "$dir/unpinned" ] && { echo "microct/2, pinned by seg: no /x/microct/2.sif."; exit 1; }
+    exit 0
+fi
 if [ "$2" = python3 ]; then
     cat > /dev/null
     [ -e "$dir/check-down" ] && exit 255
@@ -92,6 +100,27 @@ expect 2 "usage:" --apply
 expect 2 "usage:" --apply "0123abc; rm -rf /"
 expect 2 "usage:" pull
 [ ! -e "$fake/args" ] || echo "syspull pull: ran ssh on a usage error"
+
+# A version the deploy would pin with no container file in place: the
+# preview names it, and --apply names it and deploys nothing.
+expect 0 "fake report"
+grep -qxF origin/main "$fake/args" || echo "syspull preview: the container check wasn't given origin/main"
+touch "$fake/unpinned"
+expect 0 "microct/2, pinned by seg: no /x/microct/2.sif."
+expect 0 "--apply refuses"
+expect 1 "nothing deployed" --apply 0123abc
+expect 1 "microct/2, pinned by seg" --apply 0123abc
+not_sent apply-unpinned "git merge"
+rm "$fake/unpinned"
+# A check that can't run says so; --apply deploys nothing without it.
+touch "$fake/pins-down"
+expect 0 "Couldn't check the containers"
+expect 1 "nothing deployed" --apply 0123abc
+not_sent apply-pins-down "git merge"
+rm "$fake/pins-down"
+# The check runs on the commit --apply deploys.
+expect 0 "fake report" --apply 0123abc
+grep -qxF 0123abc "$fake/args" || echo "syspull apply: the container check wasn't given 0123abc"
 
 # ssh's own failure is the script's.
 # A readability check that can't run says so, not that paths are unreadable.

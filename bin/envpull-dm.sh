@@ -1,7 +1,7 @@
 #!/bin/bash
 # bin/envpull's side on the data mover, sent on stdin to `bash -s`:
 #
-#   bash -s -- <list|pull|remove> <env>/<n>|- <environments folder>
+#   bash -s -- <list|pull|remove|login> <env>/<n>|- <environments folder>
 #       <system clone> <registry> <tools version>
 #       [map:<env>/<n>=<digest>]... [pin:<env>/<n>=<slug>]...
 #
@@ -136,6 +136,18 @@ case "$mode" in
         ;;
     pull)
         get "$target" 1 || status=1 ;;
+    login)
+        # Says only what login() decides and the login name, never a line
+        # of the file, so its output is safe to show anywhere.
+        if [ ! -e "$token" ]; then
+            echo "There is no $token, so a pull goes without a login, which works only if the package is public."
+            status=1
+        elif login; then
+            echo "$token logs a pull in as $APPTAINER_DOCKER_USERNAME."
+        else
+            status=1
+        fi
+        ;;
     remove)
         # Removing is not a one-way door only because --pull undoes it, so
         # a version the map gives no digest is never removed (#125).

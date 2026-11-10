@@ -9,6 +9,8 @@
 #   bin/envpull --remove <env>/<n>   remove a version's container file and
 #                                    its digest file, if nothing pins it and
 #                                    --pull could bring it back
+#   bin/envpull --check-login        say whether the token file would log a
+#                                    pull in, printing no line of it
 #
 # A version is pinned by a form in this checkout's workflows/ or the system
 # clone's, with an "  IRIS_ENV_VERSION=<env>/<n>" line, and by the
@@ -26,12 +28,13 @@
 here="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=lib/katana.sh
 . "$here/../lib/katana.sh" || exit 2
-usage() { echo "usage: bin/envpull [--pull <env>/<n> | --remove <env>/<n>]" >&2; exit 2; }
+usage() { echo "usage: bin/envpull [--pull <env>/<n> | --remove <env>/<n> | --check-login]" >&2; exit 2; }
 
 case "$#:${1-}" in
     0:) mode=list target=- ;;
     2:--pull) mode=pull target="$2" ;;
     2:--remove) mode=remove target="$2" ;;
+    1:--check-login) mode=login target=- ;;
     *) usage ;;
 esac
 [ "$target" = - ] || iris_is_env_version "$target" || usage
