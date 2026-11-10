@@ -10,7 +10,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
 - **Make an issue a sub-issue of a parent**: `gh issue edit <child> --parent <parent>`, or `gh issue create --parent <parent>` for a new one.
 - **Comment on an issue**: `gh issue comment <number> --body-file <file>`.
-- **Tick a box**: `bin/issue-tick <number> "<box text prefix>"...`, one prefix per box. It changes nothing unless each prefix matches exactly one box.
+- **Tick a box**: `bin/issue-tick <number> "<box text prefix>"...`, one prefix per box. It ticks in the body, or else in the latest `## Agent Brief` comment, where triage puts a brief's acceptance criteria, and changes nothing unless one of them has exactly one box for each prefix. A ticket with boxes in both needs a call for each.
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Settle part of another ticket**: comment on it, naming the commit and what it settles, whenever a commit cites an open issue other than its own or meets one of its acceptance criteria, so whoever builds it starts from what's left. adc5e01 cited #147 in a doc and said nothing on #147, so its triage re-derived the fix (2026-11-10).
 - **Close with a comment**: comment as in **Comment on an issue**, then `gh issue close <number>` as its own call (adding `--reason "not planned"` or `--reason duplicate` when it wasn't completed), since `close` has no file form.

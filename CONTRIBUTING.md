@@ -43,7 +43,7 @@ iris/
 │   ├── envpull-dm.sh                 # envpull's side on the data mover
 │   ├── envrun                        # Run a command in an environment version's container: bin/check's Python tests (desktop, CI)
 │   ├── pageswait                     # Wait for the live site to serve a change (desktop)
-│   ├── issue-tick                    # Tick checkboxes in an issue's body (desktop)
+│   ├── issue-tick                    # Tick checkboxes in an issue's body or Agent Brief (desktop)
 │   ├── iris-import                   # Import new runs into your MLflow tracking store
 │   ├── iris-python                   # Runs an iris.* module in the researcher tools' container (`IRIS_TOOLS_ENV_VERSION`); the iris-* tools are shims over it
 │   ├── iris-compare                  # Import, then compare runs in MLflow (in a Virtual Desktop)

@@ -1,24 +1,29 @@
 #!/bin/bash
-# Tick checkboxes in an issue's body: each <box-prefix> names the one box
-# whose text starts with it, matched literally, markdown included.
+# Tick checkboxes in an issue's body, or in its latest Agent Brief comment,
+# where triage puts a brief's acceptance criteria: each <box-prefix> names the
+# one box whose text starts with it, matched literally, markdown included.
 #
 #   bin/issue-tick <number> <box-prefix>...
 #   bin/issue-tick 95 'The sample dataset arrives' '**Open in Globus** appears'
 #
-# Edits the body only if every prefix matches exactly one box; a box already
-# ticked counts as a match and is left as is, and lines in ``` fences aren't
-# boxes. Writes no temp file. Exits 0 and lists what it ticked, 1 if a prefix
-# matches no box or several, 2 on usage or a gh failure.
+# Edits the body if every prefix matches exactly one box there, else the
+# brief if every prefix matches exactly one box in it, else nothing: one call
+# ticks boxes in one place. A box already ticked counts as a match and is left
+# as is, and lines in ``` fences aren't boxes. Writes no temp file. Exits 0
+# and lists what it ticked, 1 if no one place has every prefix's box once, 2
+# on usage or a gh failure.
 
 [ $# -ge 2 ] || { echo "usage: bin/issue-tick <number> <box-prefix>..." >&2; exit 2; }
 n="$1"
 shift
 body="$(gh issue view "$n" --json body --jq .body)" || exit 2
 
-# Prints the count of boxes it ticked, their prefixes one per line, then the
-# new body. The prefixes arrive as ARGV and the body through the environment,
-# so awk reads no file and leaves backslashes alone.
-out="$(BODY="$body" awk '
+# tick <text> <box-prefix>...: prints the count of boxes it ticked, their
+# prefixes one per line, then the new text, or fails with a line per prefix
+# that matches no box or several. The prefixes arrive as ARGV and the text
+# through the environment, so awk reads no file and leaves backslashes alone.
+tick() {
+    BODY="$1" awk '
 BEGIN {
     nl = split(ENVIRON["BODY"], line, "\n")
     bad = 0
@@ -47,12 +52,33 @@ BEGIN {
     print k
     for (i = 1; i <= k; i++) print done[i]
     for (j = 1; j <= nl; j++) print line[j]
-}' "$@")" || exit 1
+}' "${@:2}"
+}
+
+# The body first. Failing that, the latest comment holding "## Agent Brief":
+# its numeric id from its URL on the first line, then its text.
+where="#$n"
+if ! out="$(tick "$body" "$@" 2>&1)"; then
+    body_errors="$out"
+    brief="$(gh issue view "$n" --json comments --jq '[.comments[] | select(.body | contains("## Agent Brief"))] | last | select(.) | (.url | sub(".*issuecomment-"; "")) + "\n" + .body')" || exit 2
+    [ -n "$brief" ] || { echo "$body_errors" >&2; exit 1; }
+    comment="$(head -1 <<< "$brief")"
+    if ! out="$(tick "$(tail -n +2 <<< "$brief")" "$@" 2>&1)"; then
+        { echo "$body_errors"; sed 's/^issue-tick: /issue-tick: in the Agent Brief, /' <<< "$out"; } >&2
+        exit 1
+    fi
+    where="#$n's Agent Brief"
+fi
 
 k="$(head -1 <<< "$out")"
 if [ "$k" = 0 ]; then
-    echo "issue-tick: every box already ticked on #$n"
+    echo "issue-tick: every box already ticked on $where"
     exit 0
 fi
-tail -n +$((k + 2)) <<< "$out" | gh issue edit "$n" --body-file - > /dev/null || exit 2
-sed -n "2,$((k + 1))p" <<< "$out" | sed "s/^/ticked on #$n: /"
+new="$(tail -n +$((k + 2)) <<< "$out")"
+if [ "$where" = "#$n" ]; then
+    gh issue edit "$n" --body-file - <<< "$new" > /dev/null || exit 2
+else
+    gh api -X PATCH "repos/{owner}/{repo}/issues/comments/$comment" -F body=@- <<< "$new" > /dev/null || exit 2
+fi
+sed -n "2,$((k + 1))p" <<< "$out" | sed "s/^/ticked on $where: /"
