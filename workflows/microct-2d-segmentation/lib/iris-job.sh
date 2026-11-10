@@ -69,8 +69,8 @@ iris_has_gpu() {
 # no value can break as a comma breaks --env: this copy's folder on the Python path, so the run imports
 # the workflow's own copy of the iris package, the workflow folder as IRIS_CODE
 # for the entry script, IRIS_HOME if set, USER, the PBS job ID and queue,
-# unbuffered Python output, the environment version and digest, and
-# CUDA_VISIBLE_DEVICES if PBS set it. Katana's Apptainer binds /srv, as
+# unbuffered Python output, the environment version and digest, IRIS_GPU=1
+# with --nv, and CUDA_VISIBLE_DEVICES if PBS set it. Katana's Apptainer binds /srv, as
 # ADR-0008's container jobs 9680569 and 9680570 showed by reading and
 # writing /srv/scratch with no --bind, and home, which Apptainer binds
 # unless its config says otherwise (mount home), so the clone, the dataset
