@@ -40,7 +40,7 @@ Multi-context repo (presence of `GLOSSARY-MAP.md` at the root):
 
 ## Glossary edits during triage
 
-Triage makes no commits, so a glossary entry it settles goes into the agent brief as the entry's exact new text, and the working tree is left clean: the agent that builds the ticket may work in another worktree, and the next commit on `main` would sweep a stray edit in (#146, 2026-11-10).
+Triage makes no commits, so a glossary entry it settles goes into the `ready-for-agent` brief as the entry's exact new text, and the working tree is left clean: the agent that builds the ticket may work in another worktree, where an uncommitted edit never reaches it (#146, 2026-11-10).
 
 ## Use the glossary's vocabulary
 

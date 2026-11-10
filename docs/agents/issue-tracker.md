@@ -4,7 +4,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 ## Conventions
 
-- **Write a body first**: every issue body and comment goes in a file written with the Write tool, then `--body-file <file>` in a `gh` call of its own. A multi-line `--body "..."` or a heredoc is blocked by the lone-write hook.
+- **Write a body first**: every issue body and comment goes in a file written with the Write tool, then `--body-file <file>` in a `gh` call of its own, which the lone-write hook lets through.
 - **Create an issue**: `gh issue create --title "..." --body-file <file>`.
 - **Read an issue**: `gh issue view <number> --json title,state,labels,body,comments`.
 - **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
@@ -13,7 +13,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Tick a box**: `bin/issue-tick <number> "<box text prefix>"...`, one prefix per box. It changes nothing unless each prefix matches exactly one box.
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Settle part of another ticket**: comment on it, naming the commit and what it settles, whenever a commit cites an open issue other than its own or meets one of its acceptance criteria, so whoever builds it starts from what's left. adc5e01 cited #147 in a doc and said nothing on #147, so its triage re-derived the fix (2026-11-10).
-- **Close with a comment**: comment with `--body-file`, then `gh issue close <number>` as its own call, since `close` takes only a one-line `--comment`, adding `--reason "not planned"` or `--reason duplicate` when it wasn't completed.
+- **Close with a comment**: comment as in **Comment on an issue**, then `gh issue close <number>` as its own call (adding `--reason "not planned"` or `--reason duplicate` when it wasn't completed), since `close` has no file form.
 - **Close a spec**: first list every open issue (`gh issue list --state open --json number,title --jq '.[] | "\(.number) \(.title)"'`), not just its sub-issues, and settle or comment on any whose question the spec's work answers. An issue raised beside a spec often isn't linked to it: #97 asked what #83's real run had just shown, and #83 closed without it (2026-10-27).
 
 The repo is `unsw-restech/iris`. `gh` infers it when run inside the clone (`iris\`); from the parent `IRIS_github_pages\` directory, which is not a git repo, pass `-R unsw-restech/iris`.
@@ -47,4 +47,4 @@ Used by the wayfinder skill. The **map** is a single issue with **child** issues
 - **Blocking**: GitHub's **native issue dependencies**, the canonical, UI-visible representation. Add an edge with `gh issue edit <child> --add-blocked-by <blocker>`, or `gh issue create --blocked-by <blocker>` for a new one. GitHub reports `issue_dependencies_summary.blocked_by` (open blockers only, the live gate). Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body. A ticket is unblocked when every blocker is closed.
 - **Frontier query**: list the map's open children (`gh issue list --state open`, scoped to the map's sub-issues / task list), drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or an assignee; first in map order wins.
 - **Claim**: `gh issue edit <n> --add-assignee @me`, the session's first write.
-- **Resolve**: comment the answer with `--body-file`, close as in **Close with a comment**, then append a context pointer (gist + link) to the map's Decisions-so-far.
+- **Resolve**: close with the answer as in **Close with a comment**, then append a context pointer (gist + link) to the map's Decisions-so-far.
