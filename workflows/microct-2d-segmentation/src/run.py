@@ -301,7 +301,7 @@ def main(argv=None):
             raise DatasetError(f"{name} is {img.dtype}; the volume is {vol.dtype}. Export training images at the volume's bit depth.")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if os.environ.get("IRIS_GPU") and device.type == "cpu":
+    if os.environ.get("IRIS_GPU") == "1" and device.type == "cpu":
         # The job library sets IRIS_GPU when nvidia-smi lists a GPU. Training
         # on the CPU instead takes hours: #133's first run, 9736586.
         raise GpuError("This job has a GPU, but PyTorch can't use it, so the run stopped before training "

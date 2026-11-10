@@ -188,7 +188,8 @@ class StartLine(unittest.TestCase):
         return args.splitlines(), dict(line.split("=", 1) for line in variables.splitlines())
 
     def test_a_cpu_only_run_starts_the_container_clean_without_gpu_support(self):
-        args, _ = self.start()
+        args, variables = self.start()
+        self.assertEqual(set(variables), PASSED)
         container_file = str(self.envs / f"{pinned_version()}.sif")
         self.assertEqual(args[:3], ["exec", "--cleanenv", container_file])
         self.assertEqual(args[3:5], ["python", str(Path(self.tmp.name, "dataset", "runs", "1", "run.py"))])
