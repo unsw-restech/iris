@@ -121,7 +121,7 @@ The single file one version of an environment is packaged as, which a run starts
 _Avoid_: Image, container image, SIF
 
 **Environment version**:
-One fixed build of an environment, named `<env>/<n>` after the lab it was first built for and counting from 1, such as `microct/1`. A later version only adds packages, and a form pins the version its workflow was proved in.
+One fixed build of an environment, named `<env>/<n>` after the lab it was first built for and counting from 1, such as `microct/1`. A later version may add, change or remove packages, and a form pins the version its workflow was proved in.
 _Avoid_: Tag, release, image version
 
 **Digest map**:
@@ -129,7 +129,7 @@ The one list that ties each environment version to the exact container it means,
 _Avoid_: Lock, pin file
 
 **Lab table**:
-The one list of labs and the environment version each lab's new workflows start on. Labs may share a version.
+The one list of labs and the environment version each lab's new workflows start on. Labs may share a version, and each lab's entry moves only when the maintainer moves that lab.
 _Avoid_: Lab map, lab config
 
 **Container file**:
