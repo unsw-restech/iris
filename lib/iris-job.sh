@@ -62,6 +62,8 @@ iris_has_gpu() {
 # PBS sets no CUDA_VISIBLE_DEVICES, but shows a job only the GPUs it was
 # given: a 1-GPU job's nvidia-smi lists that GPU alone (job 9736945). #133's
 # first run, 9736586, tested CUDA_VISIBLE_DEVICES and trained on the CPU.
+# With --nv it passes IRIS_GPU=1, so the entry script can stop rather than
+# train on the CPU when its framework can't use that GPU.
 # --cleanenv keeps the job's modules and host libraries out; only what the
 # run needs is passed in, through Apptainer's APPTAINERENV_ variables, which
 # no value can break as a comma breaks --env: this copy's folder on the Python path, so the run imports
@@ -86,7 +88,7 @@ iris_container() {
     )
     for v in $(compgen -v APPTAINERENV_) $(compgen -v SINGULARITYENV_); do strip+=(-u "$v"); done
     [ -z "$IRIS_HOME" ] || pass+=("APPTAINERENV_IRIS_HOME=$IRIS_HOME")
-    iris_has_gpu && gpu=(--nv)
+    iris_has_gpu && gpu=(--nv) && pass+=("APPTAINERENV_IRIS_GPU=1")
     [ -z "$CUDA_VISIBLE_DEVICES" ] || pass+=("APPTAINERENV_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES")
     env "${strip[@]}" "${pass[@]}" apptainer exec --cleanenv "${gpu[@]}" "$IRIS_ENV_FILE" "$@"
 }

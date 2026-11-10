@@ -48,6 +48,10 @@ class DatasetError(Exception):
     """A problem with the researcher's dataset, reported as one line."""
 
 
+class GpuError(Exception):
+    """A GPU the job was given but PyTorch can't use, reported as one line."""
+
+
 # -- Data ------------------------------------------------------------------
 
 def pad_to(img, h, w, mode="reflect"):
@@ -297,6 +301,11 @@ def main(argv=None):
             raise DatasetError(f"{name} is {img.dtype}; the volume is {vol.dtype}. Export training images at the volume's bit depth.")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if os.environ.get("IRIS_GPU") and device.type == "cpu":
+        # The job library sets IRIS_GPU when nvidia-smi lists a GPU. Training
+        # on the CPU instead takes hours: #133's first run, 9736586.
+        raise GpuError("This job has a GPU, but PyTorch can't use it, so the run stopped before training "
+                       "on the CPU. For help, see https://docs.restech.unsw.edu.au/iris/guide/#help")
     gpu = torch.cuda.get_device_name(device) if device.type == "cuda" else "none"
     with RunRecord(run_dir, args.experiment, CODE, extras={"gpu": gpu}) as record:
         dataset = record.write_dataset(lambda: dataset_record(args.dataset, dataset_extras(args.dataset, vol)))
@@ -385,6 +394,6 @@ def train_and_segment(args, record, pairs, n_classes, vol, device, intensity):
 if __name__ == "__main__":
     try:
         main()
-    except DatasetError as e:
+    except (DatasetError, GpuError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)

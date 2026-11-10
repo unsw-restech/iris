@@ -197,7 +197,8 @@ class StartLine(unittest.TestCase):
     def test_a_run_with_gpus_starts_the_container_with_gpu_support(self):
         args, variables = self.start(gpus=1)
         self.assertEqual(args[:3], ["exec", "--cleanenv", "--nv"])
-        self.assertNotIn("CUDA_VISIBLE_DEVICES", variables)
+        self.assertEqual(set(variables), PASSED | {"IRIS_GPU"})
+        self.assertEqual(variables["IRIS_GPU"], "1")
 
     def test_cuda_visible_devices_is_passed_in_when_set(self):
         args, variables = self.start(gpus=1, env={"CUDA_VISIBLE_DEVICES": "GPU-1234"})

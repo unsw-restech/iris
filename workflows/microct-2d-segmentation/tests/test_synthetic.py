@@ -490,5 +490,22 @@ class WrongBitDepth(unittest.TestCase):
             self.assertFalse((run_dir / "model.pt").exists())
 
 
+class GpuNotUsable(unittest.TestCase):
+
+    def test_a_job_given_a_gpu_that_torch_cannot_use_fails_before_training(self):
+        # The job library sets IRIS_GPU when nvidia-smi lists one; #133's
+        # first run, 9736586, had one and trained on the CPU for 94 minutes.
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "dataset"
+            write_dataset(dataset, make_volume(), two_class_labels())
+            run_dir = dataset / "runs" / "1"
+            cmd, env = entry_command(dataset, run_dir, Path(tmp) / "iris")
+            result = subprocess.run(cmd, env={**env, "IRIS_GPU": "1"}, capture_output=True, text=True, timeout=600)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("GPU", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertFalse((run_dir / "model.pt").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
