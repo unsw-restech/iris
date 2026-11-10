@@ -57,14 +57,14 @@ iris_has_gpu() {
 }
 
 # iris_container <command>...: runs <command> in the pinned container, with
-# the GPU (--nv) when PBS gave the job any, and without for a CPU-only run
-# (0 GPUs), where --nv would fail on missing drivers. Katana's PBS sets no
-# CUDA_VISIBLE_DEVICES: it shows a job only the GPUs it was given, so
-# nvidia-smi lists one GPU for a 1-GPU job and fails for a job with none
-# (job 9736945, after #133's first run, 9736586, trained on the CPU). --cleanenv keeps the job's modules and
-# host libraries out; only what the run needs is passed in, through
-# Apptainer's APPTAINERENV_ variables, which no value can break as a comma
-# breaks --env: this copy's folder on the Python path, so the run imports
+# the GPU (--nv) when nvidia-smi lists one (iris_has_gpu), and without for a
+# CPU-only run (0 GPUs), where --nv would fail on missing drivers. Katana's
+# PBS sets no CUDA_VISIBLE_DEVICES, but shows a job only the GPUs it was
+# given: a 1-GPU job's nvidia-smi lists that GPU alone (job 9736945). #133's
+# first run, 9736586, tested CUDA_VISIBLE_DEVICES and trained on the CPU.
+# --cleanenv keeps the job's modules and host libraries out; only what the
+# run needs is passed in, through Apptainer's APPTAINERENV_ variables, which
+# no value can break as a comma breaks --env: this copy's folder on the Python path, so the run imports
 # the workflow's own copy of the iris package, the workflow folder as IRIS_CODE
 # for the entry script, IRIS_HOME if set, USER, the PBS job ID and queue,
 # unbuffered Python output, the environment version and digest, and

@@ -277,7 +277,7 @@ class InTheContainer(unittest.TestCase):
         self.assertNotIn("IRIS_TEST_HOST_ONLY", variables)
         self.assertNotIn("LOADEDMODULES", variables)
 
-    def test_a_cpu_only_job_gets_no_cuda_devices(self):
+    def test_an_unset_cuda_visible_devices_stays_unset(self):
         self.assertNotIn("CUDA_VISIBLE_DEVICES", self.line("VARS").split())
 
     def test_the_header_shows_the_clones_commit_the_environment_and_the_run_directory(self):
