@@ -137,13 +137,15 @@ case "$mode" in
     pull)
         get "$target" 1 || status=1 ;;
     login)
-        # Says only what login() decides and the login name, never a line
-        # of the file, so its output is safe to show anywhere.
+        # Says only what login() decides, never any part of the file's line,
+        # so its output is safe to show anywhere. The token file alone
+        # decides the status, not a malformed pin found above.
         if [ ! -e "$token" ]; then
             echo "There is no $token, so a pull goes without a login, which works only if the package is public."
             status=1
         elif login; then
-            echo "$token logs a pull in as $APPTAINER_DOCKER_USERNAME."
+            echo "$token is one <GitHub login>:<token> line, mode 600: a pull logs in with it."
+            status=0
         else
             status=1
         fi

@@ -53,6 +53,17 @@ expect 0 ""
 out="$(bash -s -- "$clone" HEAD < "$here/bin/syspull-pins.sh" 2>&1)"
 [ -z "$out" ] || echo "syspull-pins: printed '$out' with every container in place"
 
+# A version the digest map lacks, or holds as unpublished, can't be pulled,
+# and is named as that.
+mkdir -p "$clone/workflows/mri"
+printf 'script: |\n  IRIS_ENV_VERSION=microct/3\n' > "$clone/workflows/mri/form.yml.erb"
+sed -i "s|^    \[microct/2\]=.*|    [microct/2]=unpublished|" "$clone/lib/katana.sh"
+git -C "$clone" add -A
+git -C "$clone" -c user.name=t -c user.email=t@t commit -qm unmapped
+expect 1 "microct/3, pinned by mri: not in HEAD's digest map"
+expect 1 "microct/2, pinned by seg: unpublished in HEAD's digest map"
+git -C "$clone" rm -rq workflows/mri
+
 # A commit from before containers, whose lib/katana.sh has no helpers,
 # pins nothing.
 echo 'IRIS_SYSTEM_CLONE=/x' > "$clone/lib/katana.sh"

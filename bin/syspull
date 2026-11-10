@@ -11,8 +11,8 @@
 # tip. Quote every commit verbatim in the go-ahead request, naming the
 # clone's path; --apply then deploys that commit even if main has moved
 # since, and refuses a clone that isn't on main or holds uncommitted edits.
-# Both check that every container the commit pins is on Katana with its
-# digest (bin/syspull-pins.sh): the listing names any that aren't, and
+# Both check that every environment version the commit pins has its
+# container file on Katana with its digest (bin/syspull-pins.sh): the listing names any that aren't, and
 # --apply deploys nothing until bin/envpull puts them in. Both end by
 # listing what a pilot tester can't read in the clone
 # (bin/pilot-readable.py), and --apply exits 1 if anything is listed, since
@@ -27,7 +27,8 @@ usage() { echo "usage: bin/syspull [--apply <sha>]" >&2; exit 2; }
 readable() {
     ssh katana python3 - "$sys" < "$(dirname "$0")/pilot-readable.py"
 }
-# pins <commit>: names each container <commit> pins that isn't on Katana;
+# pins <commit>: names each environment version <commit> pins whose
+# container file isn't on Katana;
 # fails 1 if any, 2 or more if it can't tell (bin/syspull-pins.sh).
 pins() {
     ssh katana bash -s -- "$sys" "$1" < "$(dirname "$0")/syspull-pins.sh"
@@ -54,8 +55,8 @@ if [ $# -eq 0 ]; then
     out=$(pins origin/main)
     case $? in
         0) ;;
-        1) printf '\nThe pilot would start without these containers, so --apply refuses until bin/envpull puts them on Katana:\n%s\n' "$out" ;;
-        *) echo; echo "Couldn't check the containers origin/main pins, so --apply will refuse." ;;
+        1) printf '\nThese environment versions have no container file in place on Katana, so --apply refuses until bin/envpull puts them in:\n%s\n' "$out" ;;
+        *) printf '\nCouldn'"'"'t check the container files origin/main pins, so --apply will refuse:\n%s\n' "$out" ;;
     esac
     out=$(readable)
     case $? in
@@ -64,14 +65,15 @@ if [ $# -eq 0 ]; then
         *) echo; echo "Couldn't check what pilot testers can read in the clone." ;;
     esac
 elif [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
-    # A form whose container isn't on Katana stops every job at its start.
+    # A form whose container file isn't on Katana stops every job at its start.
     out=$(pins "$2")
     case $? in
         0) ;;
         1) printf '%s\n' "$out" >&2
-           echo "syspull: $2 pins containers that aren't on Katana; run bin/envpull from main first; nothing deployed." >&2
+           echo "syspull: $2 pins environment versions whose container files aren't on Katana; run bin/envpull from main first; nothing deployed." >&2
            exit 1 ;;
-        *) echo "syspull: couldn't check the containers $2 pins; nothing deployed." >&2; exit 1 ;;
+        *) printf '%s\n' "$out" >&2
+           echo "syspull: couldn't check the container files $2 pins; nothing deployed." >&2; exit 1 ;;
     esac
     # shellcheck disable=SC2016  # $(...) expanded on Katana
     ssh katana 'cd '"$sys"' && git fetch -q origin || exit

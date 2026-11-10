@@ -52,6 +52,7 @@ iris/
 │   ├── katana-test                   # Run the form, module and job-library tests on Katana (desktop)
 │   ├── libcopy                       # Copy the library's job side into a workflow's lib/, recording the commit; check every copy (bin/check runs it)
 │   ├── pilot-readable.py             # List what pilot testers can't read in the system clone (syspull runs it)
+│   ├── syspull-pins.sh               # List the environment versions a commit pins whose container files aren't on Katana (syspull runs it)
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 │   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
 │   └── workflowhub-microct-2d-segmentation  # Walkthrough registering it on WorkflowHub; copy it for another workflow (desktop)

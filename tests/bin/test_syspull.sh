@@ -114,7 +114,7 @@ not_sent apply-unpinned "git merge"
 rm "$fake/unpinned"
 # A check that can't run says so; --apply deploys nothing without it.
 touch "$fake/pins-down"
-expect 0 "Couldn't check the containers"
+expect 0 "Couldn't check the container files"
 expect 1 "nothing deployed" --apply 0123abc
 not_sent apply-pins-down "git merge"
 rm "$fake/pins-down"

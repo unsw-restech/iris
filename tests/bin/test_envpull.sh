@@ -228,7 +228,7 @@ for line in "PatrickTungghp_secret" "PatrickTung:ghp_secret"; do
     out="$(PATH="$fake:$PATH" "$repo/bin/envpull" --check-login 2>&1)"
     ! grep -qF secret <<< "$out" || echo "envpull --check-login: printed the token: $out"
 done
-expect 0 "logs a pull in as PatrickTung" --check-login
+expect 0 "a pull logs in with it" --check-login
 echo "PatrickTungghp_secret" > "$FAKE_HOME/.config/iris/ghcr-token"
 expect 1 "should hold one line" --check-login
 chmod 640 "$FAKE_HOME/.config/iris/ghcr-token"
