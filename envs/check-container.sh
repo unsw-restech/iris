@@ -7,6 +7,7 @@
 # Fails, naming what is wrong, unless:
 #   - pip freeze inside it is envs/<env>/<n>/requirements.lock exactly
 #   - every package in the lock imports (check_imports.py)
+# for a version whose lock pins torch:
 #   - PyTorch is compiled for sm_70, as the V100s need
 # and, for a version whose lock pins napari (iris-view):
 #   - Qt's xcb platform plugin, its GLX integration and the PyQt5 modules
@@ -38,8 +39,12 @@ echo "identical"
 echo "== imports"
 in_container python /recipe/check_imports.py "/recipe/$VERSION/requirements.lock"
 
-echo "== PyTorch compiled for the V100s (sm_70)"
-in_container python -c 'import torch; a = torch._C._cuda_getArchFlags(); print(a); assert "sm_70" in a.split(), "no sm_70: this PyTorch cannot run on the V100s"'
+if grep -qiE '^torch==' "$LOCK"; then
+    echo "== PyTorch compiled for the V100s (sm_70)"
+    in_container python -c 'import torch; a = torch._C._cuda_getArchFlags(); print(a); assert "sm_70" in a.split(), "no sm_70: this PyTorch cannot run on the V100s"'
+else
+    echo "No torch in the lock, so no GPU arch check."
+fi
 
 if ! grep -qiE '^napari==' "$LOCK"; then
     echo "No napari in the lock, so no Qt or drawing checks."

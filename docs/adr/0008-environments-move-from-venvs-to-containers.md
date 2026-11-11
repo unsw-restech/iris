@@ -1,6 +1,6 @@
 # Environments move from venvs to containers
 
-**Superseded in part by ADR-0010**: its rule that a new version can only add packages, never remove them. A later version may now add, change or remove packages. The rest of this ADR holds, including one container per lab.
+**Superseded in part by ADR-0010**: its rule that a new version can only add packages, never remove them, and its naming rule's having no exception. A later version may now add, change or remove packages, and the researcher tools' environment, `tools`, is the one not named after a lab (#149). The rest of this ADR holds, including one container per lab.
 
 Environments move from venvs on Katana to containers, which supersedes ADR-0005. IRIS calls them containers, never images, since an image in IRIS is imaging data (Patrick, 2026-11-06). Patrick expects cleanly defined containers to be less of a headache as outside workflow authors arrive (Patrick, 2026-11-05). Each lab has one container, and authors don't bring their own: the maintainer builds a lab's container for its first workflow, and a later workflow that needs more packages changes that container, making a new version. The author of that workflow proves it works in the new version, and the previous version is kept, in as little space as possible. `microct-2d-segmentation` moves from `imaging/1` to a container during the pilot, so no venv route is kept beside containers (Patrick, 2026-11-06).
 

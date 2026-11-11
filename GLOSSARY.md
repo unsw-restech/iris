@@ -113,7 +113,7 @@ ResTech's tally of runs per workflow per month, taken from Katana's own job reco
 _Avoid_: Usage log, telemetry
 
 **Environment**:
-A versioned set of software a lab's workflows run in, packaged as a container; several labs may share one. It is built ahead of time and never changed, and nothing is installed into it when a run starts. `imaging/1`, from before the move to containers, is a venv.
+A versioned set of software a lab's workflows, or the researcher tools, run in, packaged as a container; several labs may share one. It is built ahead of time and never changed, and nothing is installed into it when a run starts. `imaging/1`, from before the move to containers, is a venv.
 _Avoid_: Image, venv, setup
 
 **Container**:
@@ -121,7 +121,7 @@ The single file one version of an environment is packaged as, which a run starts
 _Avoid_: Image, container image, SIF
 
 **Environment version**:
-One fixed build of an environment, named `<env>/<n>` after the lab it was first built for and counting from 1, such as `microct/1`. A later version may add, change or remove packages, and a form pins the version its workflow was proved in.
+One fixed build of an environment, named `<env>/<n>` after the lab it was first built for and counting from 1, such as `microct/1`. The researcher tools' environment, `tools`, is the one not named after a lab, since it is no lab's. A later version may add, change or remove packages, and a form pins the version its workflow was proved in.
 _Avoid_: Tag, release, image version
 
 **Digest map**:

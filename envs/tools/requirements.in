@@ -1,0 +1,15 @@
+# The researcher tools' environment's own top-level packages, beyond
+# ../core.in: what iris-view, iris-compare, the importer and rebuild need
+# (#149). tools is no lab's environment (../README.md). tools/1 takes every
+# pin from microct/1's lock, so iris-view behaves as it did there;
+# 1/requirements.lock pins these and the core list. No PyTorch: no
+# researcher tool imports it.
+
+# netCDF-classic volume blocks, which iris-view opens
+netCDF4
+
+# Deflate for the label volume's BigTIFF, which iris-view reads
+imagecodecs
+
+# iris-view
+napari[pyqt5]

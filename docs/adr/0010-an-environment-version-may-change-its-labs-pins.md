@@ -1,6 +1,6 @@
 # An environment version may change its lab's pins
 
-Supersedes in part ADR-0007 (a new version only adds packages, and a package that conflicts with its lab's pins is declined) and ADR-0008 (a new version can only add packages, never remove them). A later version of a lab's environment may add, change or remove packages (Patrick, 2026-11-10).
+Supersedes in part ADR-0007 (a new version only adds packages, and a package that conflicts with its lab's pins is declined) and ADR-0008 (a new version can only add packages, never remove them, and every environment is named after the lab it was first built for, which the researcher tools' `tools` is not). A later version of a lab's environment may add, change or remove packages (Patrick, 2026-11-10).
 
 The add-only rule did not keep cited runs reproducible: digest pinning does that. Every form pins the exact version it was proved in, and each version is one container by digest (ADR-0008), so a new version can change neither a cited run nor another workflow's results. Those workflows stay on their version until their owners move. What the add-only rule bought was sharing: every version of a lab could be one layer on the version before it. That came at a cost. An author who needed, for example, PyTorch 2.11 where `microct/1` pins 2.10 had nowhere to go, and a lab-wide move such as napari to PyQt6 had no route but a second environment for the lab (#146).
 

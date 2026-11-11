@@ -19,9 +19,10 @@ IRIS_PYTHON_MODULE=python/3.13.2
 
 # Environments as containers (ADR-0007, ADR-0008; envs/README.md). An
 # environment version is <env>/<n>, <env> named after the lab it was first
-# built for and <n> counting from 1: microct/1. Its recipe is
-# envs/<env>/<n>/, and its container is published to IRIS_ENV_REGISTRY
-# tagged <env>-<n> (microct-1).
+# built for and <n> counting from 1: microct/1. The one exception is tools,
+# the researcher tools' environment, which is no lab's (ADR-0010). A version's
+# recipe is envs/<env>/<n>/, and its container is published to
+# IRIS_ENV_REGISTRY tagged <env>-<n> (microct-1).
 IRIS_ENV_REGISTRY=ghcr.io/unsw-restech/iris-env
 # The IRIS environments folder in katana_ai scratch, a place chosen for it
 # (ADR-0008, Patrick, 2026-11-06), not one Katana sets: version <env>/<n>'s
@@ -42,6 +43,7 @@ IRIS_TOOLS_ENV_VERSION=microct/1
 # (envs/README.md). A version's digest never changes once written.
 declare -gA IRIS_ENV_DIGESTS=(
     [microct/1]=sha256:c1022d8514acbdb80dc038a72ac193699fb1a4b7a75fa1b2905c7b41fd04eb4f
+    [tools/1]=unpublished
 )
 
 # The lab table: each lab, by its section id in index.html, and the
