@@ -9,7 +9,8 @@ IRIS is a static GitHub Pages site: hand-edited HTML with no build system, and i
 ```
 IRIS_github_pages\               <- parent directory, not a git repo
 ├── available-modules.md         <- what is installed on Katana
-└── iris\                        <- the git repo (github.com/unsw-restech/iris)
+├── OpenComposer\                <- IRIS's OpenComposer fork (github.com/unsw-restech/OpenComposer), with its own AGENTS.md
+└── iris\                        <- this repo (github.com/unsw-restech/iris)
     └── _archive\                <- retired forms, public but never served by OpenComposer
 ```
 
@@ -53,7 +54,7 @@ Pushing `main` is an immediate public deploy to https://docs.restech.unsw.edu.au
 
 ## Deliberate, leave as is
 
-- **`AGENTS.md` is the only instructions file**, in the repo or in `IRIS_github_pages\`: no tool-specific instructions file sits beside it (Patrick, 2026-10-26).
+- **`AGENTS.md` is the only instructions file** in this repo, in the fork and in `IRIS_github_pages\`: no tool-specific instructions file sits beside one (Patrick, 2026-10-26; the fork's own, 2026-11-11).
 - **`hello-world` is onboarding, not a catalogue entry**: excluded from the grid, and kept on its own styles rather than `assets/iris.css`.
 - **Planned cards still link to their pages**, keeping the `.planned` style: full colour like Active cards, with no hover lift (Patrick, 2026-10-28).
 - **No version tags** on cards: nothing versions a workflow, and each run's `commit.txt` records the code it ran (Patrick, 2026-10-22). A workflow page lists its citable versions by DOI, date and commit, never as a version number (ADR-0002).
