@@ -5,7 +5,7 @@ Workflows run in environments packaged as containers ([ADR-0008](../docs/adr/000
 | Version | Built from | PyTorch | Compiled GPU archs | Status |
 |---|---|---|---|---|
 | `microct/1` | `imaging/1`'s lock, unchanged, on Python 3.13.2 (closed PR #106's recipe) | `2.10.0+cu128` | `sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120` | Published 2026-11-07 (containers run 42341886288), private ([#132](https://github.com/unsw-restech/iris/issues/132)) |
-| `tools/1` | `microct/1`'s lock without PyTorch and what only it needs, every other pin unchanged, on Python 3.13.2 ([#149](https://github.com/unsw-restech/iris/issues/149)) | none | none | Unpublished |
+| `tools/1` | `microct/1`'s lock without PyTorch and what only it needs, every other pin unchanged, on Python 3.13.2 ([#149](https://github.com/unsw-restech/iris/issues/149)) | none | none | Published 2026-11-11 (containers run 42933065264), private ([#132](https://github.com/unsw-restech/iris/issues/132)) |
 
 `torch 2.9.1+cu128` has no `sm_70`, so it would not run on the V100s, and the `cu128` build needs NVIDIA driver 570 or newer: Katana's V100s run 580 and every other GPU node 610. L40S (sm_89) runs the `sm_86` code.
 
@@ -25,7 +25,7 @@ Workflows run in environments packaged as containers ([ADR-0008](../docs/adr/000
 Both are in `lib/katana.sh`, the one place every script takes Katana's constants from. A script that can source bash reads the arrays. Any other reads them with a regex, one entry per line, in the formats below.
 
 - **Digest map** `IRIS_ENV_DIGESTS`: every environment version, `<env>/<n>`, and its container's digest in `IRIS_ENV_REGISTRY` (`ghcr.io/unsw-restech/iris-env`), one `    [<env>/<n>]=<digest>` line each. `<digest>` is `sha256:<64 hex>`, or `unpublished` until CI first publishes the version. `iris_env_ref <env>/<n>` prints `ghcr.io/unsw-restech/iris-env@sha256:<hex>`, the container by digest alone, or fails with one line for a version that is unpublished or not in the map.
-- **Researcher tools' version** `IRIS_TOOLS_ENV_VERSION`: the version `iris-view`, `iris-compare`, the importer and rebuild run in, `microct/1`. `bin/check` fails it if it isn't in the digest map.
+- **Researcher tools' version** `IRIS_TOOLS_ENV_VERSION`: the version `iris-view`, `iris-compare`, the importer and rebuild run in, `tools/1`. `bin/check` fails it if it isn't in the digest map.
 - **Lab table** `IRIS_LAB_ENVS`: each lab, by its section id in `index.html`, and the version its new workflows start on, one `    [<lab>]=<env>/<n>` line each. Adding a lab is one line, and a lab with no packages of its own points at another lab's environment.
 
 A form pins its version with an `  IRIS_ENV_VERSION=<env>/<n>` line in its script. `bin/check`'s "environment versions match the digest map" check fails:

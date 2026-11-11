@@ -5,7 +5,7 @@ nothing rewrites it, so a change to the shared tools that drops a format
 fails here. Each sample's dataset folder is /srv/scratch/z0000000/dataset
 in its records. bin/check runs it in the researcher tools' container; by hand:
 
-    cd lib/tests && ../../bin/envrun microct/1 python -m unittest test_formats
+    cd lib/tests && ../../bin/envrun tools/1 python -m unittest test_formats
 """
 
 import json

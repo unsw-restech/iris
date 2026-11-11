@@ -6,7 +6,7 @@ directory module and RunRecord (run_dirs.py), and the volume reader's
 synthetic dataset by datasets.py, so nothing here depends on a workflow's
 folder. bin/check runs them in the researcher tools' container; by hand:
 
-    cd lib/tests && ../../bin/envrun microct/1 python -m unittest test_library
+    cd lib/tests && ../../bin/envrun tools/1 python -m unittest test_library
 """
 
 import contextlib

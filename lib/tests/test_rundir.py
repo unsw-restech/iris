@@ -3,7 +3,7 @@ into a run directory in a scratch git clone, as lib/iris-job.sh's
 iris_record_code does, and reading back its commit and whether it is an
 edited run. bin/check runs it in the researcher tools' container; by hand:
 
-    cd lib/tests && ../../bin/envrun microct/1 python -m unittest test_rundir
+    cd lib/tests && ../../bin/envrun tools/1 python -m unittest test_rundir
 """
 
 import json

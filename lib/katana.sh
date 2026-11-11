@@ -33,7 +33,7 @@ IRIS_ENV_REGISTRY=ghcr.io/unsw-restech/iris-env
 IRIS_ENVS_FOLDER=/srv/scratch/katana_ai/iris/envs
 # The version the researcher tools (iris-view, iris-compare, the importer,
 # rebuild) run in, whichever lab a run is from.
-IRIS_TOOLS_ENV_VERSION=microct/1
+IRIS_TOOLS_ENV_VERSION=tools/1
 
 # The digest map: every environment version and its container's digest in
 # IRIS_ENV_REGISTRY, one "    [<env>/<n>]=<digest>" line each, so a script
@@ -43,7 +43,7 @@ IRIS_TOOLS_ENV_VERSION=microct/1
 # (envs/README.md). A version's digest never changes once written.
 declare -gA IRIS_ENV_DIGESTS=(
     [microct/1]=sha256:c1022d8514acbdb80dc038a72ac193699fb1a4b7a75fa1b2905c7b41fd04eb4f
-    [tools/1]=unpublished
+    [tools/1]=sha256:02aec588cda0544f122b12a0ddeb6cd8e34a83724ed643b2712de46e4d3677ed
 )
 
 # The lab table: each lab, by its section id in index.html, and the

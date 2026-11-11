@@ -15,9 +15,13 @@ clone="$tmp/clone" envs="$tmp/envs"
 a=sha256:$(printf 'a%.0s' {1..64}) b=sha256:$(printf 'b%.0s' {1..64})
 
 git init -q "$clone"
+# The clone's digest map is microct/1 and microct/2, with the researcher
+# tools on microct/1, so the real map's other versions and tools version
+# don't leak into the cases.
 mkdir -p "$clone/lib" "$clone/workflows/seg" "$envs/microct"
 sed -e "s|^IRIS_ENVS_FOLDER=.*|IRIS_ENVS_FOLDER=$envs|" \
-    -e "s|^    \[microct/1\]=.*|    [microct/1]=$a\n    [microct/2]=$b|" lib/katana.sh > "$clone/lib/katana.sh"
+    -e "s|^    \[microct/1\]=.*|    [microct/1]=$a\n    [microct/2]=$b|" -e '/^    \[tools\/1\]=/d' \
+    -e 's|^IRIS_TOOLS_ENV_VERSION=.*|IRIS_TOOLS_ENV_VERSION=microct/1|' lib/katana.sh > "$clone/lib/katana.sh"
 printf 'script: |\n  IRIS_ENV_VERSION=microct/2\n' > "$clone/workflows/seg/form.yml.erb"
 git -C "$clone" add -A
 git -C "$clone" -c user.name=t -c user.email=t@t commit -qm pins

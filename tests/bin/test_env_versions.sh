@@ -20,8 +20,9 @@ name="environment versions match the digest map"
 digest=sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
 # make_tree <name>: a site with a seg workflow in the microct-lab section,
-# lib/katana.sh's digest map holding microct/1 unpublished and its lab
-# table starting microct-lab on it, and microct/1's lock.
+# lib/katana.sh's digest map holding microct/1 unpublished, its lab table
+# starting microct-lab on it and the researcher tools on it too, and
+# microct/1's lock.
 make_tree() {
     local tree="$scratch/$1"
     site_tree "$tree" seg:microct-lab:active
@@ -30,6 +31,7 @@ make_tree() {
     cp envs/build-kind.sh "$tree/envs/build-kind.sh"
     sed -i -e '/^declare -gA IRIS_ENV_DIGESTS=(/,/^)/c\declare -gA IRIS_ENV_DIGESTS=(\n    [microct/1]=unpublished\n)' \
         -e '/^declare -gA IRIS_LAB_ENVS=(/,/^)/c\declare -gA IRIS_LAB_ENVS=(\n    [microct-lab]=microct/1\n)' \
+        -e 's|^IRIS_TOOLS_ENV_VERSION=.*|IRIS_TOOLS_ENV_VERSION=microct/1|' \
         "$tree/lib/katana.sh"
     printf '%s\n' 'numpy==2.3.0' 'xarray==2025.6.1' > "$tree/envs/microct/1/requirements.lock"
     git -C "$tree" add -A
