@@ -9,6 +9,7 @@
 #
 #   bin/ciwait [--workflow <name>] [<commit>]        (default check, HEAD)
 #   bin/ciwait --workflow containers 93d3a39
+#   bin/ciwait 93d3a39 --workflow containers      (the same)
 #
 # Exits with the run's result (0 passed, 1 failed), or 2 if the commit isn't
 # on origin or no run for it appears within two minutes. The run is matched
@@ -22,15 +23,19 @@ clean_log() {
     gh run view "$id" "$1" | cut -f3- | sed 's/^\xEF\xBB\xBF//; s/^[0-9T:.-]*Z //'
 }
 
+usage() { echo "usage: bin/ciwait [--workflow <name in .github/workflows/>] [<commit>]" >&2; exit 2; }
 workflow=check
-if [ "$1" = --workflow ]; then
-    workflow="$2"
-    shift 2
-fi
-[ $# -le 1 ] && [ -f ".github/workflows/$workflow.yml" ] ||
-    { echo "usage: bin/ciwait [--workflow <name in .github/workflows/>] [<commit>]" >&2; exit 2; }
+commit=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --workflow) [ $# -ge 2 ] || usage; workflow="$2"; shift 2 ;;
+        -*) usage ;;
+        *) [ -z "$commit" ] || usage; commit="$1"; shift ;;
+    esac
+done
+[ -f ".github/workflows/$workflow.yml" ] || usage
 git fetch -q origin || exit 2
-sha="$(git rev-parse "${1:-HEAD}")" || exit 2
+sha="$(git rev-parse "${commit:-HEAD}")" || exit 2
 
 if [ -z "$(git branch -r --contains "$sha" 2>/dev/null)" ]; then
     echo "ciwait: ${sha:0:7} is not on origin; push it first" >&2

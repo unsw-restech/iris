@@ -79,6 +79,16 @@ grep -qx 'the failing step' <<< "$out" || fail "containers failing: didn't print
 [ "$(tail -1 <<< "$out")" = "ciwait: containers $sha failed (run 7)" ] || fail "containers failing: last line isn't the verdict"
 rm "$fake/conclusion"
 
+# --workflow may come before or after the commit; a second commit, a
+# --workflow with no name or any other option is a usage error.
+out="$(run HEAD --workflow containers)" || fail "commit before --workflow: exit $?, expected 0"
+[ "$(tail -1 <<< "$out")" = "ciwait: containers $sha passed" ] || { fail "commit before --workflow: last line isn't the containers verdict:"; echo "$out" | sed 's/^/  /'; }
+for args in "HEAD HEAD" "HEAD --workflow" "--workflow=containers"; do
+    # shellcheck disable=SC2086
+    out="$(run $args)"; rc=$?
+    [ "$rc" = 2 ] && grep -qF usage: <<< "$out" || fail "$args: exit $rc, expected 2 with usage"
+done
+
 # The run is looked up under the workflow asked for: check's run isn't
 # containers'.
 echo check > "$fake/workflow"
