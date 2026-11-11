@@ -1,6 +1,10 @@
 # A form's script carries its workflow code
 
-**Superseded in part by ADR-0009**: its rule that `lib/iris` stays in the clone's `lib/`, so that the rest of the code runs from there. Each workflow now runs its own copy of the library's job side, in its own folder in the clone. The rest of this ADR holds.
+**Superseded in part by ADR-0009**: its rule that `lib/iris` stays in the clone's `lib/`, so that the rest of the code runs from there. Each workflow now runs its own copy of the library's job side, in its own folder in the clone.
+
+**Superseded in part by ADR-0011**: its consequence that OpenComposer regenerates the whole pane, warning first but never merging, and the banner telling researchers to set the fields first. On IRIS's OpenComposer fork, a field change rewrites only that field's lines, everything outside the `run.py` region is locked, and the banner becomes a one-line hint.
+
+The rest of this ADR holds.
 
 Researchers want to change a workflow's code for one run, such as the model's architecture, without cloning the repo. OpenComposer's script pane is the one place on the form they can edit, and the text in it is exactly what is submitted. So each imaging form embeds its entry script (`src/run.py` for microCT) in its `script:` as a quoted heredoc, the job writes it into the run directory and runs it from there. `src/run.py` stays the single source: the form reads it at render time and never holds a copy. `lib/iris`, which keeps the run record the importer and `iris-compare` rely on, stays in the clone and out of the pane. This reverses part of the rule that a job runs `$CODE/src/...`: the entry script now comes from the pane, the rest still from the clone.
 

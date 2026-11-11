@@ -5,7 +5,7 @@ IRIS (Intelligent Research Imaging Suite) is the UNSW ResTech AI Imaging Gateway
 ## Language
 
 **Pilot**:
-The period in which IRIS runs on Katana's system instance but only pilot testers, members of a group ResTech chooses, can run workflows.
+The period in which IRIS runs on the IRIS instance but only pilot testers, members of a group ResTech chooses, can run workflows.
 _Avoid_: Beta, test instance
 
 **Launch**:
@@ -36,8 +36,12 @@ _Avoid_: Maintainer, contributor
 A workflow author's request for something only the maintainer can give, made before building the workflow that needs it: new packages, a new modality or lab, or adopting an unmaintained workflow. The maintainer approves or declines it. A workflow that needs none of these needs no proposal.
 _Avoid_: Request, submission, application
 
+**IRIS instance**:
+The OpenComposer that serves IRIS's forms to researchers on Katana OnDemand, installed for IRIS alone, running the IRIS fork and deployed the way `bin/syspull` deploys the system clone.
+_Avoid_: System OpenComposer, shared instance
+
 **Test instance**:
-The OpenComposer on Katana that shows each workflow author the forms in their own clone and runs them as that author, so they can prove a workflow before it joins IRIS.
+A separate OpenComposer app on Katana, running the same IRIS fork commit as the IRIS instance, that shows each workflow author the forms in their own clone and runs them as that author, so they can prove a workflow before it joins IRIS.
 _Avoid_: Sandbox, staging
 
 **Run proof**:
