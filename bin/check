@@ -601,7 +601,7 @@ unmaintained() {
 }
 check "unmaintained workflows have no Run button, card, live form or CODEOWNERS line" unmaintained
 
-# The guide owns staging and viewing (CONTRIBUTING.md step 5): its data mover host,
+# The guide owns staging and viewing (CONTRIBUTING.md, Page): its data mover host,
 # scratch quota, WinSCP note, Globus link (app.globus.org) and Katana scratch
 # collection ID stay out of workflow pages, so a change of collection edits the
 # guide and the ID in this pattern, and no workflow page.

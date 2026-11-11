@@ -42,7 +42,7 @@ Building or changing a workflow? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Contribute a workflow
 
-Anyone with a Katana account can offer an imaging workflow of their own to IRIS. You are named on its page as its workflow owner and get a DOI for it that credits you and your co-authors. The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) covers what gets accepted and the steps from proposal to DOI.
+Anyone with a Katana account can offer an imaging workflow of their own to IRIS. You are named on its page as its workflow owner and get a DOI for it that credits you and your co-authors. The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) covers what gets accepted, when you need a proposal, and the steps from your fork to a DOI.
 
 ## Citing IRIS
 
@@ -69,5 +69,6 @@ Copyright 2026 UNSW Sydney. IRIS, its code and this website alike, is licensed u
 
 ## Contact
 
-- **IRIS**: its workflows or a failed run: patrick.tung@unsw.edu.au
+- **A workflow or a failed run**: the workflow's owner, named at the top of its page. Open an issue on [GitHub](https://github.com/unsw-restech/iris/issues) naming the workflow, or contact them directly, with the Katana job ID; the [guide](https://docs.restech.unsw.edu.au/iris/guide/#help) has the help routes.
+- **IRIS itself**: `module load iris`, `iris-view`, `iris-compare`, or a workflow owner who doesn't answer: patrick.tung@unsw.edu.au
 - **Katana itself**: accounts, access, scratch quotas and anything else that needs a Katana administrator go to ResTech support, restech.support@unsw.edu.au, as the [ResTech FAQ](https://docs.restech.unsw.edu.au/help_support/faq/) explains.

@@ -25,7 +25,7 @@ Anyone with a Katana account who adds or changes a workflow, whether a ResTech m
 _Avoid_: Contributor, developer
 
 **Maintainer**:
-The ResTech member who approves proposals, reviews and merges workflows, and builds environments.
+The ResTech member who approves proposals, reviews and merges workflows, and builds each lab's first environment version.
 _Avoid_: Admin, owner, reviewer
 
 **Workflow owner**:
@@ -61,7 +61,7 @@ A workflow taken out of service because its owner stopped answering. It leaves t
 _Avoid_: Retired, deprecated, archived
 
 **Adoption**:
-A workflow author's taking on an unmaintained workflow: their proposal to adopt it is approved, their PR fixes it and cites a `qsub` run, and they become its workflow owner. It returns as the same folder and WorkflowHub entry. Handing a working workflow from one owner to another is not adoption.
+A workflow author's taking on an unmaintained workflow: their proposal to adopt it is approved, their PR fixes it and carries a run proof, and they become its workflow owner. It returns as the same folder and WorkflowHub entry. Handing a working workflow from one owner to another is not adoption.
 _Avoid_: Revival, rescue, takeover
 
 **Modality**:

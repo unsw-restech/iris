@@ -1,9 +1,11 @@
-# A workflow author's proposal to add a workflow to IRIS, filed before they
-# build it. The maintainer approves with a comment and the approved label, or
-# declines by closing with wontfix, against the criteria on the contribute
-# page, which the form links rather than copies.
+# A workflow author's proposal, filed before building something only the
+# maintainer can give: new packages, a new modality or lab, or adopting an
+# unmaintained workflow. Any other workflow needs no proposal; its pull
+# request is the only approval. The maintainer approves with the approved
+# label, or declines by closing with wontfix, against the fit criteria on the
+# contribute page, which the form links rather than copies.
 name: Propose a workflow
-description: Ask to add an imaging workflow to IRIS, before you build it.
+description: Ask for new packages, a new modality or lab, or to adopt an unmaintained workflow, before you build.
 title: "Proposal: "
 labels: [proposal]
 body:
@@ -12,9 +14,38 @@ body:
       value: |
         **Proposals open at launch.** Until IRIS opens to researchers, please don't file one yet.
 
-        Anyone with a Katana account can propose a workflow. If it's approved, you build it on a fork, open a pull request, and become its workflow owner: named on its page and credited on its WorkflowHub DOI. The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/) explains the whole process.
+        You need a proposal only for something only the maintainer can give: **new packages**, a **new modality or lab**, or **adopting an unmaintained workflow**. Any other workflow needs none: build it on a fork and open a pull request, which is where it is approved. The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/#proposal) explains.
 
-        Check your workflow meets the [approval criteria](https://docs.restech.unsw.edu.au/iris/contribute/#criteria) first: the maintainer approves or declines against them. You'll get a yes or no on this issue before you start building.
+        Check your workflow meets the [fit criteria](https://docs.restech.unsw.edu.au/iris/contribute/#criteria) first. The maintainer approves with the `approved` label or declines by closing this issue as `wontfix`, and you get that answer here before you build what it asks for.
+  - type: dropdown
+    id: asking-for
+    attributes:
+      label: What you're asking for
+      description: Choose every one that applies.
+      multiple: true
+      options:
+        - New packages, or packages at other versions
+        - A new modality
+        - A new lab
+        - Adopting an unmaintained workflow
+    validations:
+      required: true
+  - type: dropdown
+    id: lab
+    attributes:
+      label: Lab
+      description: The imaging facility or research group the workflow serves, which is its section of the catalogue. Choose "New lab" to ask the maintainer to add one, and name it below; the maintainer builds a new lab's first environment from this proposal, unless it uses an existing lab's.
+      options:
+        - X-ray MicroCT Lab
+        - BRIL
+        - New lab (needs the maintainer's OK)
+    validations:
+      required: true
+  - type: input
+    id: new-lab
+    attributes:
+      label: New lab
+      description: Only if you chose "New lab" above. Say whether it needs packages of its own or can use an existing lab's environment.
   - type: dropdown
     id: modality
     attributes:
@@ -22,8 +53,7 @@ body:
       description: The imaging technique the workflow serves. Choose "New modality" to ask the maintainer to add one, and name it below.
       options:
         - microCT
-        - Microscopy
-        - Pathology
+        - MRI
         - New modality (needs the maintainer's OK)
     validations:
       required: true
@@ -36,22 +66,22 @@ body:
     id: what-it-does
     attributes:
       label: What the workflow does
-      description: What a researcher gives it, what it runs, and what they get back in the run directory.
+      description: What a researcher gives it, what it runs, and what they get back in the run directory. To adopt an unmaintained workflow, name it and say what you'll fix.
     validations:
       required: true
   - type: textarea
     id: dataset-layout
     attributes:
       label: Input dataset layout
-      description: The folder layout the workflow reads, and how it differs from the standard layout in the [guide](https://docs.restech.unsw.edu.au/iris/guide/#stage), if at all.
+      description: The one dataset folder the workflow reads from the researcher's scratch, in the layout its page will document and its form's `check:` will validate.
       render: text
     validations:
       required: true
   - type: textarea
     id: packages
     attributes:
-      label: Packages beyond the shared imaging environment
-      description: Packages and versions the workflow needs that its lab's environment doesn't have (`envs/core.in` and `envs/<env>/requirements.in`). Write "None" if it needs nothing new.
+      label: Packages beyond the lab's environment
+      description: Packages and versions the workflow needs that its lab's environment doesn't have, or has at other versions (`envs/core.in` and `envs/<env>/requirements.in`). Write "None" if it needs nothing new.
     validations:
       required: true
   - type: textarea

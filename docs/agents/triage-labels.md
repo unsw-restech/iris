@@ -22,7 +22,7 @@ A proposal arrives through the issue form (`.github/ISSUE_TEMPLATE/proposal.yml`
 
 | Label      | Meaning                                                        |
 | ---------- | -------------------------------------------------------------- |
-| `proposal` | A workflow author's proposal to add a workflow, not yet built  |
+| `proposal` | A workflow author's proposal, not yet answered                 |
 | `approved` | The maintainer approved the proposal; the author can build it  |
 
-The maintainer approves with a comment and `approved`, or declines by closing with `wontfix`, pointing at the approval criteria on the contribute page.
+The maintainer approves with `approved`, or declines by closing with `wontfix`, naming the fit criterion on the contribute page it fails. The contribute page's `#proposal` section says what needs a proposal; any other workflow's PR is its only approval.

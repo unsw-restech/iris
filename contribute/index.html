@@ -24,65 +24,85 @@
   <!-- Launch removes this notice with the others CONTRIBUTING.md's Status lists; bin/check fails if only some are gone. -->
   <div class="ready" id="launch">
     <div class="ready-title">Not yet</div>
-    <p class="prose">Proposals open at launch. IRIS is still being tested, so hold your proposal until then; the steps below are how it will go.</p>
+    <p class="prose">Proposals open at launch, and so do pull requests from authors outside the pilot. IRIS is still being tested, so hold yours until then; the steps below are how it will go.</p>
   </div>
 
   <h2 id="who">Who can contribute</h2>
   <div class="prose">
-    <p>Anyone with a Katana account. You don't need to work at ResTech, and you don't need write access to the IRIS repo: you build on your own fork. Anyone who adds or changes a workflow is a workflow author.</p>
+    <p>Anyone with a Katana account. You don't need to work at ResTech, and you don't need write access to the IRIS repo: you build on your own fork and open a pull request. Anyone who adds or changes a workflow is a workflow author.</p>
   </div>
 
   <h2 id="what-you-get">What you get</h2>
   <div class="prose">
     <ul>
-      <li><strong>Your name on the workflow's page</strong>, as its workflow owner, so researchers know whose work it is and who to ask.</li>
+      <li><strong>An accessible workflow</strong>: researchers launch it from IRIS in two clicks, with no install, on their own data in their Katana scratch.</li>
+      <li><strong>Your name on it</strong>, on the workflow's page as its workflow owner, so researchers know whose work it is and who to ask.</li>
       <li><strong>A DOI</strong> for each citable version of the workflow, through <a href="https://workflowhub.eu/projects/472" target="_blank">WorkflowHub</a>, listing you and your co-authors (with ORCIDs) beside UNSW Research Technology Services. Researchers who publish results from it cite that DOI.</li>
+      <li><strong>An easy link for colleagues</strong>: the workflow's page, with its Run on Katana button, is the one address you send them.</li>
       <li><strong>No paperwork</strong>: your workflow is licensed Apache-2.0, like the rest of IRIS, with no separate agreement to sign.</li>
     </ul>
   </div>
 
   <h2 id="criteria">What gets accepted</h2>
   <div class="prose">
-    <p>The maintainer checks a proposal against these criteria, and checks the workflow against them again at review. Check your workflow fits before you propose it. A workflow:</p>
+    <p>These are the fit criteria, the only place IRIS writes them down. The maintainer reviews a workflow for safety and fit against them, never its science: you answer for that. A workflow:</p>
     <ul>
-      <li><strong>fits a modality</strong>, such as microCT, microscopy or pathology. A new modality needs the maintainer's OK in the proposal.</li>
-      <li><strong>runs in the shared imaging environment.</strong> If it needs packages the environment lacks, request them in your pull request, and the maintainer builds the next version of the environment.</li>
-      <li><strong>reads one dataset</strong> in the standard layout the <a href="../guide/#stage">guide</a> shows.</li>
-      <li><strong>writes a run directory</strong> through IRIS's shared library, so every run is recorded and can be compared.</li>
+      <li><strong>has imaging at its core.</strong> It may also read data that complements the images, such as tables or audio, but IRIS takes no workflow without imaging.</li>
+      <li><strong>fits a modality and a lab</strong> in the catalogue, such as microCT at the X-ray MicroCT Lab or MRI at BRIL. A new modality or lab needs a <a href="#proposal">proposal</a>.</li>
+      <li><strong>reads one dataset</strong>: one folder in the researcher's scratch, in a layout its page documents and its form's <code>check:</code> validates.</li>
+      <li><strong>writes a run directory</strong> through its workflow's own copy of IRIS's library, so every run is recorded and can be compared.</li>
+      <li><strong>runs in its lab's environment.</strong> If it needs packages that environment lacks, or at other versions, that needs a <a href="#proposal">proposal</a>, and your pull request makes the environment's next version.</li>
       <li><strong>makes no network calls or downloads</strong> at run time.</li>
       <li><strong>is Apache-2.0 compatible</strong>, its code and everything it depends on.</li>
     </ul>
   </div>
 
-  <h2 id="steps">From proposal to DOI</h2>
+  <h2 id="proposal">When you need a proposal</h2>
+  <div class="prose">
+    <p>Most workflows need no proposal: build it, and your pull request is where it is approved. File a proposal through the IRIS issue form first only when you need something only the maintainer can give:</p>
+    <ul>
+      <li><strong>New packages</strong> your lab's environment lacks, or at different versions.</li>
+      <li><strong>A new modality or lab.</strong> A new lab's first environment is built by the maintainer from the approved proposal; a lab with no packages of its own uses an existing one.</li>
+      <li><strong>Adopting an unmaintained workflow</strong> (<a href="#unmaintained">below</a>).</li>
+    </ul>
+    <p>The maintainer approves a proposal with the <code>approved</code> label, or declines it by closing it as <code>wontfix</code>.</p>
+  </div>
+
+  <h2 id="steps">From fork to DOI</h2>
   <ol class="steps">
-    <li><span><strong>Propose it.</strong> File a proposal through the IRIS issue form: the modality, what the workflow does, its input dataset layout, the packages it needs beyond the environment, its compute needs, and who will own it, with any co-authors.</span></li>
-    <li><span><strong>Get a yes or no.</strong> The maintainer approves the proposal, or declines it against the criteria above. Don't start building before it is approved.</span></li>
-    <li><span><strong>Build it on a fork.</strong> Copy the reference workflow and follow the checklist in CONTRIBUTING, including a test of your own on a synthetic dataset.</span></li>
-    <li><span><strong>Run it with <code>qsub</code></strong> on Katana from your own clone, and note the job ID.</span></li>
-    <li><span><strong>Open a pull request</strong> citing the approved proposal and that job ID. The repo's checks must pass on it.</span></li>
-    <li><span><strong>The maintainer's browser run.</strong> The maintainer runs the workflow from the IRIS development instance, builds a new environment version if you asked for packages, and reviews the pull request.</span></li>
-    <li><span><strong>Merge.</strong> Your workflow joins the catalogue, with you named as its workflow owner.</span></li>
+    <li><span><strong>Check it fits</strong> the criteria above, and propose first if you need to.</span></li>
+    <li><span><strong>Build it on a fork.</strong> Fork the IRIS repo, turn on Actions on your fork, and follow CONTRIBUTING's steps: scaffold the workflow, write its page, name yourself its owner, add any packages, and give it a test on a synthetic dataset.</span></li>
+    <li><span><strong>Prove it runs</strong> on Katana, from your own clone, as CONTRIBUTING describes.</span></li>
+    <li><span><strong>Open a pull request</strong> once IRIS's checks pass, on your fork and where CONTRIBUTING says to run the rest. The pull request is the only approval a workflow needs.</span></li>
+    <li><span><strong>Wait for a review batch.</strong> The maintainer reviews every ready pull request together, about every fortnight, when the maintainer chooses: nothing enforces it, and yours waits until the next one.</span></li>
+    <li><span><strong>Merged, or closed with a reason.</strong> A merged workflow joins the catalogue with you named as its workflow owner. A closed pull request names the criterion it failed: fix that and reopen it.</span></li>
     <li><span><strong>Mint its DOI.</strong> Join the UNSW ResTech team on WorkflowHub (Team 472), register the workflow there and mint its first citable version.</span></li>
   </ol>
   <div class="prose">
     <p>The technical details of each step are in <a href="https://github.com/unsw-restech/iris/blob/main/CONTRIBUTING.md" target="_blank">CONTRIBUTING</a>.</p>
   </div>
 
+  <h2 id="help">Help while you build</h2>
+  <div class="prose">
+    <p>The maintainer doesn't help during the build, and doesn't go back and forth on a pull request: it is merged, or closed naming the criterion it failed, and you reopen it once that's fixed. Your help is CONTRIBUTING, what IRIS's checks print when they fail, and your own coding agent, which can follow every step: the procedure is commands and checks, not judgement calls.</p>
+  </div>
+
   <h2 id="owner">Being a workflow owner</h2>
   <div class="prose">
-    <p>Owning a workflow means answering for it:</p>
+    <p>Owning a workflow means answering for it. Researchers who run it come to you, not the maintainer:</p>
     <ul>
       <li>Fix it when it breaks, and answer questions from researchers who run it.</li>
-      <li>Review changes to it: you are asked to review every pull request that touches its folder.</li>
+      <li>Review changes to it: you are asked about every pull request that touches its folder.</li>
+      <li>Update it when you choose, proving it runs again each time.</li>
       <li>Mint a new citable version when a change to its code or defaults changes its results, and not otherwise.</li>
     </ul>
+    <p>To hand it to someone else, open a pull request naming them as its owner. The maintainer can change any workflow at any time, in any detail, and the maintainer's own workflows follow these same rules.</p>
   </div>
 
   <h2 id="unmaintained">If an owner stops answering</h2>
   <div class="prose">
-    <p>If a workflow breaks and its owner doesn't answer for six months, it becomes an unmaintained workflow. It leaves the catalogue and can no longer be run, but its page stays, so its DOIs and the commits researchers cited still lead somewhere.</p>
-    <p><strong>Anyone can adopt it</strong> through a proposal. The adopter fixes it, proves it with a <code>qsub</code> run, and becomes its workflow owner. It comes back under the same page and the same WorkflowHub entry.</p>
+    <p>If someone reports a problem with a workflow and its owner doesn't answer for six months, it becomes an unmaintained workflow. An owner who loses their Katana account counts as not answering. It leaves the catalogue and can no longer be run, but its page stays, so its DOIs and the commits researchers cited still lead somewhere.</p>
+    <p><strong>Anyone can adopt it</strong> through a proposal. The adopter fixes it, proves it runs, and becomes its workflow owner. It comes back as the same folder, under the same page and the same WorkflowHub entry.</p>
   </div>
 </div>
 <footer>
