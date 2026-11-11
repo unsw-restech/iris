@@ -19,6 +19,11 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 - **Name what the researcher clicks.** A page names Files as "**Files** in the top menu of Katana OnDemand" at first mention and "under **Files**" after (#90).
 - **README's "Citing IRIS" owns the citing rule.** A workflow page's "Cite this workflow" block is the one other full statement, for its own workflow. Everything else summarises and points to one of those two: the catalogue's Cite step, `CITATION.cff`'s `message`, a WorkflowHub entry's description; restating the at-or-before rule or the IRIS fallback anywhere else is a copy that drifts. Past drift: #77's catalogue step dropped both, then got the fallback too narrow.
 
+## Author docs
+
+- **The contribute page owns the rules, CONTRIBUTING the procedure.** The fit criteria, when a proposal is needed, help while you build and the workflow owner's rules live on `contribute/index.html`; CONTRIBUTING, the PR template, the proposal form and `docs/agents/` link them and keep only their own mechanics. Past drift: #134's first draft restated the proposal list and the workflow owner's rules on both.
+- **Every author step works for an outside author.** Read each step in CONTRIBUTING, the contribute page and the templates as a workflow author outside `unsw-restech` who isn't a pilot tester: anything that needs org membership (an org package, an org secret) or `katana_ai_ro` (`katana_ai` scratch: the environments folder, the system clone) says who can't do it and what they do instead. Past miss: #134 told authors to run the container tests themselves, which needs read access to the org's private package (#132).
+
 ## Job code
 
 - **A record step warns, a run step fails.** Writing the run record or dataset record only warns on failure; anything the run's own result depends on stops the job.

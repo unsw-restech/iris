@@ -14,9 +14,10 @@ trap 'rm -rf "$scratch"' EXIT
 name="broken local links"
 
 # links <pass|fail> <case> <file> <line>: the check over a site with <line>
-# appended to <file>.
+# appended to <file>, made if it isn't there.
 links() {
     site_tree "$scratch/$2" seg:ct-lab:active tumour:mr-lab:planned
+    mkdir -p "$(dirname "$scratch/$2/$3")"
     echo "$4" >> "$scratch/$2/$3"
     git -C "$scratch/$2" add -A
     expect "$1" "$scratch/$2" "$name"
@@ -36,3 +37,15 @@ links fail readme-link README.md 'See [the guide](guide/missing.html).'
 links pass readme-link-ok README.md 'See [the guide](guide/).'
 links fail site-url-in-a-doc CONTRIBUTING.md 'Read https://docs.restech.unsw.edu.au/iris/guide/#nowhere first.'
 links pass site-url-ok CONTRIBUTING.md 'Read https://docs.restech.unsw.edu.au/iris/workflows/seg/ first.'
+links pass md-anchor CONTRIBUTING.md $'### 7. CI and `ready`\nSee [CI](#7-ci-and-ready).'
+links pass md-anchor-to-a-repeat CONTRIBUTING.md $'## Notes\n## Notes\nSee [the second](#notes-1).'
+links fail md-anchor-missing CONTRIBUTING.md 'See [the old steps](#from-proposal-to-doi).'
+links fail md-anchor-in-a-fence CONTRIBUTING.md $'```\n## Hidden\n```\nSee [it](#hidden).'
+links pass md-link-in-a-fence CONTRIBUTING.md $'```\n[x](nowhere.md)\n```'
+links fail md-anchor-in-another-file CONTRIBUTING.md 'See [its map](README.md#no-such-heading).'
+links pass md-anchor-in-another-file-ok CONTRIBUTING.md 'See [its map](README.md#iris).'
+links fail md-link-in-a-subfolder docs/x.md 'See [the ADR](adr/missing.md).'
+links pass md-link-in-a-tilde-fence CONTRIBUTING.md $'~~~\n[x](nowhere.md)\n~~~'
+links pass md-link-in-inline-code CONTRIBUTING.md 'Write `[x](nowhere.md)` for a link.'
+links pass md-anchor-to-a-heading-with-a-link CONTRIBUTING.md $'## See [the guide](guide/) now\n[it](#see-the-guide-now)'
+links pass md-link-to-a-folder CONTRIBUTING.md 'See [the workflows](workflows/).'

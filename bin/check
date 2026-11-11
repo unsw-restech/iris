@@ -413,18 +413,47 @@ module_commands() {
 }
 check "module commands are iris-view and iris-compare linked into bin/" module_commands
 
+# A Markdown file's lines outside its fenced code blocks (``` or ~~~,
+# indented or not), where GitHub renders no heading and no link.
+md_prose() {
+    tr -d '\r' < "$1" | awk '/^ *(```|~~~)/ { fence = !fence; next } !fence'
+}
+
+# The anchors GitHub gives a Markdown file's headings, one per line: the
+# heading's text, with a link in it reduced to its words, lowercased, every
+# ASCII character but letters, digits, spaces, - and _ dropped, spaces
+# made -, and -1, -2 ... added to repeats. Non-ASCII is dropped too, which
+# matches GitHub for dashes but not for letters such as é: keep headings
+# that a link targets in ASCII letters.
+md_anchors() {
+    md_prose "$1" | awk '
+        !/^##?#?#?#?#? / { next }
+        {
+            h = $0; sub(/^#+ +/, "", h); sub(/ +#+ *$/, "", h)
+            gsub(/\]\([^)]*\)/, "", h)
+            h = tolower(h); gsub(/[^a-z0-9 _-]/, "", h); gsub(/ /, "-", h)
+            a = h; if (seen[h]++) a = h "-" (seen[h] - 1)
+            print a
+        }'
+}
+
 # Print $2 (a link in $1, relative to $3) if it reaches no file, or if its
-# #fragment names no id there.
+# #fragment names no id there: an id="..." in a page, a heading's anchor
+# in a Markdown file.
 resolve_link() {
     local from="$1" link="$2" base="$3" path frag target
     path="${link%%#*}"
     frag=""; [[ "$link" == *"#"* ]] && frag="${link#*#}"
     if [ -z "$path" ]; then target="$from"
+    elif [ -d "$base/$path" ] && [[ "$from" == *.md ]] && [ -z "$frag" ]; then return  # GitHub lists the folder
     elif [ -d "$base/$path" ]; then target="$base/$path/index.html"
     else target="$base/$path"
     fi
     if [ ! -f "$target" ]; then echo "$from: $link: no such file"
-    elif [ -n "$frag" ] && ! grep -qF " id=\"$frag\"" "$target"; then echo "$from: $link: no id=\"$frag\""
+    elif [ -z "$frag" ]; then :
+    elif [[ "$target" == *.md ]]; then
+        md_anchors "$target" | grep -qxF -- "$frag" || echo "$from: $link: no heading with that anchor"
+    elif ! grep -qF " id=\"$frag\"" "$target"; then echo "$from: $link: no id=\"$frag\""
     fi
 }
 
@@ -435,15 +464,19 @@ resolve_each() {
 }
 
 # Every local link resolves, anchor included: relative hrefs in the site's
-# pages, the README's relative links, and docs.restech.unsw.edu.au/iris/ URLs
-# in any tracked file outside the desktop tools and their tests.
+# pages, the relative links and #anchors in every tracked Markdown file,
+# and docs.restech.unsw.edu.au/iris/ URLs in any tracked file outside the
+# desktop tools and their tests.
 local_links() {
     local f url
     for f in $(pages); do
         grep -oE 'href="[^"]*"' "$f" | sed 's/^href="//; s/"$//' | grep -vE '^(https?|mailto):' |
             resolve_each "$f" "$(dirname "$f")"
     done
-    grep -oE '\]\([^)]+\)' README.md | sed 's/^](//; s/)$//' | grep -vE '^https?:' | resolve_each README.md .
+    git ls-files '*.md' ':(exclude)_archive' | while IFS= read -r f; do
+        md_prose "$f" | sed 's/`[^`]*`//g' | grep -oE '\]\([^)]+\)' |
+            sed 's/^](//; s/)$//' | grep -vE '^(https?|mailto):' | resolve_each "$f" "$(dirname "$f")"
+    done
     git grep -lE 'docs\.restech\.unsw\.edu\.au/iris/' -- ':(exclude)_archive' ':(exclude)bin' ':(exclude)tests' | while IFS= read -r f; do
         tr -d '\r' < "$f" | grep -oE 'https://docs\.restech\.unsw\.edu\.au/iris/[^]) "<>`]*' |
             while IFS= read -r url; do echo "./${url#https://docs.restech.unsw.edu.au/iris/}"; done |
