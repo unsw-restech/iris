@@ -2,7 +2,7 @@
 """List what a pilot tester cannot read in a tree on Katana.
 
     bin/pilot-readable.py <path>
-    ssh katana python3 - <path> < bin/pilot-readable.py    (as bin/syspull runs it)
+    ssh katana python3 - <path> < bin/pilot-readable.py    (as bin/syspull and bin/ocpull run it)
 
 A pilot tester is a member of katana_ai_ro and of no other group the tree
 grants anything to, so their access is katana_ai_ro's after the ACL mask:

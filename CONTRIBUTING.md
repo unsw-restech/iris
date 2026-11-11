@@ -65,7 +65,9 @@ iris/
 │   ├── iris-view                     # View a run's labels over its volume in napari (in a Virtual Desktop)
 │   ├── katana-test                   # Run the form, module and job-library tests on Katana (desktop)
 │   ├── libcopy                       # Copy the library's job side into a workflow's lib/, recording the commit; check every copy (bin/check runs it)
-│   ├── pilot-readable.py             # List what pilot testers can't read in the system clone (syspull runs it)
+│   ├── ocpull                        # Show, then deploy, what moving the fork's two checkouts to its main brings the instances (desktop)
+│   ├── ocpull-checkouts.sh           # ocpull's side on Katana: list a move, or move both checkouts or neither
+│   ├── pilot-readable.py             # List what pilot testers can't read in the system clone or a fork checkout (syspull and ocpull run it)
 │   ├── syspull-pins.sh               # List the environment versions a commit pins whose container files aren't on Katana (syspull runs it)
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 │   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
@@ -73,7 +75,7 @@ iris/
 ├── envs/                             # Environment containers: the core list, each environment's packages and versions, CI's build and checks (see its README)
 ├── lib/
 │   ├── iris-job.sh                   # Run-time steps every imaging job sources (container check, run dir, commit, container start), from its workflow's copy
-│   ├── katana.sh                     # Katana's constants: the system clone, the imaging environment, the Python module, the environments' digest map and lab table, the environments folder and the researcher tools' version
+│   ├── katana.sh                     # Katana's constants: the system clone, the fork's two checkouts, the imaging environment, the Python module, the environments' digest map and lab table, the environments folder and the researcher tools' version
 │   ├── iris/                         # Shared Python for imaging workflows: volume reader, label writer, run record, importer, iris-compare, iris-rebuild, iris-view
 │   └── tests/                        # The library's tests, run once (bin/check); the form helper and the rendered-form checks every imaging form gets; its Katana jobs in katana/ (bin/katana-test submits job_lib.pbs)
 ├── module/                           # `module load iris` (ADR-0003)

@@ -1,7 +1,7 @@
 # Katana's constants, in one place: every script that can source bash
 # takes them from here, the job library, the bin/iris-* tools, the Katana
-# test jobs, bin/qwait, bin/syspull and bin/envpull among them. Sourcing it only sets
-# them, so it is safe on the desktop too.
+# test jobs, bin/qwait, bin/syspull, bin/ocpull and bin/envpull among them.
+# Sourcing it only sets them, so it is safe on the desktop too.
 #
 # Copies that must stay literal, the forms' Ruby test for the system clone,
 # the modulefile's path and the form tests' paths, are compared with these
@@ -9,9 +9,15 @@
 # version by name, which bin/check finds in the digest map below.
 # shellcheck disable=SC2034  # used by the scripts that source it
 
-# The system clone (Patrick, 2026-10-23; see AGENTS.md): the system
-# OpenComposer serves its workflows/ and `module load iris` its module/bin.
+# The system clone (Patrick, 2026-10-23; see AGENTS.md): the shared
+# OpenComposer (the IRIS instance after #173) serves its workflows/ and
+# `module load iris` its module/bin.
 IRIS_SYSTEM_CLONE=/srv/scratch/katana_ai/iris/code
+# The IRIS fork of OpenComposer's two checkouts, beside the system clone
+# (ADR-0011, #170): the IRIS instance's and the test instance's, each an
+# OnDemand system app of its own, kept on one fork commit by bin/ocpull.
+IRIS_INSTANCE_CHECKOUT=/srv/scratch/katana_ai/iris/OpenComposer-iris
+IRIS_TEST_INSTANCE_CHECKOUT=/srv/scratch/katana_ai/iris/OpenComposer-iris-test
 # Katana's Python module (../available-modules.md), for the job library's
 # Katana test (lib/tests/katana/job_lib.pbs), which needs only the
 # standard library. Workflows and the researcher tools run in containers.

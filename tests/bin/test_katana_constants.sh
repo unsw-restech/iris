@@ -63,6 +63,7 @@ case_ fail modulefile-no-path module/modulefiles/iris '/prepend-path/d'
 # A script that keeps its own copy of a constant fails, wherever it sits.
 case_ fail tool-envs-folder bin/iris-tool "s|\"\$IRIS_ENVS_FOLDER\"|$envs|"
 case_ fail tool-module bin/iris-tool 's|$IRIS_ENVS_FOLDER|python/3.13.2|'
+case_ fail tool-checkout bin/iris-tool 's|"$IRIS_ENVS_FOLDER"|/srv/scratch/katana_ai/iris/OpenComposer-iris-test|'
 case_ fail tool-container bin/iris-tool 's|"$IRIS_ENVS_FOLDER"|/srv/scratch/katana_ai/iris/envs/microct/1.sif|'
 # The environment's build and test scripts are among them; its notes are not.
 make_tree env-script

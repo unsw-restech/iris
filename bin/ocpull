@@ -1,0 +1,60 @@
+#!/bin/bash
+# Show what moving the two checkouts of the IRIS fork of OpenComposer on
+# Katana, the IRIS instance's and the test instance's, to the fork's main
+# would deploy, then deploy exactly that. Both must run one fork commit,
+# so they move together or not at all.
+#
+#   bin/ocpull                 list the commits and files a move would bring each
+#   bin/ocpull --apply <sha>   move both checkouts to <sha>, on the fork's main
+#
+# The listing ends with the --apply line for the fork's main tip. Quote
+# every commit it lists verbatim in the go-ahead request, naming both
+# checkouts' paths; --apply then deploys that commit even if the fork's
+# main has moved since. It checks both checkouts before moving either, and
+# refuses a commit off the fork's main or behind a checkout, a checkout
+# with uncommitted changes, and a move that changes a file a checkout
+# keeps its own copy of (manifest.yml, by skip-worktree), naming every
+# problem in both and saying how to take such a change by hand
+# (bin/ocpull-checkouts.sh). Both end by listing what a pilot tester can't
+# read in the checkouts (bin/pilot-readable.py), and --apply exits 1 if
+# anything is listed, since the deploy has happened.
+# Over `ssh katana`.
+
+# shellcheck source=lib/katana.sh
+. "$(dirname "$(readlink -f "$0")")/../lib/katana.sh" || exit 2
+checkouts=("$IRIS_INSTANCE_CHECKOUT" "$IRIS_TEST_INSTANCE_CHECKOUT")
+usage() { echo "usage: bin/ocpull [--apply <sha>]" >&2; exit 2; }
+# remote <mode> [<arg>]: bin/ocpull-checkouts.sh on Katana, over both checkouts.
+remote() {
+    ssh katana bash -s -- "$@" "${checkouts[@]}" < "$(dirname "$0")/ocpull-checkouts.sh"
+}
+# readable: lists what a pilot tester can't read in either checkout; fails
+# 1 if anything, 2 if it can't tell (bin/pilot-readable.py).
+readable() {
+    local c rc=0
+    for c in "${checkouts[@]}"; do
+        ssh katana python3 - "$c" < "$(dirname "$0")/pilot-readable.py"
+        case $? in 0) ;; 1) [ $rc = 2 ] || rc=1 ;; *) rc=2 ;; esac
+    done
+    return $rc
+}
+
+if [ $# -eq 0 ]; then
+    remote list || exit
+    out=$(readable)
+    case $? in
+        0) ;;
+        1) printf '\nPilot testers already can'"'"'t read these in the checkouts:\n%s\n' "$out" ;;
+        *) printf '\nCouldn'"'"'t check what pilot testers can read in the checkouts:\n%s\n' "$out" ;;
+    esac
+elif [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
+    remote apply "$2" || exit
+    readable
+    case $? in
+        0) ;;
+        1) echo "ocpull: deployed, but pilot testers can't read the paths above; fix their ACLs." >&2; exit 1 ;;
+        *) echo "ocpull: deployed, but couldn't check what pilot testers can read in the checkouts." >&2; exit 1 ;;
+    esac
+else
+    usage
+fi
