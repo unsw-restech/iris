@@ -121,7 +121,7 @@ Opening `index.html` directly over `file://` will not reproduce the real base pa
 
 ## Adding a new workflow
 
-The workflow author's checklist, one section per step. Each section names the ticket that turns it into a tool or a check, and says what to do until that ticket lands. Work on a branch of your fork, cloned on Katana as well as wherever you edit.
+The workflow author's checklist, one section per step. Each section names the ticket that turns it into a tool or a check, and says what to do until that ticket lands. Work on a branch of your fork, cloned on Katana at `~/iris`, where the [test instance](#5-test-instance) looks for it, as well as wherever you edit.
 
 ### 1. Scaffold
 
@@ -158,7 +158,7 @@ Either way, the lab's other workflows keep the version they pin until their owne
 
 ### 5. Test instance
 
-_#139 asks ResTech for the test instance, a separate OpenComposer app that shows you the forms in your own clone and runs them as you. Until it exists, prove the workflow with `qsub`:_ `bin/check` clean, then a `qsub` run of the job script from your clone on Katana. The job script is the form's `script:` block: copy it into a `.pbs` file, fill in each `#{...}` with a value, and replace each `<%= ... %>` with what the form would render: `CODE` is your clone's `workflows/<slug>`, the commit is your clone's `HEAD`, and the heredoc holds your entry script. Run it on a real dataset in the layout your page documents, pass `-m abe` so PBS emails you, and check the run directory it writes.
+_#139 asks ResTech for the test instance, a separate OpenComposer app that shows you the forms in your own clone and runs them as you. It finds your clone only at `~/iris` ([ADR-0011](docs/adr/0011-iris-runs-its-own-opencomposer-fork.md)): with no `~/iris/workflows`, every page of the test instance, the list and each form, reads "Internal Server Error" (the fork at `ff674ef`, 2026-11-12; #179 asks for a clearer message). Until the test instance exists, prove the workflow with `qsub`:_ `bin/check` clean, then a `qsub` run of the job script from your clone on Katana. The job script is the form's `script:` block: copy it into a `.pbs` file, fill in each `#{...}` with a value, and replace each `<%= ... %>` with what the form would render: `CODE` is your clone's `workflows/<slug>`, the commit is your clone's `HEAD`, and the heredoc holds your entry script. Run it on a real dataset in the layout your page documents, pass `-m abe` so PBS emails you, and check the run directory it writes.
 
 Until then the maintainer also does a **browser run** from the dev clone on your PR's branch: the form opens, `check:` rejects one wrong dataset folder, and one real run finishes, opens with the `iris-view` line its job output prints and appears in MLflow through its `iris-compare` line. A dev run prints the dev clone's full paths, so it is viewed with the branch's code; `module load iris` would run the system clone's.
 
