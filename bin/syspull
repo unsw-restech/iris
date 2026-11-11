@@ -1,8 +1,8 @@
 #!/bin/bash
 # Show what pulling main into the system clone would deploy to the pilot,
-# then deploy exactly that. The system OpenComposer and `module load iris`
-# run the system clone, so any git change there reaches every katana_ai_ro
-# member at once.
+# then deploy exactly that. The shared OpenComposer (the IRIS instance after
+# #173) and `module load iris` run the system clone, so any git change there
+# reaches every katana_ai_ro member at once.
 #
 #   bin/syspull                 list every file and the commits a pull would bring
 #   bin/syspull --apply <sha>   fast-forward the clone to <sha>, on origin/main

@@ -40,6 +40,10 @@ _Avoid_: Request, submission, application
 The OpenComposer that serves IRIS's forms to researchers on Katana OnDemand, installed for IRIS alone, running the IRIS fork and deployed the way `bin/syspull` deploys the system clone.
 _Avoid_: System OpenComposer, shared instance
 
+**Shared OpenComposer**:
+The stock OpenComposer ResTech runs for every Katana OnDemand user. It serves IRIS's forms until the changeover to the IRIS instance, and nothing of IRIS's after it.
+_Avoid_: System OpenComposer
+
 **Test instance**:
 A separate OpenComposer app on Katana, running the same IRIS fork commit as the IRIS instance, that shows each workflow author the forms in their own clone and runs them as that author, so they can prove a workflow before it joins IRIS.
 _Avoid_: Sandbox, staging

@@ -5,6 +5,7 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 ## Domain language
 
 - **Glossary terms, exactly.** Page text, names, docstrings, comments, commit messages and issue text use the term `GLOSSARY.md` defines, never a word its _Avoid_ list names. Past drift: "scan" for Volume, `dataset_identity` for Dataset record, `environment()` for run tags (Environment means the versioned software set).
+- **A new _Avoid_ word leaves no uses behind.** A diff that adds a word to an _Avoid_ list rewords every use of it across tracked files in the same change, or names each one it leaves and why. Grep for the new words only: older _Avoid_ words such as Image and User appear legitimately, so this is a review check, not a `bin/check` rule. #163 added "system OpenComposer" and left it in `AGENTS.md`, CONTRIBUTING and `bin/syspull`.
 - **A new domain concept gets a glossary entry** in the same change, as `docs/agents/domain.md` describes.
 - **ADRs hold.** A change that contradicts an ADR in `docs/adr/` either keeps to it or supersedes it with a new ADR.
 
