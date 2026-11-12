@@ -29,7 +29,7 @@ If `mkdir` finds the folder already there, an earlier session started this ticke
 
 ## 2. Render the job script from the form
 
-`lib/tests/form_helper.rb` renders a `form.yml.erb`, served from the clone holding it, as OpenComposer 1.9.0 does, runs `check:` and prints the script. Fields are the form's keys. `time` is two numbers, `time_1` hours and `time_2` minutes. Unset fields take the form's defaults.
+`lib/tests/form_helper.rb` renders a `form.yml.erb`, served from the clone holding it, as the fork commit the dev install and both instances run does (its header names the commit and what it leaves out), runs `check:` and prints the script. Fields are the form's keys. `time` is two numbers, `time_1` hours and `time_2` minutes. Unset fields take the form's defaults.
 
 ```
 ssh katana 'cd /srv/scratch/$USER/iris-test-<n> && module load ruby/3.2.0 && \
