@@ -23,10 +23,10 @@
 # included, so every bin/libcopy needs a run; and the tests it runs, each
 # workflow's tests/test_form.rb, lib/tests/form_helper.rb that they render
 # through, lib/tests/test_job_lib.py and lib/tests/katana/, since a test
-# changed without a run can fail on main as a form can (3c1201f, #172). --tested exits 0 if a
-# passing run tested those files exactly as <commit> holds them, or if
-# they are the same in <base>, and 1 if not; .githooks/pre-push uses it to
-# refuse an untested push to main.
+# changed without a run can fail on main as a form can (3c1201f, #172).
+# --tested exits 0 if a passing run tested those files exactly as <commit>
+# holds them, or if they are the same in <base>, and 1 if not;
+# .githooks/pre-push uses it to refuse an untested push to main.
 #
 # Exits 0 only if every test passed. Files git doesn't track stay behind,
 # so it names any under workflows/, module/ or lib/: `git add` a new test

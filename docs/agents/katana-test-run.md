@@ -2,16 +2,16 @@
 
 How to meet a ticket's "a real run shows…" criterion for `microct-2d-segmentation`. A spec's final real-run ticket runs from `/pun/sys/` ([below](#the-final-real-run-ticket)). A build ticket that needs its own real run follows steps 1–5: the committed code on the sample dataset, from a scratch copy, into a throwaway run index and tracking store, leaving your dev clone, run index and `tracking.db` untouched.
 
-Name every `qsub` and its resources in chat as you submit it. Delete nothing without Patrick's go-ahead naming the target.
+Name every `qsub` and its resources in chat as you submit it. Delete nothing without the IRIS maintainer's go-ahead naming the target.
 
 ## The final real-run ticket
 
-It runs from `/pun/sys/`, since the pilot's only users are testers (Patrick, 2026-10-28), in a session with Patrick:
+It runs from `/pun/sys/`, since the pilot's only users are testers (Patrick, 2026-10-28), in a session with the IRIS maintainer:
 
-1. Patrick says the review of the integration branch is done.
-2. Push the branch to `main` with Patrick's push go-ahead (AGENTS.md, Deploying), then pull the dev clone.
+1. The IRIS maintainer says the review of the integration branch is done.
+2. Push the branch to `main` with the IRIS maintainer's push go-ahead (AGENTS.md, Deploying), then pull the dev clone.
 3. Run `bin/syspull` and get its own go-ahead, quoting verbatim every commit it lists, before `--apply`. The push's go-ahead covers it when it named the system clone and quoted those commits (AGENTS.md, Deploying).
-4. Submit the runs from `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>`, with Patrick reloading the form page first: a page loaded before `--apply` renders from the old commit (#147, job 9736586). They land in Patrick's own run index and store, not a throwaway home, so ask before removing any of them. Check each run as soon as its run directory has them, not when it ends: `commit.txt` names the deployed commit, with no `lib_commit.txt` beside it and no "the IRIS clone moved from commit" warning in the log, and `params.json`'s `device` is `cuda` for a GPU run and `cpu` for a CPU-only one. Job 9736586 trained on the CPU for 94 minutes before anyone looked. A run with `lib_commit.txt` or that warning came from a page loaded before the deploy: it ran the old form and entry script on the new library, so it doesn't test the deploy and doesn't count. Reload the page and submit it again.
+4. Submit the runs from `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>`, with the IRIS maintainer reloading the form page first: a page loaded before `--apply` renders from the old commit (#147, job 9736586). They land in Patrick's own run index and store, not a throwaway home, so ask before removing any of them. Check each run as soon as its run directory has them, not when it ends: `commit.txt` names the deployed commit, with no `lib_commit.txt` beside it and no "the IRIS clone moved from commit" warning in the log, and `params.json`'s `device` is `cuda` for a GPU run and `cpu` for a CPU-only one. Job 9736586 trained on the CPU for 94 minutes before anyone looked. A run with `lib_commit.txt` or that warning came from a page loaded before the deploy: it ran the old form and entry script on the new library, so it doesn't test the deploy and doesn't count. Reload the page and submit it again.
 5. Inspect with `inspect.pbs`: make `/srv/scratch/$USER/iris-test-<ticket>/`, copy the helper in from the system clone's `lib/tests/katana/`, and submit it from there with `CLONE` naming the system clone and `JOBS` naming the runs. It imports into Patrick's own tracking store, as `iris-compare` would, so the first import counts whatever is new and the second must import nothing. It must finish before Patrick opens `iris-compare`: both write `tracking.db`. Report as in step 5, citing each job ID.
 
 ## 1. Copy the committed tree to scratch

@@ -159,9 +159,10 @@ if tested; then fail "--tested: exit 0 after a failing run"; fi
 rm "$fake/exit-code"
 mkdir -p "$repo/workflows/seg/lib/iris" "$repo/workflows/seg/tests" "$repo/lib/tests/katana"
 # The tests it runs count too: 3c1201f changed lib/tests/form_helper.rb alone,
-# went to main untested and failed a form test there (#172).
+# went to main untested and failed a form test there (#172). It comes last,
+# so the push hook's cases below push that helper-only change.
 for f in workflows/seg/form.yml.erb workflows/seg/lib/katana.sh workflows/seg/lib/iris/rundir.py lib/iris-job.sh \
-    workflows/seg/tests/test_form.rb lib/tests/form_helper.rb lib/tests/test_job_lib.py lib/tests/katana/job_lib.pbs; do
+    workflows/seg/tests/test_form.rb lib/tests/test_job_lib.py lib/tests/katana/job_lib.pbs lib/tests/form_helper.rb; do
     run > /dev/null
     echo "# $f" >> "$repo/$f"; git -C "$repo" add "$f"; commit "$f"
     if tested; then fail "--tested: exit 0 after a change to $f"; fi

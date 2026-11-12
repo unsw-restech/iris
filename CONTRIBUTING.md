@@ -49,7 +49,7 @@ iris/
 ├── .github/pull_request_template.md  # The checklist a workflow PR is ready for review on
 ├── .githooks/commit-msg              # Refuses AI attribution, git's conflict list or a glossary Avoid word in a commit message; AGENTS.md turns the hooks on
 ├── .githooks/avoid-names(.pl)        # The glossary Avoid words bin/check fails in tracked files and commit-msg refuses in a message, and the script matching them
-├── .githooks/pre-push                # Refuses a push to main whose forms, module, job library, library copies or Katana tests no passing bin/katana-test tested
+├── .githooks/pre-push                # Refuses a push to main whose forms, module, job library, library copies or the tests bin/katana-test runs no passing bin/katana-test tested
 ├── ruff.toml                         # The Python lint rules bin/check applies
 ├── bin/
 │   ├── check                         # Every check to pass before committing
