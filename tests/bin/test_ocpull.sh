@@ -68,12 +68,24 @@ git -C "$src" push -q origin main
 A=$(git -C "$src" rev-parse --short HEAD~2)
 C=$(git -C "$src" rev-parse --short HEAD)
 
+# bin/ocpull runs from a copy of the tools it needs, beside a form test
+# helper whose header names the commit helper_at gives it.
+tools="$fake/iris"
+mkdir -p "$tools/bin" "$tools/lib/tests"
+cp bin/ocpull bin/ocpull-checkouts.sh bin/pilot-readable.py "$tools/bin/"
+cp lib/katana.sh "$tools/lib/"
+helper_at() {
+    printf '# Render a form.yml.erb the way the IRIS fork of OpenComposer does at\n# %s, the commit bin/ocpull keeps the IRIS instance'"'"'s and the test\n' "$1" \
+        > "$tools/lib/tests/form_helper.rb"
+}
+helper_at "$A"
+
 # expect <exit code> <output substring> <arg>...
 expect() {
     local want="$1" grep_for="$2" out rc
     shift 2
     rm -f "$fake/args"
-    out="$(PATH="$fake:$PATH" bin/ocpull "$@" 2>&1)"
+    out="$(PATH="$fake:$PATH" "$tools/bin/ocpull" "$@" 2>&1)"
     rc=$?
     if [ "$rc" != "$want" ]; then
         echo "ocpull $*: exit $rc, expected $want"
@@ -102,7 +114,9 @@ expect 0 "C: c.rb"
 expect 0 "manifest.yml"                    # names the files each keeps its own copy of
 at listing "$A"
 
-# --apply moves both to the commit listed, each keeping its own manifest.yml.
+# --apply moves both to the commit listed, each keeping its own manifest.yml,
+# and passes when the form test helper already renders as that commit.
+helper_at "$C"
 expect 0 "$C" --apply "$C"
 at apply "$C"
 expect 0 "nothing to deploy"
@@ -128,8 +142,12 @@ expect 1 "back where it was" --apply "$D"
 at half-moved "$C"
 rm "$test/d.rb"
 
-expect 0 "$D" --apply "$D"
+# A move past the commit the form test helper's header names deploys, then
+# fails, naming the helper to bring up to the new commit.
+expect 1 "lib/tests/form_helper.rb still renders as $C" --apply "$D"
 at apply-d "$D"
+helper_at "$D"
+expect 0 "nothing to deploy"
 
 # A move that changes a file the checkouts keep their own copy of: neither
 # moves, and it says how to take the change.
@@ -144,10 +162,11 @@ for c in "$iris" "$test"; do
     expect 1 "cp 'manifest.yml' '$HOME/manifest.yml.${c##*/}'" --apply "$E"
 done
 # Following them, the move goes through, and each copy merges back.
-steps="$(PATH="$fake:$PATH" bin/ocpull --apply "$E" 2>&1 | sed -n "s/^  cp /cp /p")"
+steps="$(PATH="$fake:$PATH" "$tools/bin/ocpull" --apply "$E" 2>&1 | sed -n "s/^  cp /cp /p")"
 for c in "$iris" "$test"; do
     (cd "$c" && eval "$(grep -F "${c##*/}'" <<< "$steps")") || echo "ocpull own-copy: the steps failed in ${c##*/}"
 done
+helper_at "$E"
 expect 0 "$E" --apply "$E"
 for c in "$iris" "$test"; do
     cp "$HOME/manifest.yml.${c##*/}" "$c/manifest.yml"
@@ -180,7 +199,7 @@ rm "$fake/ssh-down"
 
 # What pilot testers can't read in a checkout: the listing warns, and
 # --apply, which has moved them, fails.
-PATH="$fake:$PATH" bin/ocpull > /dev/null 2>&1
+PATH="$fake:$PATH" "$tools/bin/ocpull" > /dev/null 2>&1
 grep -qxF python3 "$fake/args" || echo "ocpull listing: no readability check"
 touch "$fake/unreadable"
 expect 0 "needs r--: /x/hidden"

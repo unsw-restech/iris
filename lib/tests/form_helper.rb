@@ -3,7 +3,9 @@
 # instance's checkouts on, and the dev install runs (#170), for tests and
 # for submitting a job without the browser. Every workflow's form tests use
 # it. Moving the checkouts to a commit that changes what follows means
-# changing this helper, and this commit, with them.
+# changing this helper, and this commit, with them: bin/ocpull --apply
+# reads the commit from this header's second line, the one place the
+# repo records it, and fails after a move to any other.
 #
 #   render     ERB with @apps_dir and @OC_DIR_NAME set (the GET), then YAML
 #              (run.rb read_yaml); @apps_dir is the folder holding the
