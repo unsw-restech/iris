@@ -22,6 +22,9 @@
 #     entry script, so a run.py Python cannot start still leaves its diff
 #   - the container start line: the job library's iris_container running
 #     python on the run directory's run.py in the pinned container
+# Beside script:, the form's editable_region key names that heredoc's
+# opener and end marker (#161), so on the IRIS fork only run.py's lines are
+# editable; stock OpenComposer ignores the key.
 # No other line holds a heredoc: script: builds files with printf. The
 # entry script holds neither #{ (OpenComposer would substitute a field,
 # or drop the line when the field is empty) nor <% (ERB).
@@ -60,6 +63,7 @@ module ImagingForm
       return @problems unless script
       @lines = script.lines
       @entry = (@lines.find { |l| l.start_with?("#{RECORD} ") } || "#{RECORD} src/run.py").split(" ", 2)[1].strip
+      editable_region
       entry_text
       ordered_parts
       other_heredocs
@@ -74,11 +78,22 @@ module ImagingForm
     # one filled in; nil, with a problem, if it does not render.
     def render(path, *apps_dir)
       form = FormHelper.render(path, *apps_dir)
+      @form ||= form
       values = FormHelper.defaults(form).transform_values { |v| v.nil? ? "x" : v }
       FormHelper.script(form, values)
     rescue StandardError, SyntaxError => e
       @problems << "does not render#{apps_dir.empty? ? "" : " without @apps_dir"}: #{e.message.lines.first.strip}"
       nil
+    end
+
+    # The form's editable_region key names the entry script's heredoc: its
+    # opener and its end marker, the lines the fork leaves the body between.
+    def editable_region
+      region = @form["editable_region"]
+      return if region.is_a?(Hash) && region["begin"] == OPENER && region["end"] == END_MARKER
+
+      @problems << "no editable_region naming the entry script's heredoc, begin: #{OPENER.inspect} and end: #{END_MARKER.inspect} " \
+                   "(found #{region.inspect}; see lib/tests/imaging_form.rb)"
     end
 
     def entry_text

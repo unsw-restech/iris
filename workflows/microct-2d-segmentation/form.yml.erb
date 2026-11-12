@@ -175,6 +175,14 @@ form:
 <%- entry_script = "src/run.py" -%>
 <%- entry_code = code.empty? ? "" : File.read(File.join(code, entry_script)).gsub(/^(?=.)/, "  ") -%>
 <%- commit = code.empty? ? "" : (IO.popen(["git", "-C", code, "rev-parse", "HEAD"], err: File::NULL, &:read).strip rescue "") -%>
+# The editable region (#161, #171): on the IRIS fork only the lines
+# strictly between these two script: lines, the run.py heredoc's body, can
+# be edited; both marker lines and everything else are locked. Each names
+# one whole line, compared with its indent stripped, and the script is
+# submitted unchanged. Stock OpenComposer ignores the key.
+editable_region:
+  begin: "cat > \"$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'"
+  end: "IRIS_RUN_PY_END"
 script: |
   #!/bin/bash
   #PBS -N #{job_name}
