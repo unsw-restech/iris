@@ -1,15 +1,31 @@
-# Render a form.yml.erb the way OpenComposer 1.9.0 does, for tests and for
-# submitting a job without the browser. Every workflow's form tests use it.
+# Render a form.yml.erb the way the IRIS fork of OpenComposer does at
+# ff674ef, the commit bin/ocpull keeps the IRIS instance's and the test
+# instance's checkouts on, and the dev install runs (#170), for tests and
+# for submitting a job without the browser. Every workflow's form tests use
+# it. Moving the checkouts to a commit that changes what follows means
+# changing this helper, and this commit, with them.
 #
-#   render     ERB with @apps_dir and @OC_DIR_NAME set (the GET), then YAML;
-#              @apps_dir is the folder holding the form's workflow folder
-#              unless given (nil, as on OpenComposer's re-read at submit)
-#   check      eval the check: section with each field as @field, and
-#              oc_assert raising as OpenComposer's does (run.rb rescues it
-#              and re-renders the form with the values kept)
-#   script     fill #{field}, #{:field} and #{zeropadding(f, n)}, dropping a
-#              line whose plain #{field} is empty, as the page's script pane
-#              does (lib/form.rb output_script_js)
+#   render     ERB with @apps_dir and @OC_DIR_NAME set (the GET), then YAML
+#              (run.rb read_yaml); @apps_dir is the folder holding the
+#              form's workflow folder unless given (nil, as on run.rb's
+#              re-read at submit)
+#   defaults   each field's value; a checkbox's or multi_select's chosen
+#              labels become their data values, a multi_select entry that
+#              is no option stays as typed (form.js getValue), joined by
+#              the field's separator, or an array if it has none
+#   check      eval the check: section with each field as @field, as
+#              run.rb's set_check_value sets it; oc_assert and any other
+#              error re-render the form with its message (run.rb rescues
+#              every exception), and halt shows its message on a bare page
+#   script     fill #{field}, #{:field} and #{zeropadding(f, n)}, as the
+#              page's script pane does (form.js showLine): a line whose
+#              plain #{field} is empty is dropped, as is one naming a
+#              checkbox or multi_select with nothing chosen, #{:field} too,
+#              and one naming a checkbox or multi_select with no separator
+#              is written once per value
+#
+# Not copied: dynamic widgets (disable-, hide-, set-), so a disabled
+# field still fills its lines, and calc, dirname and basename.
 #
 # From the command line, prints the job script for the given fields:
 #   ruby lib/tests/form_helper.rb [--apps-dir DIR] [--no-check] FORM \
@@ -41,9 +57,14 @@ module FormHelper
     form["form"].each do |key, f|
       v = f["value"]
       case f["widget"]
-      when "checkbox"
-        chosen = Array(v).map { |label| f["options"].find { |o| o[0] == label }[1] }
-        values[key] = chosen.join(f["separator"] || ",")
+      when "checkbox", "multi_select"
+        # Each chosen label's data value, its label if it has none; a
+        # multi_select entry that is no option stays as typed.
+        chosen = Array(v).map do |label|
+          o = Array(f["options"]).find { |x| x[0] == label } || [label]
+          o[1].nil? ? o[0] : o[1]
+        end
+        values[key] = f["separator"].nil? ? chosen : chosen.join(f["separator"])
       when "number"
         if v.is_a?(Array) then v.each_with_index { |x, i| values["#{key}_#{i + 1}"] = x }
         else values[key] = v end
@@ -55,28 +76,57 @@ module FormHelper
   end
 
   class Checker
-    def oc_assert(cond, msg) = (raise RuntimeError, msg unless cond)
+    def oc_assert(cond, msg = "Error exists in script content.") = (raise RuntimeError, msg unless cond)
 
+    # Sinatra's halt throws past run.rb's rescue to a bare error page
+    # holding its body, the last argument.
+    def halt(*args) = throw(:halt, args.last.to_s)
+
+    # run.rb sets nothing for an unchecked checkbox, and one value as
+    # itself (set_check_value).
     def run(code, values)
-      values.each { |k, v| instance_variable_set("@#{k}", v) }
+      values.each do |k, v|
+        v = v.size > 1 ? v : v.first if v.is_a?(Array)
+        instance_variable_set("@#{k}", v) unless v.nil?
+      end
       instance_eval(code)
     end
   end
 
   # Returns nil if check: passes, else the message the form would show.
   def self.check(form, values)
-    Checker.new.run(form["check"], values)
-    nil
-  rescue RuntimeError => e
+    catch(:halt) do
+      Checker.new.run(form["check"], values)
+      nil
+    end
+  rescue StandardError => e
     e.message
   end
 
+  # The widget of field `key`, or of `<key>_<n>`'s field; nil if no field.
+  def self.widget(form, key)
+    f = form["form"][key] || (key =~ /\A(.+)_\d+\z/ && form["form"][$1])
+    f && f["widget"]
+  end
+
   def self.script(form, values)
-    form["script"].lines.filter_map do |line|
+    empty = ->(v) { Array(v).join.empty? }
+    form["script"].lines.flat_map do |line|
       plain = line.scan(/\#\{([a-z_0-9]+)\}/).flatten
-      next if plain.any? { |k| values[k].to_s.empty? }
-      line.gsub(/\#\{zeropadding\((\w+), *(\d+)\)\}/) { values[$1].to_s.rjust($2.to_i, "0") }
-          .gsub(/\#\{:?([a-z_0-9]+)\}/) { values[$1].to_s }
+      next [] if plain.any? { |k| empty[values[k]] }
+      # A checkbox or multi_select with nothing chosen empties its line,
+      # #{:field} too, and one with no separator, its values an array,
+      # writes the line once per value (ocForm.showLine).
+      named = line.scan(/\#\{:?([a-z_0-9]+)\}/).flatten
+      next [] if named.any? { |k| %w[checkbox multi_select].include?(widget(form, k)) && empty[values[k]] }
+      lines = [line]
+      named.uniq.select { |k| values[k].is_a?(Array) }.each do |k|
+        lines = lines.flat_map { |l| values[k].map { |v| l.gsub(/\#\{:?#{k}\}/) { v.to_s } } }
+      end
+      lines.map do |l|
+        l.gsub(/\#\{zeropadding\((\w+), *(\d+)\)\}/) { values[$1].to_s.rjust($2.to_i, "0") }
+         .gsub(/\#\{:?([a-z_0-9]+)\}/) { values[$1].to_s }
+      end
     end.join
   end
 end
