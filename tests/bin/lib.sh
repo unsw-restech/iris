@@ -22,7 +22,7 @@ expect() {
 
 # site_tree <tree> [<slug>:<lab>:<tier>]...: a site in <tree> that passes
 # bin/check's site rules, as a git repo with every file added, holding a
-# copy of bin/check and
+# copy of bin/check, the Avoid-word list it reads (.githooks/avoid-names) and
 #   - index.html: a lab section (id="<lab>") per lab, in the order given,
 #     holding a card per workflow whose status label follows its tier; an
 #     unmaintained workflow has no card
@@ -41,8 +41,9 @@ site_tree() {
     shift
     local -A title=([active]="Run and verified" [testing]="Run, browser run pending" [planned]=Planned [unmaintained]=Unmaintained)
     local -A status=([active]=Active [testing]=Testing [planned]=Planned)
-    mkdir -p "$tree/bin" "$tree/guide" "$tree/contribute"
+    mkdir -p "$tree/bin" "$tree/guide" "$tree/contribute" "$tree/.githooks"
     cp bin/check "$tree/bin/check"
+    cp .githooks/avoid-names .githooks/avoid-names.pl "$tree/.githooks/"
     for spec in "$@"; do
         IFS=: read -r slug lab tier <<< "$spec"
         [[ " ${labs[*]} " == *" $lab "* ]] || labs+=("$lab")

@@ -18,3 +18,10 @@ Thumbs.db
 *.swp
 *~
 
+# Claude Code's settings and agent worktrees, written into a clone by a
+# session; untracked, so bin/check's untracked-file check would report them.
+.claude/
+
+# A working plan (AGENTS.md), deleted when its work is done and never
+# committed; ignored so bin/check's untracked-file check passes beside it.
+plan.md

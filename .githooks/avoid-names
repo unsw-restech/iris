@@ -1,0 +1,14 @@
+# GLOSSARY.md's Avoid words that nothing in the repo needs in another
+# sense, one a line, matched case-insensitively as a word or a
+# name's part (SIF_PATH matches; .sif does not). Words of a
+# phrase match across any whitespace, a line break included, and a comment
+# marker after it. bin/check's "name uses a glossary Avoid word" fails a
+# tracked file that holds one, and .githooks/commit-msg refuses a commit
+# message that does, through .githooks/avoid-names.pl. CODING_STANDARDS.md
+# says when a word joins this list.
+#
+# SIF: say Container or Container file.
+SIF
+# The shared OpenComposer or the IRIS instance (#163).
+system OpenComposer
+shared instance

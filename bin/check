@@ -105,6 +105,13 @@ imaging_forms() { [ -z "$site_imaging_forms" ] || printf '%s\n' "$site_imaging_f
 # (../../ from a workflow page).
 check "root-absolute links" grep -rn 'href="/' . --include=*.html
 check "dead placeholder cards" grep -n 'href="#"' index.html
+# Most checks read git's index (git grep, git ls-files), so they skip a
+# file not yet added, and a run before committing passes on it: #167's new
+# test named Katana's Python module and failed only once committed (#159).
+# git add -N <file> adds it with nothing staged, and every check sees it.
+# plan.md is never committed, so .gitignore keeps it out.
+check "untracked file the checks can't see (git add -N it)" git ls-files --others --exclude-standard
+
 check "pre-transfer repo URL" grep -rn 'github\.com/PatrickTung/iris\|https://patricktung\.github\.io/iris' . --exclude-dir=.git --exclude-dir=_archive --exclude=AGENTS.md --exclude=check
 check "stale account or old repo" grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
 check "wrong WorkflowHub project; ours is 472" grep -rn 'workflowhub.eu/projects/24' . --include=*.html
@@ -653,22 +660,19 @@ check "page uses a glossary Avoid word (see GLOSSARY.md)" \
     git grep -niE '\bscans?\b|\bupload|files app' -- '*.html' ':(exclude)_archive'
 
 # Code keeps to GLOSSARY.md's terms too. Only the Avoid words no code
-# needs in another sense are matched, as a word or a name's part: "SIF"
-# for Container or Container file, though the .sif extension stays, and
-# "system OpenComposer" for the shared OpenComposer or the IRIS instance
-# (#163), matched across a line break and a comment marker too, as it sat
-# in lib/katana.sh. The glossary and the ADRs name them on purpose, as this
-# rule and its test do. A workflow's library copy, workflows/<slug>/lib/,
+# needs in another sense are matched, the ones .githooks/avoid-names lists,
+# as a word or a name's part, across a line break and a comment marker
+# too, as "system OpenComposer" sat in lib/katana.sh after #163.
+# .githooks/commit-msg refuses them in a commit message with the same
+# list. The glossary and the ADRs name them on purpose, as this rule, the
+# list and their tests do. A workflow's library copy, workflows/<slug>/lib/,
 # keeps lib/'s words at the commit bin/libcopy recorded, so lib/ answers
 # for it.
 avoid_names() {
     local not=(':(exclude)_archive' ':(exclude)GLOSSARY.md' ':(exclude)docs/adr'
-        ':(exclude)bin/check' ':(exclude)tests/bin/test_avoid_names.sh' ':(exclude)workflows/*/lib/*')
-    git grep -nIE '(^|[^.A-Za-z0-9])[sS][iI][fF]([^A-Za-z0-9]|$)' -- "${not[@]}"
-    git grep -lIz OpenComposer -- "${not[@]}" | xargs -0 -r perl -0777 -ne '
-        while (/[sS]ystem\s+(?:(?:#|\/\/|--|\*)\s*)?OpenComposer/g) {
-            print "$ARGV:", 1 + (substr($_, 0, $-[0]) =~ tr/\n//), ": system OpenComposer\n";
-        }'
+        ':(exclude)bin/check' ':(exclude).githooks/avoid-names' ':(exclude)tests/bin/test_avoid_names.sh' ':(exclude)tests/bin/test_untracked.sh'
+        ':(exclude)workflows/*/lib/*')
+    git ls-files -z -- "${not[@]}" | xargs -0 -r perl .githooks/avoid-names.pl
 }
 check "name uses a glossary Avoid word (see GLOSSARY.md)" avoid_names
 
