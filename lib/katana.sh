@@ -9,13 +9,13 @@
 # version by name, which bin/check finds in the digest map below.
 # shellcheck disable=SC2034  # used by the scripts that source it
 
-# The system clone (Patrick, 2026-10-23; see AGENTS.md): the shared
-# OpenComposer (the IRIS instance after #173) serves its workflows/ and
-# `module load iris` its module/bin.
+# The system clone (Patrick, 2026-10-23; see AGENTS.md): the IRIS instance
+# serves its workflows/ and `module load iris` its module/bin.
 IRIS_SYSTEM_CLONE=/srv/scratch/katana_ai/iris/code
 # The IRIS fork of OpenComposer's two checkouts, beside the system clone
-# (ADR-0011, #170): the IRIS instance's and the test instance's, each an
-# OnDemand system app of its own, kept on one fork commit by bin/ocpull.
+# (ADR-0011, #170): the IRIS instance's, Katana OnDemand's OpenComposer
+# system app, and the test instance's, a dev app each workflow author links
+# in (ADR-0012), kept on one fork commit by bin/ocpull.
 IRIS_INSTANCE_CHECKOUT=/srv/scratch/katana_ai/iris/OpenComposer-iris
 IRIS_TEST_INSTANCE_CHECKOUT=/srv/scratch/katana_ai/iris/OpenComposer-iris-test
 # Katana's Python module (../available-modules.md), for the job library's
