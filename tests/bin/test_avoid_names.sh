@@ -40,3 +40,20 @@ make_tree python-name lib/tests/test_job_lib.py 'sif_path = os.environ["IRIS_ENV
 expect fail "$scratch/python-name" "$name"
 make_tree prose CONTRIBUTING.md 'Each version is one SIF on Katana.'
 expect fail "$scratch/prose" "$name"
+
+# "System OpenComposer" (#163) has no use outside the glossary: #163 left it
+# in three files and its cleanup in lib/katana.sh, wrapped across a comment's
+# line break. A workflow's library copy keeps lib/'s words at the commit it
+# was copied from, so it is left to bin/libcopy.
+make_tree system-oc-glossary GLOSSARY.md '_Avoid_: System OpenComposer, shared instance'
+expect pass "$scratch/system-oc-glossary" "$name"
+make_tree system-oc-comment lib/katana.sh '# the system OpenComposer serves its workflows/'
+expect fail "$scratch/system-oc-comment" "$name"
+make_tree system-oc-prose CONTRIBUTING.md 'System OpenComposer serves the system clone.'
+expect fail "$scratch/system-oc-prose" "$name"
+make_tree system-oc-wrapped lib/katana.sh "$(printf '# see AGENTS.md): the system\n# OpenComposer serves its workflows/')"
+expect fail "$scratch/system-oc-wrapped" "$name"
+make_tree system-oc-standard CODING_STANDARDS.md '#163 added "system OpenComposer" and left it'
+expect fail "$scratch/system-oc-standard" "$name"
+make_tree system-oc-copy workflows/seg/lib/katana.sh "$(printf '# the system\n# OpenComposer serves its workflows/')"
+expect pass "$scratch/system-oc-copy" "$name"

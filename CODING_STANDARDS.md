@@ -5,7 +5,7 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 ## Domain language
 
 - **Glossary terms, exactly.** Page text, names, docstrings, comments, commit messages and issue text use the term `GLOSSARY.md` defines, never a word its _Avoid_ list names. Past drift: "scan" for Volume, `dataset_identity` for Dataset record, `environment()` for run tags (Environment means the versioned software set).
-- **A new _Avoid_ word leaves no uses behind.** A diff that adds a word to an _Avoid_ list rewords every use of it across tracked files in the same change, or names each one it leaves and why. Grep for the new words only: older _Avoid_ words such as Image and User appear legitimately, so this is a review check, not a `bin/check` rule. #163 added "system OpenComposer" and left it in `AGENTS.md`, CONTRIBUTING and `bin/syspull`.
+- **A new _Avoid_ word leaves no uses behind.** A diff that adds a word to an _Avoid_ list rewords every use of it across tracked files in the same change, or names each one it leaves and why. Grep for the new words only: older _Avoid_ words such as Image and User appear legitimately. A new word that has no legitimate use left joins `bin/check`'s "name uses a glossary Avoid word" pattern in the same change. #163 made the shared OpenComposer's old name an _Avoid_ word and left it in `AGENTS.md`, CONTRIBUTING and `bin/syspull`, and its cleanup missed one in `lib/katana.sh` wrapped across a line break, so the pattern has it now.
 - **A new domain concept gets a glossary entry** in the same change, as `docs/agents/domain.md` describes.
 - **ADRs hold.** A change that contradicts an ADR in `docs/adr/` either keeps to it or supersedes it with a new ADR.
 
@@ -24,6 +24,10 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 
 - **The contribute page owns the rules, CONTRIBUTING the procedure.** The fit criteria, when a proposal is needed, help while you build and the workflow owner's rules live on `contribute/index.html`; CONTRIBUTING, the PR template, the proposal form and `docs/agents/` link them and keep only their own mechanics. Past drift: #134's first draft restated the proposal list and the workflow owner's rules on both.
 - **Every author step works for an outside author.** Read each step in CONTRIBUTING, the contribute page and the templates as a workflow author outside `unsw-restech` who isn't a pilot tester: anything that needs org membership (an org package, an org secret) or `katana_ai_ro` (`katana_ai` scratch: the environments folder, the system clone) says who can't do it and what they do instead. Past miss: #134 told authors to run the container tests themselves, which needs read access to the org's private package (#132).
+
+## Maintainer tools
+
+- **Printed steps are tested by running them.** When a tool prints steps for a person to take, as `bin/ocpull`'s refusals do, its test carries out those steps for every target the refusal covers, then checks that it ends in the state the steps promise. Past miss: #162's first `bin/ocpull` test only matched the printed text, and both checkouts saved their `manifest.yml` to one `~/manifest.yml.mine`, so following the steps for the second checkout overwrote the first's.
 
 ## Job code
 

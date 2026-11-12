@@ -653,11 +653,23 @@ check "page uses a glossary Avoid word (see GLOSSARY.md)" \
 
 # Code keeps to GLOSSARY.md's terms too. Only the Avoid words no code
 # needs in another sense are matched, as a word or a name's part: "SIF"
-# for Container or Container file, though the .sif extension stays. The glossary and the
-# ADRs name them on purpose, as this rule and its test do.
-check "name uses a glossary Avoid word (see GLOSSARY.md)" \
-    git grep -nIE '(^|[^.A-Za-z0-9])[sS][iI][fF]([^A-Za-z0-9]|$)' -- ':(exclude)_archive' ':(exclude)GLOSSARY.md' ':(exclude)docs/adr' \
-    ':(exclude)bin/check' ':(exclude)tests/bin/test_avoid_names.sh'
+# for Container or Container file, though the .sif extension stays, and
+# "system OpenComposer" for the shared OpenComposer or the IRIS instance
+# (#163), matched across a line break and a comment marker too, as it sat
+# in lib/katana.sh. The glossary and the ADRs name them on purpose, as this
+# rule and its test do. A workflow's library copy, workflows/<slug>/lib/,
+# keeps lib/'s words at the commit bin/libcopy recorded, so lib/ answers
+# for it.
+avoid_names() {
+    local not=(':(exclude)_archive' ':(exclude)GLOSSARY.md' ':(exclude)docs/adr'
+        ':(exclude)bin/check' ':(exclude)tests/bin/test_avoid_names.sh' ':(exclude)workflows/*/lib/*')
+    git grep -nIE '(^|[^.A-Za-z0-9])[sS][iI][fF]([^A-Za-z0-9]|$)' -- "${not[@]}"
+    git grep -lIz OpenComposer -- "${not[@]}" | xargs -0 -r perl -0777 -ne '
+        while (/[sS]ystem\s+(?:(?:#|\/\/|--|\*)\s*)?OpenComposer/g) {
+            print "$ARGV:", 1 + (substr($_, 0, $-[0]) =~ tr/\n//), ": system OpenComposer\n";
+        }'
+}
+check "name uses a glossary Avoid word (see GLOSSARY.md)" avoid_names
 
 # Every catalogue workflow with a form names its workflow owner on its
 # page, under the description, as <p class="wf-owner"> linking their GitHub
