@@ -16,6 +16,6 @@ Asked for `OpenComposer-iris` beside the shared OpenComposer, the sysadmin saw n
 
 ## Consequences
 
-- #173's changeover moves no Run button and no URL. What is left of it is moving both checkouts to the fork commit carrying #165, #166, #168 and #171, the banner's hint in the same deploy, and a real `microct-2d-segmentation` job from the IRIS instance.
+- #173's changeover moves no Run button and no URL. What is left of it is moving both checkouts to the fork commit carrying #165, #166, #168 and #171, and the banner's hint in the same deploy. Both live forms have run from the IRIS instance on `88d45b1`: `hello-world` as job 9751644, `microct-2d-segmentation` as job 9752576.
 - The fork reached researchers as `88d45b1`, upstream 2.0.2 with the platform name and catalogue link (#160) and contrast-following text (#164), but without #165, #166, #168 or #171, when the sysadmin repointed the app, not through a planned changeover. Each job history starts afresh in `~/composer/iris`, since the IRIS instance keeps its own `data_dir`.
 - The test instance's checkout keeps `katana_ai_ro` as its readers through the pilot. Who may read it after launch is open: a group of workflow authors, which would make an author ask to join before their first test, or every Katana user, which under the sysadmin's rule means moving it out of scratch like the IRIS instance's.
