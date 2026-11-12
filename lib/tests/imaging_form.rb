@@ -78,7 +78,6 @@ module ImagingForm
     # one filled in; nil, with a problem, if it does not render.
     def render(path, *apps_dir)
       form = FormHelper.render(path, *apps_dir)
-      @form ||= form
       values = FormHelper.defaults(form).transform_values { |v| v.nil? ? "x" : v }
       FormHelper.script(form, values)
     rescue StandardError, SyntaxError => e
@@ -88,9 +87,11 @@ module ImagingForm
 
     # The form's editable_region key names the entry script's heredoc: its
     # opener and its end marker, the lines the fork leaves the body between.
+    # The fork compares each with leading and trailing whitespace stripped
+    # (#171), so this does too.
     def editable_region
-      region = @form["editable_region"]
-      return if region.is_a?(Hash) && region["begin"] == OPENER && region["end"] == END_MARKER
+      region = FormHelper.render(@path)["editable_region"]
+      return if region.is_a?(Hash) && region["begin"].to_s.strip == OPENER && region["end"].to_s.strip == END_MARKER
 
       @problems << "no editable_region naming the entry script's heredoc, begin: #{OPENER.inspect} and end: #{END_MARKER.inspect} " \
                    "(found #{region.inspect}; see lib/tests/imaging_form.rb)"

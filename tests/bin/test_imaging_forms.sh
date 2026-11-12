@@ -48,6 +48,11 @@ expect fail "$scratch/no-region" "$name"
 make_tree other-region
 sed -i 's/^  end: "IRIS_RUN_PY_END"$/  end: "iris_done"/' "$scratch/other-region/workflows/seg/form.yml.erb"
 expect fail "$scratch/other-region" "$name"
+# The fork strips leading and trailing whitespace from both markers before
+# comparing (#171), so a region padded with spaces names the same lines.
+make_tree padded-region
+sed -i 's/^  end: "IRIS_RUN_PY_END"$/  end: "  IRIS_RUN_PY_END \\t"/; s/^  begin: "cat /  begin: " cat /' "$scratch/padded-region/workflows/seg/form.yml.erb"
+expect pass "$scratch/padded-region" "$name"
 
 # Dropping the pinned version and the record call too still leaves an imaging form,
 # so it is still checked.
