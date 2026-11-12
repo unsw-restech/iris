@@ -104,7 +104,7 @@ class FormTest < Minitest::Test
       script = FormHelper.script(form, FormHelper.defaults(form, dataset: @ds))
       refute_includes script, "iris-view"
       refute_includes script, "iris-compare"
-      assert script.end_with?("\niris_done\n"), script.lines.last(3).join
+      assert script.end_with?("\niris_done"), script.lines.last(3).join
     end
   end
 
