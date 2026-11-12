@@ -342,7 +342,8 @@ need_ruby() {
 # library, the banner, the heredoc holding its entry script byte for byte,
 # the call recording the run's code and the container start line,
 # iris_container python on run.py, with no
-# other heredoc, and its entry script holds no #{ or <% (ADR-0006). lib/tests/imaging_form.rb
+# other heredoc, and its entry script holds no #{ or <% (ADR-0006); its
+# editable_region key names that heredoc (#161). lib/tests/imaging_form.rb
 # holds those parts and lib/tests/test_imaging_form.rb breaks each one.
 rendered_scripts() {
     need_ruby || return

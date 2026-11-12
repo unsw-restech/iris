@@ -39,6 +39,16 @@ make_tree no-source
 sed -i '/iris-job\.sh/d' "$scratch/no-source/workflows/seg/form.yml.erb"
 expect fail "$scratch/no-source" "$name"
 
+# An imaging form declares its run.py heredoc as its editable region (#161),
+# so on the fork run.py is all a researcher can edit; one that declares
+# none fails, and so does one whose region is some other pair of lines.
+make_tree no-region
+sed -i '/^editable_region:/,/^  end:/d' "$scratch/no-region/workflows/seg/form.yml.erb"
+expect fail "$scratch/no-region" "$name"
+make_tree other-region
+sed -i 's/^  end: "IRIS_RUN_PY_END"$/  end: "iris_done"/' "$scratch/other-region/workflows/seg/form.yml.erb"
+expect fail "$scratch/other-region" "$name"
+
 # Dropping the pinned version and the record call too still leaves an imaging form,
 # so it is still checked.
 make_tree no-source-no-env
