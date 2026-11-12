@@ -58,6 +58,22 @@ class FormHelperTest < Minitest::Test
     assert_match(/invalid value for Integer\(\): "lots"/, FormHelper.check(f, FormHelper.defaults(f)))
   end
 
+  # lib/form.rb splits the script on newlines, dropping trailing empty
+  # lines, and the pane joins its lines with newlines, so the submitted
+  # script ends with its last line's text and no newline.
+  def test_the_script_ends_without_a_newline_as_submitted
+    f = form(<<~YAML)
+      form: {}
+      script: |+
+        echo one
+
+        echo two
+
+
+    YAML
+    assert_equal "echo one\n\necho two", script(f)
+  end
+
   MAIL = <<~YAML
     form:
       mail_events:
@@ -73,13 +89,13 @@ class FormHelperTest < Minitest::Test
   YAML
 
   def test_a_checked_checkbox_fills_both_forms_of_its_field
-    assert_equal %(#PBS -m ae\n--field "mail_events=ae"\ndone\n), script(form(MAIL), mail_events: "ae")
+    assert_equal %(#PBS -m ae\n--field "mail_events=ae"\ndone), script(form(MAIL), mail_events: "ae")
   end
 
   # ocForm.showLine empties a checkbox's line when nothing is checked,
   # however the line names it.
   def test_an_unchecked_checkbox_drops_every_line_holding_it
-    assert_equal "done\n", script(form(MAIL))
+    assert_equal "done", script(form(MAIL))
   end
 
   # With no separator, ocForm.showLine writes the line once per value.
@@ -96,7 +112,7 @@ class FormHelperTest < Minitest::Test
       script: |
         run \#{steps}
     YAML
-    assert_equal "run train\nrun segment\n", script(f)
+    assert_equal "run train\nrun segment", script(f)
   end
 
   # run.rb's set_check_value: one checked value is itself, several an array.
@@ -136,7 +152,7 @@ class FormHelperTest < Minitest::Test
   # form.js's getValue falls back to its text, run.rb's check to its value.
   def test_a_multi_select_fills_its_options_values_and_typed_entries
     f = form(MODULES)
-    assert_equal "module load gcc/14.2.0 julia/1.11\n", script(f)
+    assert_equal "module load gcc/14.2.0 julia/1.11", script(f)
     assert_equal "gcc/14.2.0 julia/1.11", FormHelper.check(f, FormHelper.defaults(f))
   end
 end

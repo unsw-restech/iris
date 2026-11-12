@@ -1,5 +1,5 @@
 # Render a form.yml.erb the way the IRIS fork of OpenComposer does at
-# ff674ef, the commit bin/ocpull keeps the IRIS instance's and the test
+# c5da1b9, the commit bin/ocpull keeps the IRIS instance's and the test
 # instance's checkouts on, and the dev install runs (#170), for tests and
 # for submitting a job without the browser. Every workflow's form tests use
 # it. Moving the checkouts to a commit that changes what follows means
@@ -24,10 +24,17 @@
 #              plain #{field} is empty is dropped, as is one naming a
 #              checkbox or multi_select with nothing chosen, #{:field} too,
 #              and one naming a checkbox or multi_select with no separator
-#              is written once per value
+#              is written once per value; the lines are joined as the pane
+#              joins them (lib/form.rb splits the script on newlines), so
+#              trailing empty lines go and the last line has no newline.
+#              The pane renders each line as its own segment and a field
+#              change rewrites only that field's lines (#165); with the
+#              pane unedited, it submits the script rendered whole
 #
 # Not copied: dynamic widgets (disable-, hide-, set-), so a disabled
-# field still fills its lines, and calc, dirname and basename.
+# field still fills its lines, calc, dirname and basename, and the locked
+# lines and editable region (#168, #171), which only limit edits in the
+# pane and leave the submitted script as rendered.
 #
 # From the command line, prints the job script for the given fields:
 #   ruby lib/tests/form_helper.rb [--apps-dir DIR] [--no-check] FORM \
@@ -115,7 +122,9 @@ module FormHelper
 
   def self.script(form, values)
     empty = ->(v) { Array(v).join.empty? }
-    form["script"].lines.flat_map do |line|
+    # Split and joined as lib/form.rb and the pane do: trailing empty lines
+    # go, and the last line has no newline.
+    form["script"].split("\n").flat_map do |line|
       plain = line.scan(/\#\{([a-z_0-9]+)\}/).flatten
       next [] if plain.any? { |k| empty[values[k]] }
       # A checkbox or multi_select with nothing chosen empties its line,
@@ -131,7 +140,7 @@ module FormHelper
         l.gsub(/\#\{zeropadding\((\w+), *(\d+)\)\}/) { values[$1].to_s.rjust($2.to_i, "0") }
          .gsub(/\#\{:?([a-z_0-9]+)\}/) { values[$1].to_s }
       end
-    end.join
+    end.join("\n")
   end
 end
 
