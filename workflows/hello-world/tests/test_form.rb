@@ -8,7 +8,9 @@ require_relative "../../../lib/tests/form_helper"
 class FormTest < Minitest::Test
   WORKFLOW = File.expand_path("..", __dir__)
   FORM = File.join(WORKFLOW, "form.yml.erb")
-  MODULECMD = "/usr/share/Modules/libexec/modulecmd.tcl"
+  # The modulecmd the form runs to list modules, read from the form so the
+  # two can't differ.
+  MODULECMD = File.read(FORM)[%r{"(/[^"]+/modulecmd\.tcl)"}, 1]
 
   def setup
     skip "needs #{MODULECMD}" unless File.exist?(MODULECMD)
