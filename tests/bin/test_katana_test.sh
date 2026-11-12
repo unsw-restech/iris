@@ -157,8 +157,11 @@ echo 1 > "$fake/exit-code"
 run > /dev/null
 if tested; then fail "--tested: exit 0 after a failing run"; fi
 rm "$fake/exit-code"
-mkdir -p "$repo/workflows/seg/lib/iris"
-for f in workflows/seg/form.yml.erb workflows/seg/lib/katana.sh workflows/seg/lib/iris/rundir.py lib/iris-job.sh; do
+mkdir -p "$repo/workflows/seg/lib/iris" "$repo/workflows/seg/tests" "$repo/lib/tests/katana"
+# The tests it runs count too: 3c1201f changed lib/tests/form_helper.rb alone,
+# went to main untested and failed a form test there (#172).
+for f in workflows/seg/form.yml.erb workflows/seg/lib/katana.sh workflows/seg/lib/iris/rundir.py lib/iris-job.sh \
+    workflows/seg/tests/test_form.rb lib/tests/form_helper.rb lib/tests/test_job_lib.py lib/tests/katana/job_lib.pbs; do
     run > /dev/null
     echo "# $f" >> "$repo/$f"; git -C "$repo" add "$f"; commit "$f"
     if tested; then fail "--tested: exit 0 after a change to $f"; fi

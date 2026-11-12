@@ -20,7 +20,10 @@
 # (iris/katana-tested), by the tested files alone: every form.yml.erb,
 # module/, lib/iris-job.sh and lib/katana.sh, and each workflow's whole
 # library copy, workflows/<slug>/lib/, which its jobs run, copied-from
-# included, so every bin/libcopy needs a run. --tested exits 0 if a
+# included, so every bin/libcopy needs a run; and the tests it runs, each
+# workflow's tests/test_form.rb, lib/tests/form_helper.rb that they render
+# through, lib/tests/test_job_lib.py and lib/tests/katana/, since a test
+# changed without a run can fail on main as a form can (3c1201f, #172). --tested exits 0 if a
 # passing run tested those files exactly as <commit> holds them, or if
 # they are the same in <base>, and 1 if not; .githooks/pre-push uses it to
 # refuse an untested push to main.
@@ -35,9 +38,9 @@
 set -o pipefail
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 
-# The files this tests, as AGENTS.md lists them: a change to any needs a
-# run before it goes to main.
-tested_files='^(workflows/[^/]+/form[.]yml[.]erb|module/.*|workflows/[^/]+/lib/.*|lib/(iris-job|katana)[.]sh)$'
+# The files this tests and the tests it runs, as the header lists them: a
+# change to any needs a run before it goes to main.
+tested_files='^(workflows/[^/]+/form[.]yml[.]erb|module/.*|workflows/[^/]+/lib/.*|lib/(iris-job|katana)[.]sh|workflows/[^/]+/tests/test_form[.]rb|lib/tests/(form_helper[.]rb|test_job_lib[.]py|katana/.*))$'
 stamps="$(git rev-parse --git-common-dir)/iris/katana-tested"
 
 # tested_hash <commit>: one hash of the tested files as <commit> holds them.
