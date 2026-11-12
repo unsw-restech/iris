@@ -17,12 +17,18 @@
 # problem in both and saying how to take such a change by hand
 # (bin/ocpull-checkouts.sh). Both end by listing what a pilot tester can't
 # read in the checkouts (bin/pilot-readable.py), and --apply exits 1 if
-# anything is listed, since the deploy has happened.
+# anything is listed, since the deploy has happened. --apply exits 1 too,
+# after the deploy, if lib/tests/form_helper.rb's header names a commit
+# other than <sha>, since the helper then renders as a commit the
+# checkouts no longer run.
 # Over `ssh katana`.
 
 # shellcheck source=lib/katana.sh
 . "$(dirname "$(readlink -f "$0")")/../lib/katana.sh" || exit 2
 checkouts=("$IRIS_INSTANCE_CHECKOUT" "$IRIS_TEST_INSTANCE_CHECKOUT")
+# The form test helper renders as the fork commit its header names, the
+# one the checkouts run; nothing else in the repo records that commit.
+helper="$(dirname "$(readlink -f "$0")")/../lib/tests/form_helper.rb"
 usage() { echo "usage: bin/ocpull [--apply <sha>]" >&2; exit 2; }
 # remote <mode> [<arg>]: bin/ocpull-checkouts.sh on Katana, over both checkouts.
 remote() {
@@ -49,9 +55,15 @@ if [ $# -eq 0 ]; then
     esac
 elif [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
     remote apply "$2" || exit
+    helper_commit=$(sed -nE 's/^# ([0-9a-f]{7,40}), the commit bin\/ocpull keeps .*/\1/p' "$helper")
+    stale=
+    if [ -z "$helper_commit" ] || [[ "$2" != "$helper_commit"* && "$helper_commit" != "$2"* ]]; then
+        echo "ocpull: deployed, but lib/tests/form_helper.rb still renders as ${helper_commit:-no commit its header names}; bring it, and its header's commit, to $2." >&2
+        stale=1
+    fi
     readable
     case $? in
-        0) ;;
+        0) [ -z "$stale" ] || exit 1 ;;
         1) echo "ocpull: deployed, but pilot testers can't read the paths above; fix their ACLs." >&2; exit 1 ;;
         *) echo "ocpull: deployed, but couldn't check what pilot testers can read in the checkouts." >&2; exit 1 ;;
     esac

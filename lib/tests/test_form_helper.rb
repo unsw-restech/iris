@@ -19,7 +19,7 @@ class FormHelperTest < Minitest::Test
   end
 
   # Writes `text` as workflows/<name>/form.yml.erb and renders it.
-  def form(text, name = "demo")
+  def form(text, name = "fixture")
     path = File.join(@apps, name, "form.yml.erb")
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, text)

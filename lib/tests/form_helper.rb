@@ -3,7 +3,9 @@
 # instance's checkouts on, and the dev install runs (#170), for tests and
 # for submitting a job without the browser. Every workflow's form tests use
 # it. Moving the checkouts to a commit that changes what follows means
-# changing this helper, and this commit, with them.
+# changing this helper, and this commit, with them: bin/ocpull --apply
+# reads the commit from this header's second line, the one place the
+# repo records it, and fails after a move to any other.
 #
 #   render     ERB with @apps_dir and @OC_DIR_NAME set (the GET), then YAML
 #              (run.rb read_yaml); @apps_dir is the folder holding the
@@ -51,13 +53,16 @@ module FormHelper
     YAML.load(text)
   end
 
+  # Whether a field with this widget holds its chosen options' values,
+  # which defaults and script treat alike.
+  def self.choice?(widget) = %w[checkbox multi_select].include?(widget)
+
   # The values a researcher submits without touching anything but `given`.
   def self.defaults(form, given = {})
     values = {}
     form["form"].each do |key, f|
       v = f["value"]
-      case f["widget"]
-      when "checkbox", "multi_select"
+      if choice?(f["widget"])
         # Each chosen label's data value, its label if it has none; a
         # multi_select entry that is no option stays as typed.
         chosen = Array(v).map do |label|
@@ -65,9 +70,8 @@ module FormHelper
           o[1].nil? ? o[0] : o[1]
         end
         values[key] = f["separator"].nil? ? chosen : chosen.join(f["separator"])
-      when "number"
-        if v.is_a?(Array) then v.each_with_index { |x, i| values["#{key}_#{i + 1}"] = x }
-        else values[key] = v end
+      elsif f["widget"] == "number" && v.is_a?(Array)
+        v.each_with_index { |x, i| values["#{key}_#{i + 1}"] = x }
       else
         values[key] = v
       end
@@ -118,7 +122,7 @@ module FormHelper
       # #{:field} too, and one with no separator, its values an array,
       # writes the line once per value (ocForm.showLine).
       named = line.scan(/\#\{:?([a-z_0-9]+)\}/).flatten
-      next [] if named.any? { |k| %w[checkbox multi_select].include?(widget(form, k)) && empty[values[k]] }
+      next [] if named.any? { |k| choice?(widget(form, k)) && empty[values[k]] }
       lines = [line]
       named.uniq.select { |k| values[k].is_a?(Array) }.each do |k|
         lines = lines.flat_map { |l| values[k].map { |v| l.gsub(/\#\{:?#{k}\}/) { v.to_s } } }
