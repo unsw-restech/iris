@@ -122,10 +122,10 @@ class FormHelperTest < Minitest::Test
       module:
         widget: multi_select
         separator: " "
-        value: [ "Python 3.13", "julia/1.11" ]
+        value: [ "GCC 14", "julia/1.11" ]
         options:
-          - [ "Python 3.13", "python/3.13.2" ]
-          - [ "R 4.4",       "R/4.4.1"       ]
+          - [ "GCC 14", "gcc/14.2.0" ]
+          - [ "R 4.4",  "R/4.4.1"    ]
     script: |
       module load \#{module}
     check: |
@@ -136,7 +136,7 @@ class FormHelperTest < Minitest::Test
   # form.js's getValue falls back to its text, run.rb's check to its value.
   def test_a_multi_select_fills_its_options_values_and_typed_entries
     f = form(MODULES)
-    assert_equal "module load python/3.13.2 julia/1.11\n", script(f)
-    assert_equal "python/3.13.2 julia/1.11", FormHelper.check(f, FormHelper.defaults(f))
+    assert_equal "module load gcc/14.2.0 julia/1.11\n", script(f)
+    assert_equal "gcc/14.2.0 julia/1.11", FormHelper.check(f, FormHelper.defaults(f))
   end
 end
