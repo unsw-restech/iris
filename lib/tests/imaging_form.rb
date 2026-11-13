@@ -1,7 +1,8 @@
-# What every imaging form's script holds, checked on the script the form
-# renders rather than its ERB source, so what is checked is what
-# OpenComposer submits. An imaging form carries its entry script in its
-# script (GLOSSARY.md); bin/check finds them and runs this on each:
+# What every imaging form holds, its script checked as the form renders it
+# rather than as its ERB source, so what is checked is what OpenComposer
+# submits; then its editable_region and its page. An imaging form carries
+# its entry script in its script (GLOSSARY.md); bin/check finds them and
+# runs this on each:
 #
 #   ruby lib/tests/imaging_form.rb FORM...
 #
@@ -20,8 +21,12 @@
 #     byte up to its end marker (ADR-0006)
 #   - on the next line, the call that records the run's code, naming the
 #     entry script, so a run.py Python cannot start still leaves its diff
-#   - the container start line: the job library's iris_container running
-#     python on the run directory's run.py in the pinned container
+#   - the container start line, iris_container python "$RUN_DIR/run.py":
+#     the job library's iris_container running the run directory's run.py
+#     in the pinned container
+# Beside the form, its workflow page (index.html) quotes the hint byte for
+# byte as <code>HINT</code>, HTML-escaped, so the page and the pane name the
+# same line.
 # Beside script:, the form's editable_region key names that heredoc's
 # opener and end marker (#161), so on the IRIS fork only run.py's lines are
 # editable; stock OpenComposer ignores the key.
@@ -32,6 +37,7 @@
 # These constants are the only test-side copy of the lines a script must
 # hold: renaming one changes the form, the job library and this file.
 
+require "cgi"
 require_relative "form_helper"
 
 module ImagingForm
@@ -67,6 +73,7 @@ module ImagingForm
       entry_text
       ordered_parts
       other_heredocs
+      page_hint
       unrendered = render(@path, nil)
       @problems << %(rendered without @apps_dir, CODE is not "", so the guard cannot stop the job) if unrendered && !unrendered.lines.include?(%(CODE=""\n))
       @problems
@@ -95,6 +102,14 @@ module ImagingForm
 
       @problems << "no editable_region naming the entry script's heredoc, begin: #{OPENER.inspect} and end: #{END_MARKER.inspect} " \
                    "(found #{region.inspect}; see lib/tests/imaging_form.rb)"
+    end
+
+    def page_hint
+      page = File.join(@code, "index.html")
+      quoted = "<code>#{CGI.escapeHTML(HINT)}</code>"
+      return if File.file?(page) && File.read(page).include?(quoted)
+
+      @problems << "#{page} does not quote the hint as #{quoted}"
     end
 
     def entry_text

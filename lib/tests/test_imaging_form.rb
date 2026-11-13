@@ -15,7 +15,7 @@ class ImagingFormTest < Minitest::Test
 
   # A clone in a temporary folder with one commit, holding the reference
   # workflow's form and entry script as workflows/seg, its usage tag
-  # renamed; the block, if given, edits the form's text first.
+  # renamed, beside a page that quotes the hint.
   def setup
     @clone = Dir.mktmpdir("iris-imaging-form-test-")
     @code = File.join(@clone, "workflows", "seg")
@@ -23,6 +23,8 @@ class ImagingFormTest < Minitest::Test
     FileUtils.mkdir_p(File.join(@code, "src"))
     FileUtils.cp(File.join(REFERENCE, "src", "run.py"), File.join(@code, "src"))
     File.write(@form, File.read(File.join(REFERENCE, "form.yml.erb")).sub("#PBS -A iris-microct-2d-segmentation", "#PBS -A iris-seg"))
+    @page = File.join(@code, "index.html")
+    File.write(@page, "<p>Edit it below the comment <code>#{ImagingForm::HINT}</code>.</p>\n")
     git("init", "-q")
     commit
   end
@@ -131,6 +133,14 @@ class ImagingFormTest < Minitest::Test
   def test_a_form_without_the_hint_fails
     drop(ImagingForm::HINT)
     assert_fails(/no the hint/)
+  end
+
+  # The workflow page quotes the hint, so a researcher can find the code
+  # in the pane; a hint changed in the form alone leaves the page stale.
+  def test_a_page_that_does_not_quote_the_hint_fails
+    File.write(@page, "<p>Edit it below the comment <code># Workflow code: edit below.</code></p>\n")
+    commit
+    assert_fails(/index.html does not quote the hint/)
   end
 
   def test_a_form_whose_heredoc_never_ends_fails

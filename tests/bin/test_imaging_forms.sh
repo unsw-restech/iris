@@ -17,7 +17,8 @@ trap 'rm -rf "$scratch"' EXIT
 . tests/bin/lib.sh
 
 # make_tree <name>: a site whose seg workflow has the reference imaging form
-# and entry script, beside hello-world's form, and the form checker.
+# and entry script, its page quoting the hint, beside hello-world's form,
+# and the form checker.
 make_tree() {
     local tree="$scratch/$1"
     site_tree "$tree" seg:ct-lab:active
@@ -25,6 +26,7 @@ make_tree() {
     sed 's/#PBS -A iris-microct-2d-segmentation/#PBS -A iris-seg/' workflows/microct-2d-segmentation/form.yml.erb \
         > "$tree/workflows/seg/form.yml.erb"
     cp workflows/microct-2d-segmentation/src/run.py "$tree/workflows/seg/src/"
+    echo '<p><code># Edit the workflow code below</code></p>' >> "$tree/workflows/seg/index.html"
     cp workflows/hello-world/form.yml.erb "$tree/workflows/hello-world/"
     cp lib/tests/form_helper.rb lib/tests/imaging_form.rb "$tree/lib/tests/"
 }

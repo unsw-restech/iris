@@ -14,7 +14,12 @@
 #
 # The Python tests, lib/tests once and then each workflow's tests/, run on
 # CPU in containers through bin/envrun, whose header says how it pulls
-# them the first time. The rendered-form checks and their tests need
+# them the first time. To run one test file alone, from its folder:
+#   <clone>/bin/envrun <version> python -m unittest test_rundir
+# where <version> is IRIS_TOOLS_ENV_VERSION (lib/katana.sh) for lib/tests
+# and the form's IRIS_ENV_VERSION for a workflow's tests/; a file marked
+# "# bin/check: on the host" runs with python3 instead.
+# The rendered-form checks and their tests need
 # Ruby (once in WSL: sudo apt install ruby; CI's image has it).
 # The form tests that need /srv/scratch and the module test need Katana
 # and are not run here: see AGENTS.md.
@@ -348,15 +353,9 @@ need_ruby() {
         { echo "ruby not found: install it once with sudo apt install ruby"; return 1; }
 }
 
-# Each imaging form's script as the form renders it holds, in order, its
-# PBS header with the usage tag, CODE and its guard, the one
-# IRIS_ENV_VERSION=<env>/<n> line pinning its environment version, the job
-# library, the hint, the heredoc holding its entry script byte for byte,
-# the call recording the run's code and the container start line,
-# iris_container python on run.py, with no
-# other heredoc, and its entry script holds no #{ or <% (ADR-0006); its
-# editable_region key names that heredoc (#161). lib/tests/imaging_form.rb
-# holds those parts and lib/tests/test_imaging_form.rb breaks each one.
+# Each imaging form's rendered script, its editable_region and its page
+# hold the parts lib/tests/imaging_form.rb's header lists (ADR-0006, #161),
+# and lib/tests/test_imaging_form.rb breaks each one.
 rendered_scripts() {
     need_ruby || return
     # shellcheck disable=SC2046 # one word per path
