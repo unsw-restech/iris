@@ -73,6 +73,7 @@ iris/
 │   ├── syspull-pins.sh               # List the environment versions a commit pins whose container files aren't on Katana (syspull runs it)
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 │   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
+│   ├── tracked-tree                  # Print the tree a commit of every uncommitted edit would hold (check-passed and katana-test run it)
 │   └── workflowhub-microct-2d-segmentation  # Walkthrough registering it on WorkflowHub; copy it for another workflow (desktop)
 ├── envs/                             # Environment containers: the core list, each environment's packages and versions, CI's build and checks (see its README)
 ├── lib/

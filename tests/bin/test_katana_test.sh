@@ -55,7 +55,7 @@ chmod +x "$fake/bin/ssh" "$fake/bin/qsub"
 # module/bin's.
 repo="$fake/repo"
 mkdir -p "$repo/bin" "$repo/module/bin" "$repo/module/tests" "$repo/lib/tests/katana" "$repo/.githooks"
-cp bin/katana-test "$repo/bin/"
+cp bin/katana-test bin/tracked-tree "$repo/bin/"
 cp .githooks/pre-push "$repo/.githooks/"
 cp lib/tests/katana/stand-in.sh "$repo/lib/tests/katana/"
 echo 'exit 0' > "$repo/module/tests/test_module.sh"
@@ -81,6 +81,24 @@ tar xOf "$fake/tree.tar" tracked.txt | grep -qx edited || fail "didn't send the 
 ! tar tf "$fake/tree.tar" | grep -q untracked.txt || fail "sent an untracked file"
 [ "$(git -C "$repo" stash list | wc -l)" = 0 ] || fail "left a stash entry"
 grep -qx edited "$repo/tracked.txt" || fail "changed the working tree"
+
+# A `git add -N` file, as bin/check asks for a new one, goes with its
+# content, and the index stays as it was (git stash create refused one).
+echo intent > "$repo/added.txt"
+git -C "$repo" add -N added.txt
+index_before="$(git -C "$repo" ls-files -s --debug | git hash-object --stdin)"
+run > /dev/null || fail "a git add -N file: exit $?, expected 0"
+tar xOf "$fake/tree.tar" added.txt 2> /dev/null | grep -qx intent || fail "didn't send a git add -N file"
+[ "$(git -C "$repo" ls-files -s --debug | git hash-object --stdin)" = "$index_before" ] || fail "changed the index"
+git -C "$repo" rm -q --cached added.txt; rm "$repo/added.txt"
+
+# A merge with unresolved conflicts sends nothing.
+blob="$(echo '<<<<<<< ours' | git -C "$repo" hash-object -w --stdin)"
+printf '100644 %s %s\tconflict.txt\n' "$blob" 1 "$blob" 2 "$blob" 3 | git -C "$repo" update-index --index-info
+rm -f "$fake/tree.tar"
+run > /dev/null && fail "exit 0 with unresolved merge conflicts"
+[ ! -s "$fake/tree.tar" ] || fail "sent a tree with unresolved merge conflicts"
+git -C "$repo" rm -q --cached conflict.txt
 
 # A new file under workflows/ or module/ that git doesn't track is named,
 # since a form test there would be skipped.

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Print the id of the tree a commit of every uncommitted edit would hold:
+# this clone's tracked files as the working tree holds them, `git add -N`
+# files included, which bin/check asks for on a new file. A throwaway copy
+# of the index makes it, so the real index is untouched; git stash create
+# would make the same tree but refuses a `git add -N` file. Refuses during
+# a merge with conflicts, whose files still hold the conflict markers.
+# bin/check-passed and bin/katana-test use it.
+#
+#   bin/tracked-tree
+
+cd "$(dirname "$(readlink -f "$0")")/.." || exit 2
+[ $# -eq 0 ] || { echo "usage: bin/tracked-tree" >&2; exit 2; }
+if [ -n "$(git ls-files -u)" ]; then
+    echo "tracked-tree: a merge has unresolved conflicts; finish or abort it first" >&2
+    exit 1
+fi
+index="$(mktemp)" || exit 2
+trap 'rm -f "$index"' EXIT
+cp "$(git rev-parse --git-path index)" "$index" &&
+    GIT_INDEX_FILE="$index" git add -u &&
+    GIT_INDEX_FILE="$index" git write-tree

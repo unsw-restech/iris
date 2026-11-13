@@ -13,7 +13,7 @@ trap 'rm -rf "$fake"' EXIT
 
 repo="$fake/repo"
 mkdir -p "$repo/bin" "$repo/.githooks"
-cp bin/check-passed "$repo/bin/"
+cp bin/check-passed bin/tracked-tree "$repo/bin/"
 cp .githooks/pre-push "$repo/.githooks/"
 echo one > "$repo/a.txt"
 git -C "$repo" init -q -b main

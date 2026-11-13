@@ -43,7 +43,7 @@ cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 tested_files='^(workflows/[^/]+/form[.]yml[.]erb|module/.*|workflows/[^/]+/lib/.*|lib/(iris-job|katana)[.]sh|workflows/[^/]+/tests/test_form[.]rb|lib/tests/(form_helper[.]rb|test_job_lib[.]py|katana/.*))$'
 stamps="$(git rev-parse --git-common-dir)/iris/katana-tested"
 
-# tested_hash <commit>: one hash of the tested files as <commit> holds them.
+# tested_hash <commit or tree>: one hash of the tested files as it holds them.
 tested_hash() {
     git ls-tree -r --full-tree "$1" | awk -F'\t' -v re="$tested_files" '$2 ~ re' | git hash-object --stdin
 }
@@ -55,11 +55,14 @@ if [ "$1" = --tested ] && [ $# -le 3 ]; then
     exit 1
 fi
 [ $# -eq 0 ] || { echo "usage: bin/katana-test [--tested [<commit> [<base>]]]" >&2; exit 2; }
-# A commit holding the working tree's tracked files; empty when it's clean.
-tree="$(git stash create)" || { echo "katana-test: git stash create failed; finish the merge or rebase first" >&2; exit 1; }
+# The working tree's tracked files, uncommitted edits and `git add -N`
+# files included (bin/tracked-tree).
+tree="$(bin/tracked-tree)" || exit 1
+edits=""
+[ "$tree" = "$(git rev-parse HEAD^{tree})" ] || edits=1
 untracked="$(git ls-files --others --exclude-standard workflows module lib)"
 [ -z "$untracked" ] || printf 'Not sent, since git does not track them:\n%s\n' "$untracked"
-echo "Testing ${tree:+uncommitted edits on }$(git log -1 --format='%h %s') on Katana"
+echo "Testing ${edits:+uncommitted edits on }$(git log -1 --format='%h %s') on Katana"
 
 # The job-library test runs jobs in a stand-in container in the tester's
 # own container cache; a pull is a download, so it goes through the data
@@ -69,7 +72,7 @@ ssh katana-dm 'bash -s -- --pull' < lib/tests/katana/stand-in.sh ||
 
 # ruby/3.2.0: Katana's Ruby module (../available-modules.md).
 # shellcheck disable=SC2016  # expanded on Katana
-git archive --format=tar "${tree:-HEAD}" | ssh katana '
+git archive --format=tar "$tree" | ssh katana '
     d=$(mktemp -d "/srv/scratch/$USER/katana-test.XXXXXX") || exit 1
     trap '\''chmod -R u+rwx "$d"; rm -rf "$d"'\'' EXIT
     mkdir "$d/iris" && cd "$d/iris" && tar xf - || exit 1
@@ -95,4 +98,4 @@ git archive --format=tar "${tree:-HEAD}" | ssh katana '
 
 # Every test passed: record the tree, so a push of it to main goes through.
 mkdir -p "${stamps%/*}" &&
-    echo "$(tested_hash "${tree:-HEAD}") $(date -u +%FT%TZ) $(git rev-parse --short "${tree:-HEAD}")" >> "$stamps"
+    echo "$(tested_hash "$tree") $(date -u +%FT%TZ) $(git rev-parse --short HEAD)" >> "$stamps"
