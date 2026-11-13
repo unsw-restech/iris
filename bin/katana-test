@@ -59,7 +59,7 @@ fi
 # files included (bin/tracked-tree).
 tree="$(bin/tracked-tree)" || exit 1
 edits=""
-[ "$tree" = "$(git rev-parse HEAD^{tree})" ] || edits=1
+[ "$tree" = "$(git rev-parse "HEAD^{tree}")" ] || edits=1
 untracked="$(git ls-files --others --exclude-standard workflows module lib)"
 [ -z "$untracked" ] || printf 'Not sent, since git does not track them:\n%s\n' "$untracked"
 echo "Testing ${edits:+uncommitted edits on }$(git log -1 --format='%h %s') on Katana"
