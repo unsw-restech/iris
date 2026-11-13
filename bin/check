@@ -9,6 +9,10 @@
 #                       "card status"), for a quick loop while editing;
 #                       commit on a full run
 #
+# A full run that passes records the tree it checked (bin/check-passed), and
+# .githooks/pre-push refuses a push to main of any other tree, so a branch
+# merged with a newer main needs a run of its own.
+#
 # The Python tests, lib/tests once and then each workflow's tests/, run on
 # CPU in containers through bin/envrun, whose header says how it pulls
 # them the first time. The rendered-form checks and their tests need
@@ -905,6 +909,12 @@ if [ "$ran" = 0 ]; then
     exit 2
 fi
 if [ "$failed" = 0 ]; then
-    if [ -z "$only" ]; then echo "All checks passed."; else echo "Checks matching '$only' passed ($ran run)."; fi
+    if [ -z "$only" ]; then
+        echo "All checks passed."
+        # So .githooks/pre-push lets this tree go to main (bin/check-passed).
+        bin/check-passed --record || echo "bin/check: could not record the pass for .githooks/pre-push" >&2
+    else
+        echo "Checks matching '$only' passed ($ran run)."
+    fi
 fi
 exit "$failed"
