@@ -20,7 +20,8 @@ git -C "$repo" init -q -b main
 git -C "$repo" add -A
 commit() { git -C "$repo" -c user.name=t -c user.email=t@t commit -q "$@"; }
 commit -m fixture
-record() { "$repo/bin/check-passed" --record; }
+# Records the tree as bin/check does: taken at the start, recorded at the end.
+record() { "$repo/bin/check-passed" --record "$("$repo/bin/tracked-tree")"; }
 passed() { "$repo/bin/check-passed" "$1"; }
 fail() { echo "check-passed $1"; }
 
@@ -31,6 +32,16 @@ passed no-such-commit; [ $? = 2 ] || fail "an unknown commit: exit not 2"
 # A clean tree records HEAD's tree.
 record || fail "--record on a clean tree: exit $?"
 passed HEAD || fail "HEAD didn't pass after recording it clean"
+
+# An edit during the run: the tree taken at the start isn't the files any
+# more, so nothing is recorded, and --record needs that tree.
+start="$("$repo/bin/tracked-tree")"
+echo during > "$repo/a.txt"
+"$repo/bin/check-passed" --record "$start" 2> /dev/null && fail "--record: exit 0 after an edit during the run"
+git -C "$repo" -c user.name=t -c user.email=t@t commit -qam during
+passed HEAD && fail "an edit made during the run passed"
+git -C "$repo" reset -q --hard HEAD~
+"$repo/bin/check-passed" --record 2> /dev/null; [ $? = 2 ] || fail "--record with no tree: exit not 2"
 
 # A pass before committing covers the commit holding those edits, a new
 # git add -N file included, and leaves the real index alone.
@@ -69,7 +80,7 @@ merged="$(git -C "$repo" rev-parse HEAD)"
 
 # A worktree's pass counts in the main clone: they share the record.
 git -C "$repo" worktree add -q "$fake/wt" "$merged" 2> /dev/null
-"$fake/wt/bin/check-passed" --record || fail "--record in a worktree: exit $?"
+"$fake/wt/bin/check-passed" --record "$("$fake/wt/bin/tracked-tree")" || fail "--record in a worktree: exit $?"
 passed "$merged" || fail "a worktree's pass didn't count in the main clone"
 
 # The push hook: a push to main needs a pass of that commit, or

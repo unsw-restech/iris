@@ -12,7 +12,7 @@
 #
 # IRIS_UNCHECKED=<reason> lets the push through without the first, and
 # IRIS_KATANA_UNTESTED=<reason> without the second, naming the reason, for
-# a change Patrick has agreed to ship that way.
+# a change the IRIS maintainer has agreed to ship that way.
 # Turn it on once per clone: git config core.hooksPath .githooks
 
 root="$(git rev-parse --show-toplevel)"
@@ -28,7 +28,7 @@ while read -r _ local_sha remote_ref remote_sha; do
             echo "pre-push: ${local_sha:0:7} goes to main without a full bin/check pass: $IRIS_UNCHECKED" >&2
         else
             echo "pre-push: no full bin/check in this clone passed on ${local_sha:0:7}'s files." >&2
-            echo "  Run bin/check with that commit checked out (again after merging main), or set IRIS_UNCHECKED=<reason> once Patrick agrees." >&2
+            echo "  Run bin/check with that commit checked out (again after merging main), or set IRIS_UNCHECKED=<reason> once the IRIS maintainer agrees." >&2
             status=1
         fi
     fi
@@ -48,7 +48,7 @@ while read -r _ local_sha remote_ref remote_sha; do
         continue
     fi
     echo "pre-push: ${local_sha:0:7} changes what bin/katana-test tests, and no passing bin/katana-test in this clone tested it." >&2
-    echo "  Run bin/katana-test with that commit checked out, or set IRIS_KATANA_UNTESTED=<reason> once Patrick agrees." >&2
+    echo "  Run bin/katana-test with that commit checked out, or set IRIS_KATANA_UNTESTED=<reason> once the IRIS maintainer agrees." >&2
     status=1
 done
 exit $status

@@ -5,9 +5,13 @@
 # with a newer main is such a commit: each side passed alone, and the two
 # together may not (99a7320 fixed a form test that 3c1201f broke that way).
 #
-#   bin/check-passed --record    record the tree bin/check just passed on
-#   bin/check-passed <commit>    exit 0 if a recorded pass checked <commit>'s
-#                                tree, 1 if not, 2 if <commit> isn't one
+#   bin/check-passed --record <tree>    record <tree>, the one bin/tracked-tree
+#                                       gave as bin/check started, if the files
+#                                       still hold it: an edit during the run
+#                                       wasn't checked, so it records nothing
+#   bin/check-passed <commit>           exit 0 if a recorded pass checked
+#                                       <commit>'s tree, 1 if not, 2 if
+#                                       <commit> isn't one
 #
 # By tree, not commit: the tree is the tracked files as the working tree
 # holds them, uncommitted edits and `git add -N` files included, so a pass
@@ -18,15 +22,20 @@
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 2
 passed="$(git rev-parse --git-common-dir)/iris/check-passed"
-usage() { echo "usage: bin/check-passed --record | <commit>" >&2; exit 2; }
-[ $# -eq 1 ] || usage
+usage() { echo "usage: bin/check-passed --record <tree> | <commit>" >&2; exit 2; }
 
 if [ "$1" = --record ]; then
-    tree="$(bin/tracked-tree)" || exit 2
+    [ $# -eq 2 ] && [ -n "$2" ] || usage
+    tree="$2"
+    now="$(bin/tracked-tree)" || exit 2
+    if [ "$now" != "$tree" ]; then
+        echo "check-passed: files changed during the run, so the pass isn't recorded; run bin/check again" >&2
+        exit 1
+    fi
     mkdir -p "${passed%/*}" &&
         echo "$tree $(date -u +%FT%TZ) $(git rev-parse --short HEAD)" >> "$passed"
     exit
 fi
-[ "${1#-}" = "$1" ] || usage
+[ $# -eq 1 ] && [ "${1#-}" = "$1" ] || usage
 tree="$(git rev-parse --verify -q "$1^{tree}")" || exit 2
 grep -q "^$tree " "$passed" 2> /dev/null

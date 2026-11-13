@@ -9,9 +9,8 @@
 #                       "card status"), for a quick loop while editing;
 #                       commit on a full run
 #
-# A full run that passes records the tree it checked (bin/check-passed), and
-# .githooks/pre-push refuses a push to main of any other tree, so a branch
-# merged with a newer main needs a run of its own.
+# A full run that passes records the tree it checked for .githooks/pre-push
+# (bin/check-passed says why).
 #
 # The Python tests, lib/tests once and then each workflow's tests/, run on
 # CPU in containers through bin/envrun, whose header says how it pulls
@@ -24,6 +23,8 @@ cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 [ $# -le 1 ] || { echo "usage: bin/check [<text>]; quote a name with spaces" >&2; exit 2; }
 only="$1"
 failed=0
+# The tree this run checks, taken before any check reads a file.
+start_tree="$(bin/tracked-tree 2> /dev/null)"
 ran=0
 
 # Whether the check named $1 is selected by the <text> argument; counts
@@ -912,7 +913,11 @@ if [ "$failed" = 0 ]; then
     if [ -z "$only" ]; then
         echo "All checks passed."
         # So .githooks/pre-push lets this tree go to main (bin/check-passed).
-        bin/check-passed --record || echo "bin/check: could not record the pass for .githooks/pre-push" >&2
+        if [ -z "$start_tree" ]; then
+            echo "bin/check: bin/tracked-tree failed as the run started, so the pass isn't recorded for .githooks/pre-push" >&2
+        else
+            bin/check-passed --record "$start_tree" || echo "bin/check: the pass isn't recorded for .githooks/pre-push" >&2
+        fi
     else
         echo "Checks matching '$only' passed ($ran run)."
     fi
