@@ -128,9 +128,9 @@ class ImagingFormTest < Minitest::Test
     assert_fails(/no source "\$CODE\/lib\/iris-job\.sh"/)
   end
 
-  def test_a_form_without_the_banner_fails
-    drop(ImagingForm::BANNER)
-    assert_fails(/no the banner/)
+  def test_a_form_without_the_hint_fails
+    drop(ImagingForm::HINT)
+    assert_fails(/no the hint/)
   end
 
   def test_a_form_whose_heredoc_never_ends_fails
@@ -154,7 +154,7 @@ class ImagingFormTest < Minitest::Test
     assert_fails(/#{ImagingForm::RECORD} src\/run.py, on the line after the heredoc: out of order/)
   end
 
-  def test_a_form_that_sources_the_job_library_after_the_banner_fails
+  def test_a_form_that_sources_the_job_library_after_the_hint_fails
     source = "  #{ImagingForm::SOURCE}\n"
     edit_form { |s| s.sub(source, "").sub("  cat > ", "#{source}  cat > ") }
     assert_fails(/out of order/)

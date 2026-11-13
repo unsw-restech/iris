@@ -351,7 +351,7 @@ need_ruby() {
 # Each imaging form's script as the form renders it holds, in order, its
 # PBS header with the usage tag, CODE and its guard, the one
 # IRIS_ENV_VERSION=<env>/<n> line pinning its environment version, the job
-# library, the banner, the heredoc holding its entry script byte for byte,
+# library, the hint, the heredoc holding its entry script byte for byte,
 # the call recording the run's code and the container start line,
 # iris_container python on run.py, with no
 # other heredoc, and its entry script holds no #{ or <% (ADR-0006); its

@@ -15,7 +15,7 @@
 #     which bin/check's "environment versions" check finds in the digest map
 #   - sourcing the job library from the workflow's own copy of the
 #     library's job side, $CODE/lib/ (bin/libcopy), not the clone's lib/
-#   - the banner
+#   - the one-line hint above the workflow code (ADR-0011)
 #   - the quoted heredoc writing run.py, holding the entry script byte for
 #     byte up to its end marker (ADR-0006)
 #   - on the next line, the call that records the run's code, naming the
@@ -37,7 +37,7 @@ require_relative "form_helper"
 module ImagingForm
   SOURCE = %(source "$CODE/lib/iris-job.sh")
   CODE_GUARD = %([ -n "$CODE" ] || { echo "ERROR: the form could not locate its IRIS clone."; exit 1; })
-  BANNER = "# Workflow code: edit below. Set the form fields first; changing a field afterwards discards these edits."
+  HINT = "# Edit the workflow code below"
   END_MARKER = "IRIS_RUN_PY_END"
   OPENER = %(cat > "$RUN_DIR/run.py" <<'#{END_MARKER}')
   RECORD = "iris_record_code"
@@ -131,7 +131,7 @@ module ImagingForm
         ["the CODE guard: #{CODE_GUARD}", line.(CODE_GUARD)],
         ["IRIS_ENV_VERSION=<env>/<n>, the environment version it pins", ->(i) { @lines[i].match?(ENV_VERSION) ? i + 1 : nil }],
         [SOURCE, line.(SOURCE)],
-        ["the banner: #{BANNER}", line.(BANNER)],
+        ["the hint: #{HINT}", line.(HINT)],
         ["#{OPENER}, holding #{@entry} byte for byte, then #{END_MARKER}", lambda { |i|
           return nil unless @lines[i] == OPENER + "\n"
           body = @entry_text.to_s + END_MARKER + "\n"

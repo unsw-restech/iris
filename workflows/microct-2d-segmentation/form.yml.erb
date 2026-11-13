@@ -206,9 +206,7 @@ script: |
   set -eo pipefail
   source "$CODE/lib/iris-job.sh"
 
-  # ----------------------------------------------------------------------
-  # Workflow code: edit below. Set the form fields first; changing a field afterwards discards these edits.
-  # ----------------------------------------------------------------------
+  # Edit the workflow code below
   cat > "$RUN_DIR/run.py" <<'IRIS_RUN_PY_END'
 <%= entry_code -%>
   IRIS_RUN_PY_END

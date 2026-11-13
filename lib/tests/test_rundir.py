@@ -47,7 +47,7 @@ class RecordCode(unittest.TestCase):
         self.assertTrue(result.stdout.startswith("EDITED RUN: "), result.stdout)
         self.assertIn(f"differs from {ENTRY} at commit {self.commit}", result.stdout)
         self.assertIn("Load parameters", result.stdout)
-        self.assertNotIn("fields first", result.stdout)
+        self.assertIn(f"at commit {self.commit}. The edits, also in run.diff:\n", result.stdout)
         self.assertTrue(result.stdout.endswith(diff + "\n"), result.stdout)
         self.assertEqual(result.stderr, "")
 

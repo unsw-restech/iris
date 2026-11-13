@@ -272,10 +272,9 @@ class EditedRun(unittest.TestCase):
         self.assertIn("+" + self.EDIT[1], out)
         self.assertIn("WARNING: the IRIS clone moved", self.recorded.stderr)
 
-    def test_the_output_says_the_script_was_edited_and_to_set_the_fields_first(self):
+    def test_the_output_names_load_parameters_for_rerunning_an_edited_run(self):
         out = self.recorded.stdout
         self.assertIn("Load parameters", out)
-        self.assertIn("set the form's fields first and edit the code last", out)
 
     def test_run_json_records_the_lib_commit(self):
         code = json.loads((self.run_dir / "run.json").read_text())["code"]

@@ -133,8 +133,7 @@ def record_code(run_dir, code_dir, entry, commit):
     if diff:
         print(f"EDITED RUN: the workflow code in this job's script was edited on the form, or restored "
               f"with its edits by Load parameters, so run.py differs from {entry} at commit {commit}. "
-              f"To change a field for another run, set the form's fields first and edit the code last: "
-              f"changing a field rewrites the script and discards the edits. The edits, also in run.diff:\n"
+              f"The edits, also in run.diff:\n"
               f"{diff}", flush=True)
     else:
         print(f"run.py is {entry} at commit {commit}, unedited.", flush=True)
