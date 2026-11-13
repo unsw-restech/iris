@@ -364,6 +364,17 @@ rendered_scripts() {
 }
 check "imaging forms' rendered scripts" rendered_scripts
 
+# Every form's select, radio and checkbox names its default by an option's
+# label, and no script line names a checkbox or multi_select as #{:field},
+# whose line drops with nothing chosen, colon or not (#184).
+# lib/tests/form_fields.rb holds the rules and lib/tests/test_form_fields.rb
+# breaks each one.
+form_fields() {
+    need_ruby || return
+    ruby lib/tests/form_fields.rb workflows/*/form.yml.erb
+}
+check "form fields" form_fields
+
 # The Ruby tests that need only Ruby and git; those needing /srv/scratch
 # (each workflow's tests/test_form.rb) run in bin/katana-test.
 ruby_tests() {

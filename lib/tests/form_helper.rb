@@ -36,7 +36,9 @@
 # Not copied: dynamic widgets (disable-, hide-, set-), so a disabled
 # field still fills its lines, calc, dirname and basename, and the locked
 # lines and editable region (#168, #171), which only limit edits in the
-# pane and leave the submitted script as rendered.
+# pane and leave the submitted script as rendered. A hidden field fills its
+# lines in the fork too: hide- and show- only hide it, and form.js
+# getValue skips only a disabled field.
 #
 # From the command line, prints the job script for the given fields:
 #   ruby lib/tests/form_helper.rb [--apps-dir DIR] [--no-check] FORM \

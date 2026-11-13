@@ -28,9 +28,11 @@
 # holds them, or if they are the same in <base>, and 1 if not;
 # .githooks/pre-push uses it to refuse an untested push to main.
 #
-# Exits 0 only if every test passed. Files git doesn't track stay behind,
-# so it names any under workflows/, module/ or lib/: `git add` a new test
-# first. The module test needs katana_ai_ro membership. `git archive` keeps
+# It ends with a summary, one line per test: a form test's minitest
+# totals, the module test's result, and the job-library test's job ID and
+# exit status. Exits 0 only if every test passed. Files git doesn't track
+# stay behind, so it names any under workflows/, module/ or lib/: `git add`
+# a new test first. The module test needs katana_ai_ro membership. `git archive` keeps
 # module/bin's links, which a desktop clone with core.symlinks off checks
 # out as plain files. Over `ssh katana`, and `ssh katana-dm` for the
 # stand-in container.
@@ -79,21 +81,30 @@ git archive --format=tar "$tree" | ssh katana '
     # The job library records the clone'\''s commit, so the tree is a repo.
     git init -q && git add -A && git -c user.name=katana-test -c user.email=- commit -q --no-verify -m tree || exit 1
     . /etc/profile.d/modules.sh && module load ruby/3.2.0 || exit 1
-    s=0
+    # Each test adds a line to $sum, printed last, so the run'\''s last lines
+    # are its result.
+    s=0 sum="$d/summary"
     for t in workflows/*/tests/test_form.rb; do
-        echo "== $t"; ruby "$t" || s=1
+        echo "== $t"; ruby "$t" 2>&1 | tee "$d/out"; r=${PIPESTATUS[0]}
+        echo "$t: $(grep -E "^[0-9]+ runs," "$d/out" | tail -1)$([ "$r" = 0 ] || echo " FAILED")" >> "$sum"
+        [ "$r" = 0 ] || s=1
     done
-    echo "== module/tests/test_module.sh"; bash module/tests/test_module.sh || s=1
+    echo "== module/tests/test_module.sh"
+    if bash module/tests/test_module.sh; then r=passed; else r=FAILED s=1; fi
+    echo "module/tests/test_module.sh: $r" >> "$sum"
     echo "== lib/tests/katana/job_lib.pbs"
     log="$d/job_lib.log" log_wait=120
-    qsub -W block=true -m abe -j oe -o "$log" \
-        -v "T=$d,PYTHONUNBUFFERED=1" lib/tests/katana/job_lib.pbs || s=1
+    job=$(qsub -W block=true -m abe -j oe -o "$log" \
+        -v "T=$d,PYTHONUNBUFFERED=1" lib/tests/katana/job_lib.pbs) || s=1
+    echo "$job"
     # PBS copies the log into place after the blocking submit returns, so
     # wait for the job'\''s last line, "exit <status>", before showing it.
     while ! grep -q "^exit [0-9]" "$log" 2> /dev/null && [ $((log_wait--)) -gt 0 ]; do sleep 1; done
     cat "$log" 2> /dev/null
-    grep -q "^exit [0-9]" "$log" 2> /dev/null ||
+    last=$(grep -m1 -o "^exit [0-9]*" "$log" 2> /dev/null) ||
         { echo "katana-test: $log has no last line, exit <status>, so the job-library test output is missing" >&2; s=1; }
+    echo "lib/tests/katana/job_lib.pbs: job ${job:-not submitted}, ${last:-no exit line in its log}" >> "$sum"
+    echo "== summary"; cat "$sum"
     exit $s' || exit
 
 # Every test passed: record the tree, so a push of it to main goes through.

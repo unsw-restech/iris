@@ -88,11 +88,13 @@ form:
     separator: " "
     help: "Common research modules shown. Run 'module avail' via SSH for the full list of 900+ modules."
     options:
+    <%# Off Katana, as in bin/check, there is no modulecmd and no module to list. %>
     <% require 'open3'
-       stdout, _ = Open3.capture2e(
+       modulecmd = "/usr/share/Modules/libexec/modulecmd.tcl"
+       stdout = File.exist?(modulecmd) ? Open3.capture2e(
          {"MODULEPATH" => "/etc/scl/modulefiles:/apps/Modules/linux-rocky8-ivybridge:/apps/neurodesk/modules:/usr/share/Modules/modulefiles:/etc/modulefiles:/usr/share/modulefiles"},
-         "/usr/share/Modules/libexec/modulecmd.tcl", "sh", "avail", "-t"
-       )
+         modulecmd, "sh", "avail", "-t"
+       ).first : ""
        mods = stdout.split(/\s+/).reject { |m|
          m.empty? || m.end_with?(":") || m.start_with?("/")
        }.select { |m|
