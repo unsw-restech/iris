@@ -47,6 +47,7 @@ cat > "$fake/bin/qsub" <<'EOF'
 dir="$(cd "$(dirname "$0")/.." && pwd)"
 while [ $# -gt 1 ]; do [ "$1" = -o ] && log="$2"; shift; done
 [ -f "$dir/no-log" ] || { sleep 1; printf '%s\n' "test_one (test_job_lib.T) ... ok" "exit 0 12:00:00" > "$log"; } &
+echo 1234.kman
 exit 0
 EOF
 chmod +x "$fake/bin/ssh" "$fake/bin/qsub"
@@ -125,12 +126,17 @@ if run > /dev/null; then fail "exit 0 when a test failed on Katana"; fi
 # waited for and shown.
 rm "$fake/exit-code"
 mkdir -p "$repo/workflows/seg/tests"
-echo 'exit 0' > "$repo/workflows/seg/tests/test_form.rb"
+echo 'puts "1 runs, 2 assertions, 0 failures, 0 errors, 0 skips"' > "$repo/workflows/seg/tests/test_form.rb"
 git -C "$repo" add workflows
 echo 10 > "$fake/run-remote"
 out="$(run)" || fail "on Katana with every test passing: exit $?, expected 0"
 grep -qF "test_one (test_job_lib.T) ... ok" <<< "$out" ||
     { fail "didn't show the job-library log PBS delivered after qsub returned:"; echo "$out" | sed 's/^/  /'; }
+# It ends with one line per test, so its last lines are its result.
+[ "$(tail -4 <<< "$out")" = "== summary
+workflows/seg/tests/test_form.rb: 1 runs, 2 assertions, 0 failures, 0 errors, 0 skips
+module/tests/test_module.sh: passed
+lib/tests/katana/job_lib.pbs: job 1234.kman, exit 0" ] || { fail "doesn't end with its summary:"; tail -6 <<< "$out" | sed 's/^/  /'; }
 # A log that never arrives fails, saying so, rather than passing silently.
 touch "$fake/no-log"
 echo 2 > "$fake/run-remote"
