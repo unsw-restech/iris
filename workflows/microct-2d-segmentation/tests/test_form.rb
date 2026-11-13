@@ -152,11 +152,30 @@ class FormTest < Minitest::Test
     script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds))
     assert_includes script, "--field ngpus=1 --field ncpus=8 --field mem=16gb \\\n"
     assert_includes script, "--field walltime=2:00:00 \\\n"
-    assert_includes script, %(--field "job_name=iris_microct" --field "mail_events=ae"\n)
+    assert_includes script, %(--field "job_name=iris_microct" \\\n)
+    assert_includes script, %(--field "mail_events=ae"\n)
   end
 
   def test_mail_on_end_and_abnormal_end_by_default
     script = FormHelper.script(@form, FormHelper.defaults(@form, dataset: @ds))
     assert_includes script, "#PBS -m ae\n"
+  end
+
+  # Every mail choice, "Never" included, writes a valid #PBS -m and is
+  # recorded, so no choice drops a line from the script (#184).
+  def test_every_mail_choice_writes_its_pbs_line_and_is_recorded
+    {
+      "When the job ends or ends abnormally" => "ae",
+      "When the job starts, ends or ends abnormally" => "abe",
+      "Only when the job ends abnormally" => "a",
+      "Never" => "n",
+    }.each do |label, events|
+      form = Marshal.load(Marshal.dump(@form))
+      form["form"]["mail_events"]["value"] = label
+      script = FormHelper.script(form, FormHelper.defaults(form, dataset: @ds))
+      assert_includes script, "#PBS -m #{events}\n", label
+      assert_includes script, %(--field "job_name=iris_microct" \\\n), label
+      assert_includes script, %(--field "mail_events=#{events}"\n), label
+    end
   end
 end

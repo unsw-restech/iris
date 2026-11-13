@@ -92,7 +92,7 @@ form:
   mem:
     widget: select
     label: "Memory"
-    value: "16gb"
+    value: "16 GB"
     options:
       - [ "16 GB",  "16gb"  ]
       - [ "32 GB",  "32gb"  ]
@@ -142,17 +142,19 @@ form:
     value: "iris_microct"
     help: "No spaces or special characters. Only for your own reference in the queue."
 
+  # A select, not checkboxes: OpenComposer drops every script line naming a
+  # checkbox with nothing ticked, #PBS -m among them (#184), and here the
+  # recorded fields too. Each value is a valid #PBS -m; n is no mail.
   mail_events:
     label: "Mail events"
-    widget: checkbox
-    direction: horizontal
-    separator: ""
+    widget: select
     indent: 1
-    value: [ "Send email when a job ends abnormally", "Send email when a job ends" ]
+    value: "When the job ends or ends abnormally"
     options:
-      - [ "Send email when a job ends abnormally", "a" ]
-      - [ "Send email when a job starts",          "b" ]
-      - [ "Send email when a job ends",            "e" ]
+      - [ "When the job ends or ends abnormally",         "ae"  ]
+      - [ "When the job starts, ends or ends abnormally", "abe" ]
+      - [ "Only when the job ends abnormally",            "a"   ]
+      - [ "Never",                                        "n"   ]
 
 # The form finds its own clone, so jobs run that clone's code. OpenComposer
 # re-reads this file on submit with @apps_dir unset, but it submits the
@@ -219,7 +221,8 @@ script: |
     --val-percent #{val_percent} --batch-size #{batch_size} --seed "#{:seed}" \
     --field ngpus=#{ngpus} --field ncpus=#{ncpus} --field mem=#{mem} \
     --field walltime=#{time_1}:#{zeropadding(time_2, 2)}:00 \
-    --field "job_name=#{:job_name}" --field "mail_events=#{:mail_events}"
+    --field "job_name=#{:job_name}" \
+    --field "mail_events=#{:mail_events}"
 
   iris_done
 

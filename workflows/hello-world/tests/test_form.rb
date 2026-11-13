@@ -42,12 +42,28 @@ class FormTest < Minitest::Test
     assert_includes script, %(\nCODE="#{WORKFLOW}"\n)
   end
 
-  # Unchecked and unchosen, mail events, -j and modules leave no line.
+  # Unchecked and unchosen, -j and modules leave no line.
   def test_options_left_unset_leave_no_line
     script = FormHelper.script(@form, values)
-    refute_match(/^#PBS -m/, script)
     refute_match(/^#PBS -j/, script)
     refute_match(/^module load/, script)
+  end
+
+  # Mail events is a select, so every choice writes a valid #PBS -m, and
+  # the default is PBS's own, mail only on an abnormal end (#184; the
+  # PBS Professional Reference Guide's qsub -m: "Default: a").
+  def test_every_mail_choice_writes_its_pbs_line
+    assert_includes FormHelper.script(@form, values), "\n#PBS -m a\n"
+    {
+      "When the job ends or ends abnormally" => "ae",
+      "When the job starts, ends or ends abnormally" => "abe",
+      "Only when the job ends abnormally" => "a",
+      "Never" => "n",
+    }.each do |label, events|
+      form = Marshal.load(Marshal.dump(@form))
+      form["form"]["mail_events"]["value"] = label
+      assert_includes FormHelper.script(form, FormHelper.defaults(form)), "\n#PBS -m #{events}\n", label
+    end
   end
 
   def test_the_modules_listed_are_katanas_and_load_on_one_line

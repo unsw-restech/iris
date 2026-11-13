@@ -155,4 +155,31 @@ class FormHelperTest < Minitest::Test
     assert_equal "module load gcc/14.2.0 julia/1.11", script(f)
     assert_equal "gcc/14.2.0 julia/1.11", FormHelper.check(f, FormHelper.defaults(f))
   end
+
+  MAIL_SELECT = <<~YAML
+    form:
+      mail_events:
+        widget: select
+        value: "On abort or end"
+        options:
+          - [ "On abort",        "a"  ]
+          - [ "On abort or end", "ae" ]
+          - [ "Never",           "n"  ]
+    script: |
+      #PBS -m \#{mail_events}
+      --field "mail_events=\#{:mail_events}"
+  YAML
+
+  # lib/form.rb selects the option whose label is the field's value, and
+  # form.js's getValue fills the selected option's data value.
+  def test_a_select_fills_the_data_value_of_the_option_its_value_labels
+    assert_equal %(#PBS -m ae\n--field "mail_events=ae"), script(form(MAIL_SELECT))
+  end
+
+  # A value naming no label selects no option, so the browser shows the
+  # first.
+  def test_a_select_whose_value_labels_no_option_fills_the_first
+    f = form(MAIL_SELECT.sub('value: "On abort or end"', 'value: "ae"'))
+    assert_equal %(#PBS -m a\n--field "mail_events=a"), script(f)
+  end
 end

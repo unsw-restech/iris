@@ -19,7 +19,7 @@ form:
   mem:
     widget: select
     label: "Memory"
-    value: "4gb"
+    value: "4 GB"
     options:
       - [ "4 GB",   "4gb"   ]
       - [ "8 GB",   "8gb"   ]
@@ -55,16 +55,19 @@ form:
     step: 1
     help: "Set to 1 to request a GPU node."
 
+  # A select, not checkboxes: OpenComposer drops every script line naming a
+  # checkbox with nothing ticked, #PBS -m among them (#184). Each value is
+  # a valid #PBS -m; n is no mail.
   mail_events:
     label: "Mail events"
-    widget: checkbox
-    direction: horizontal
-    separator: ""
+    widget: select
     indent: 1
+    value: "Only when the job ends abnormally"
     options:
-      - [ "Send email when a job ends abnormally", "a" ]
-      - [ "Send email when a job starts",          "b" ]
-      - [ "Send email when a job ends",            "e" ]
+      - [ "When the job ends or ends abnormally",         "ae"  ]
+      - [ "When the job starts, ends or ends abnormally", "abe" ]
+      - [ "Only when the job ends abnormally",            "a"   ]
+      - [ "Never",                                        "n"   ]
 
   log:
     widget: checkbox

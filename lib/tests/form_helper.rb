@@ -14,7 +14,9 @@
 #   defaults   each field's value; a checkbox's or multi_select's chosen
 #              labels become their data values, a multi_select entry that
 #              is no option stays as typed (form.js getValue), joined by
-#              the field's separator, or an array if it has none
+#              the field's separator, or an array if it has none; a
+#              select fills the data value of the option its value
+#              labels, else of its first option (lib/form.rb)
 #   check      eval the check: section with each field as @field, as
 #              run.rb's set_check_value sets it; oc_assert and any other
 #              error re-render the form with its message (run.rb rescues
@@ -77,6 +79,12 @@ module FormHelper
           o[1].nil? ? o[0] : o[1]
         end
         values[key] = f["separator"].nil? ? chosen : chosen.join(f["separator"])
+      elsif f["widget"] == "select"
+        # The option the value labels is selected, else the first is
+        # shown (lib/form.rb output_select_html); its data value fills.
+        opts = Array(f["options"])
+        o = opts.find { |x| x[0].to_s == v.to_s } || opts.first || [v]
+        values[key] = o[1].nil? ? o[0] : o[1]
       elsif f["widget"] == "number" && v.is_a?(Array)
         v.each_with_index { |x, i| values["#{key}_#{i + 1}"] = x }
       else

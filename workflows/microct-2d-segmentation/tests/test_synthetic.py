@@ -89,7 +89,7 @@ def entry_command(dataset, run_dir, iris_home, job_id="1234.kman.restech.unsw.ed
         "--epochs", str(args["epochs"]), "--patch-size", str(args["patch_size"]),
         "--lr", str(args["lr"]), "--val-percent", str(args["val_percent"]),
         "--batch-size", str(args["batch_size"]), "--seed", args["seed"],
-        "--field", "ncpus=2", "--field", "walltime=0:30:00", "--field", "mail_events=",
+        "--field", "ncpus=2", "--field", "walltime=0:30:00", "--field", "mail_events=ae",
     ]
     env = dict(os.environ, PYTHONPATH=str(OWN_LIB), CUDA_VISIBLE_DEVICES="",
                IRIS_HOME=str(iris_home), PBS_JOBID=job_id, PBS_QUEUE="cpuq",
@@ -153,7 +153,7 @@ class SyntheticRun(unittest.TestCase):
         params = json.loads((self.run_dir / "params.json").read_text())
         self.assertEqual(params["ncpus"], "2")
         self.assertEqual(params["walltime"], "0:30:00")
-        self.assertEqual(params["mail_events"], "")
+        self.assertEqual(params["mail_events"], "ae")
 
     def test_metrics_hold_per_class_dice_and_iou_per_epoch_and_final(self):
         metrics = json.loads((self.run_dir / "metrics.json").read_text())
