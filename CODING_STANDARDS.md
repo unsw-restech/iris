@@ -27,6 +27,7 @@ Read at review, against a diff. These are the judgement calls; every mechanical 
 
 ## Maintainer tools
 
+- **A tool that removes or deploys tests the nearest live state it could mistake for its target.** Its test holds a fixture of that state and checks the tool leaves it alone. Past miss: #190's first `bin/prune-merged` took every branch whose tip is an ancestor of `origin/main` as merged, and a worktree just made from `origin/main`, a starting subagent's, passes that too, often with no process in it; review caught it, and the tool now skips a branch whose reflog holds no commit made on it.
 - **Printed steps are tested by running them.** When a tool prints steps for a person to take, as `bin/ocpull`'s refusals do, its test carries out those steps for every target the refusal covers, then checks that it ends in the state the steps promise. Past miss: #162's first `bin/ocpull` test only matched the printed text, and both checkouts saved their `manifest.yml` to one `~/manifest.yml.mine`, so following the steps for the second checkout overwrote the first's.
 
 ## Job code
