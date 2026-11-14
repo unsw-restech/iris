@@ -1,6 +1,6 @@
 # Real-run acceptance on Katana
 
-How to meet a ticket's "a real run shows…" criterion for `microct-2d-segmentation`. A spec's final real-run ticket runs from `/pun/sys/` ([below](#the-final-real-run-ticket)). So does a build ticket whose box names `/pun/sys/`: it follows those steps, its own review and push standing in for the integration branch's. Any other build ticket that needs its own real run follows steps 1–5: the committed code on the sample dataset, from a scratch copy, into a throwaway run index and tracking store, leaving your dev clone, run index and `tracking.db` untouched.
+How to meet a ticket's "a real run shows…" criterion for `microct-2d-segmentation`. A spec's final real-run ticket runs from `/pun/sys/` ([below](#the-final-real-run-ticket)). So does a build ticket whose box names `/pun/sys/`: it follows those steps, its own review and push standing in for the integration branch's. Any other build ticket that needs its own real run follows steps 1–5: the committed code on the sample dataset, from a scratch copy, into a throwaway run index and tracking store, leaving your dev clone, run index and `tracking.db` untouched. A box that names `/pun/dev/OpenComposer-iris-test` runs from the test instance ([below](#a-test-instance-run)).
 
 Name every `qsub` and its resources in chat as you submit it. Delete nothing without the IRIS maintainer's go-ahead naming the target.
 
@@ -13,6 +13,22 @@ It runs from `/pun/sys/`, since the pilot's only users are testers (Patrick, 202
 3. Run `bin/syspull` and get its own go-ahead, quoting verbatim every commit it lists, before `--apply`. The push's go-ahead covers it when it named the system clone and quoted those commits (AGENTS.md, Deploying).
 4. The IRIS maintainer reloads the form page, since a page loaded before `--apply` renders from the old commit (#147, job 9736586), then submits the runs from `https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/<slug>` and gives you the job IDs: a session can't sign in to Katana OnDemand. A script rendered with `form_helper.rb` and sent with `qsub` runs the same code but skips OpenComposer's rendering, so it doesn't meet the box (job 9762182, #173). The runs land in the IRIS maintainer's own run index and store, not a throwaway home, so ask before removing any of them. Check each run as soon as its run directory has them, not when it ends: `commit.txt` names the deployed commit, with no `lib_commit.txt` beside it and no "the IRIS clone moved from commit" warning in the log, and `params.json`'s `device` is `cuda` for a GPU run and `cpu` for a CPU-only one. Job 9736586 trained on the CPU for 94 minutes before anyone looked. A run with `lib_commit.txt` or that warning came from a page loaded before the deploy: it ran the old form and entry script on the new library, so it doesn't test the deploy and doesn't count. Reload the page and submit it again.
 5. Inspect with `inspect.pbs`: make `/srv/scratch/$USER/iris-test-<ticket>/`, copy the helper in from the system clone's `lib/tests/katana/`, and submit it from there with `CLONE` naming the system clone and `JOBS` naming the runs. It imports into Patrick's own tracking store, as `iris-compare` would, so the first import counts whatever is new and the second must import nothing. It must finish before Patrick opens `iris-compare`: both write `tracking.db`. Report as in [5. Report, then clean up](#5-report-then-clean-up), citing each job ID.
+
+## A test-instance run
+
+The test instance serves the IRIS maintainer's dev clone, `~/iris`, and runs as them (ADR-0012), so push and pull the dev clone first if the run needs new code:
+
+1. Check it's linked: `ssh katana 'ls -l ~/ondemand/dev/'` lists `OpenComposer-iris-test`. If it doesn't, `ssh katana 'ln -s /srv/scratch/katana_ai/iris/OpenComposer-iris-test ~/ondemand/dev/'`; an existing `~/ondemand/dev` needs no web server restart (#174).
+2. The IRIS maintainer submits from `https://kod.restech.unsw.edu.au/pun/dev/OpenComposer-iris-test/<slug>` and gives you the job ID. Its navbar reads "IRIS test instance", the IRIS instance's "IRIS".
+3. Check the run came from the dev clone: the test instance's history holds the job, with `CODE` under `/home/<zID>/iris/workflows/`, and `commit.txt` is the dev clone's `HEAD`. Each instance's history is its own SQLite file, `~/composer/iris` and `~/composer/iris-test`, and Katana has no `sqlite3` command, so list each file's job IDs with Python:
+
+   ```
+   ssh katana 'for d in iris iris-test; do echo "$d:"; python3 -c "import sqlite3,sys; print(*[r[0] for r in sqlite3.connect(\"file:\"+sys.argv[1]+\"?mode=ro\",uri=True).execute(\"select _job_id from jobs\")])" ~/composer/$d/pbspro.sqlite3; done'
+   ```
+
+   `payload_json` holds the rendered script.
+
+To see what an author with no clone gets, move `~/iris/workflows` aside, with the IRIS maintainer's go-ahead naming it, only once no job of theirs reads it, and move it back as soon as they've reloaded the pages. A Develop app runs in development mode, so its error page names the exception, which the fork's `misc/tests/serve`, in production mode, doesn't (#174).
 
 ## 1. Copy the committed tree to scratch
 
