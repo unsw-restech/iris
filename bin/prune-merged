@@ -6,20 +6,24 @@
 #   bin/prune-merged --apply <sha>   remove it, if origin/main is still <sha>
 #
 # A branch is listed when its tip is an ancestor of origin/main, never of
-# local main, which lags because pushes go <sha>:main. Harness worktrees
-# (subagents' under .claude/worktrees/) count like any other. It skips,
-# naming why: main itself, the main clone's checked-out branch (a running
-# /implement-spec keeps its integration branch there), and a branch whose
-# worktree is locked, missing, has uncommitted or untracked files, or is
-# the working directory of a running process (a shell sitting in a
-# removed worktree fails each later call). The listing ends with the
-# --apply line for origin/main's tip. --apply fetches again, refuses if
+# local main, which lags because pushes go <sha>:main, and its reflog
+# shows a commit made on it: a branch just made from origin/main, a
+# starting subagent's or /implement-spec's, is in origin/main too. Harness
+# worktrees (subagents' under .claude/worktrees/) count like any other. It
+# skips, naming why: main itself, the main clone's checked-out branch (a
+# running /implement-spec keeps its integration branch there), a branch
+# with no commits of its own in its reflog, and a branch whose worktree is
+# locked, missing, has uncommitted or untracked files, or is the working
+# directory of a running process (a shell sitting in a removed worktree
+# fails each later call; /proc shows no Windows process, but git worktree
+# remove then fails and is reported). The listing ends with the --apply
+# line for origin/main's tip. --apply fetches again, refuses if
 # origin/main has moved, then removes what a listing would show now: plain
 # `git worktree remove`, then `git branch -D`, each its own git command.
 # -D, since -d checks against the branch's upstream or the main clone's
-# HEAD, not origin/main, which the listing has already checked. It
-# deletes local branches only: GitHub deletes a branch when it merges.
-# Runs from any worktree of the repo; works in its main clone.
+# HEAD, not origin/main, which the listing has already checked. It deletes
+# local branches only: GitHub deletes a branch when it merges. Runs from
+# any worktree of the repo; works in its main clone.
 
 usage() { echo "usage: bin/prune-merged [--apply <sha>]" >&2; exit 2; }
 if [ $# -eq 2 ] && [ "$1" = --apply ] && [[ "$2" =~ ^[0-9a-f]{7,40}$ ]]; then
@@ -41,43 +45,50 @@ fi
 # Each branch's worktree, and which worktrees are locked or missing.
 declare -A wt_of locked missing
 main_branch=
-first=1 path=
+in_main_record=1 path=
 while IFS= read -r line; do
     case $line in
         "worktree "*) path=${line#worktree } ;;
         "branch refs/heads/"*)
             wt_of[${line#branch refs/heads/}]=$path
-            [ -z "$first" ] || main_branch=${line#branch refs/heads/} ;;
+            [ -z "$in_main_record" ] || main_branch=${line#branch refs/heads/} ;;
         locked*) locked[$path]=1 ;;
         prunable*) missing[$path]=1 ;;
-        "") first= ;;
+        "") in_main_record= ;;
     esac
 done < <(git worktree list --porcelain)
 
-# Every running process's working directory we can read, as "<dir> <pid> <name>".
+# Every running process's working directory we can read, as
+# "<pid>\t<name>\t<dir>", tab-separated since a folder name may hold spaces.
 cwds=$(for p in /proc/[0-9]*; do
-    d=$(readlink "$p/cwd" 2>/dev/null) && echo "$d ${p#/proc/} $(cat "$p/comm" 2>/dev/null)"
+    d=$(readlink "$p/cwd" 2>/dev/null) && printf '%s\t%s\t%s\n' "${p#/proc/}" "$(cat "$p/comm" 2>/dev/null)" "$d"
 done)
 # busy <dir>: prints "pid <pid> <name>" for the first process working in <dir>.
 busy() {
     local dir pid name real
     real=$(readlink -f "$1")
-    while read -r dir pid name; do
+    while IFS=$'\t' read -r pid name dir; do
         if [ "$dir" = "$real" ] || [[ "$dir" == "$real"/* ]]; then echo "pid $pid $name"; return 0; fi
     done <<< "$cwds"
     return 1
+}
+
+# label <branch>: the branch, with its worktree unless that is the main clone.
+label() {
+    local wt=${wt_of[$1]:-}
+    if [ -n "$wt" ] && [ "$wt" != "$main_clone" ]; then echo "$1  (worktree $wt)"; else echo "$1"; fi
 }
 
 remove=() skipped=()
 while IFS= read -r b; do
     git merge-base --is-ancestor "refs/heads/$b" "$tip" || continue
     wt=${wt_of[$b]:-}
-    label=$b
-    [ -z "$wt" ] || [ "$wt" = "$main_clone" ] || label="$b  (worktree $wt)"
     why=
     [ "$b" != main ] || why="main itself"
     [ "$b" != "$main_branch" ] || why="${why:+$why, }checked out in the main clone"
     if [ -n "$why" ]; then :
+    elif ! git reflog show --format=%gs "refs/heads/$b" 2>/dev/null | grep -qE '^(commit|merge|pull|rebase|cherry-pick|revert)'; then
+        why="no commits of its own in its reflog, as a branch just made from origin/main"
     elif [ -n "$wt" ]; then
         if [ -n "${missing[$wt]:-}" ]; then why="its worktree folder is missing (git worktree prune clears it)"
         elif [ -n "${locked[$wt]:-}" ]; then why="its worktree is locked"
@@ -86,7 +97,7 @@ while IFS= read -r b; do
         elif proc=$(busy "$wt"); then why="a running process has it as its working directory ($proc)"
         fi
     fi
-    if [ -n "$why" ]; then skipped+=("$label: $why"); else remove+=("$b"); fi
+    if [ -n "$why" ]; then skipped+=("$(label "$b"): $why"); else remove+=("$b"); fi
 done < <(git for-each-ref --format='%(refname:short)' refs/heads)
 
 echo "origin/main is at $(git log -1 --format='%h %s' "$tip")"
@@ -98,10 +109,7 @@ fi
 if [ -z "${apply:-}" ]; then
     if [ ${#remove[@]} -eq 0 ]; then echo "Nothing to remove."; exit 0; fi
     echo "In origin/main, to remove:"
-    for b in "${remove[@]}"; do
-        wt=${wt_of[$b]:-}
-        echo "  $b${wt:+  (worktree $wt)}"
-    done
+    for b in "${remove[@]}"; do echo "  $(label "$b")"; done
     echo
     echo "To remove them: bin/prune-merged --apply $(git rev-parse --short "$tip")"
     exit 0

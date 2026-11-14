@@ -32,7 +32,7 @@ branch() {
         echo "$1" > "$2/$1" && git -C "$2" add "$1" && git -C "$2" commit -qm "$1"
     else
         git -C "$clone" branch -q --no-track "$1" origin/main
-        git -C "$clone" commit-tree -m "$1" -p "$1" "$1^{tree}" | xargs git -C "$clone" update-ref "refs/heads/$1"
+        git -C "$clone" commit-tree -m "$1" -p "$1" "$1^{tree}" | xargs git -C "$clone" update-ref -m "commit: $1" "refs/heads/$1"
     fi
 }
 # land <branch>...: pushes each branch's tip to origin's main, as a push
@@ -55,8 +55,16 @@ echo edited > "$fake/iris-2/merged-dirty"
 branch merged-untracked "$fake/iris-3" && land merged-untracked
 echo new > "$fake/iris-3/stray"
 branch merged-busy "$fake/iris-4" && land merged-busy
-(cd "$fake/iris-4" && exec sleep 300) &
+mkdir "$fake/iris-4/sub dir"
+(cd "$fake/iris-4/sub dir" && exec sleep 300) &
 sleeper=$!
+# A worktree just made from origin/main, as a starting subagent's is: clean,
+# no process in it, no commit of its own yet.
+git -C "$clone" worktree add -q -b fresh "$clone/.claude/worktrees/agent-2" origin/main
+branch merged-locked "$fake/iris-5" && land merged-locked
+git -C "$clone" worktree lock "$fake/iris-5"
+branch merged-missing "$fake/iris-6" && land merged-missing
+rm -rf "$fake/iris-6"
 tip=$(git -C "$clone" rev-parse --short origin/main)
 
 # The main clone on main at A, behind origin/main, where git branch -d
@@ -74,6 +82,9 @@ has worktree "^  merged-wt  \(worktree $wt_plain\)$"
 has harness "^  merged-harness  \(worktree $wt_harness\)$"
 lacks unmerged 'unmerged'
 has main '^  main: main itself, checked out in the main clone$'
+has fresh "^  fresh  \(worktree $clone/.claude/worktrees/agent-2\): no commits of its own in its reflog"
+has locked "^  merged-locked  \(worktree $fake/iris-5\): its worktree is locked$"
+has missing "^  merged-missing  \(worktree $fake/iris-6\): its worktree folder is missing"
 has dirty "^  merged-dirty  \(worktree $fake/iris-2\): uncommitted or untracked files$"
 has untracked "^  merged-untracked  \(worktree $fake/iris-3\): uncommitted or untracked files$"
 has busy "^  merged-busy  \(worktree $fake/iris-4\): a running process has it as its working directory \(pid $sleeper sleep\)$"
@@ -121,6 +132,9 @@ kept apply main
 kept apply merged-dirty "$fake/iris-2"
 kept apply merged-untracked "$fake/iris-3"
 kept apply merged-busy "$fake/iris-4"
+kept apply fresh "$clone/.claude/worktrees/agent-2"
+kept apply merged-locked "$fake/iris-5"
+kept apply merged-missing
 [ "$(remote_refs)" = "$before" ] || echo "prune-merged --apply: changed origin's branches"
 git -C "$clone" fetch -q origin
 [ -n "$(git -C "$clone" branch -r --list origin/later-work)" ] || echo "prune-merged --apply: origin/later-work is gone"
@@ -134,5 +148,8 @@ tip=$(git -C "$clone" rev-parse --short origin/main)
 out=$(run)
 has checked-out '^  spec-branch: checked out in the main clone$'
 has main-again '^  main: main itself$'
-run --apply "$tip" > /dev/null
+out=$(run --apply "$tip")
+rc=$?
+[ "$rc" = 0 ] || { echo "prune-merged --apply, spec branch checked out: exit $rc, expected 0"; echo "$out" | sed 's/^/  /'; }
+has nothing-left '^Nothing to remove\.$'
 kept checked-out spec-branch
