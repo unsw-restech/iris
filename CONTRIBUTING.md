@@ -70,6 +70,7 @@ iris/
 │   ├── ocpull                        # Show, then deploy, what moving the fork's two checkouts to its main brings the instances (desktop)
 │   ├── ocpull-checkouts.sh           # ocpull's side on Katana: list a move, or move both checkouts or neither
 │   ├── pilot-readable.py             # List what pilot testers can't read in the system clone or a fork checkout (syspull and ocpull run it)
+│   ├── prune-merged                  # List, then remove, the local branches and worktrees whose work is already in origin/main (desktop)
 │   ├── syspull-pins.sh               # List the environment versions a commit pins whose container files aren't on Katana (syspull runs it)
 │   ├── qwait                         # Wait for Katana jobs and show how they ended (desktop)
 │   ├── syspull                       # Show, then deploy, what a pull brings the system clone (desktop)
