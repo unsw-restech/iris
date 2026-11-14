@@ -6,11 +6,29 @@
 #   bin/pageswait workflows/microct-2d-segmentation/ 'What a run writes'
 #
 # <path> is relative to https://docs.restech.unsw.edu.au/iris/ ("" is the
-# catalogue). Each request carries a cache-buster. Exits 0 once the marker
-# appears, printing how long that took, or 1 after three minutes.
+# catalogue). <marker> is a fixed string, not a pattern. Before polling, it
+# fetches origin and checks the marker is in origin/main's copy of the page
+# (a folder's index.html), since the site is served as committed; a marker
+# that isn't exits 2 at once rather than after three minutes. Run it from
+# any clone or worktree of the repo. Each request carries a cache-buster.
+# Exits 0 once the marker appears, printing how long that took, or 1 after
+# three minutes.
 
-[ $# -eq 2 ] || { echo "usage: bin/pageswait <path> <marker>" >&2; exit 2; }
+[ $# -eq 2 ] || { echo "usage: bin/pageswait <path> <fixed-string marker>" >&2; exit 2; }
 url="https://docs.restech.unsw.edu.au/iris/$1"
+
+git fetch -q origin 2>/dev/null || echo "pageswait: couldn't fetch origin; checking the marker against origin/main as last fetched." >&2
+# A folder, the catalogue's "" included, serves its index.html.
+file=${1%/}
+[ "$(git cat-file -t "origin/main:$file" 2>/dev/null)" = blob ] || file="${file:+$file/}index.html"
+[ "$(git cat-file -t "origin/main:$file" 2>/dev/null)" = blob ] || {
+    echo "pageswait: origin/main has no $file to serve: nothing polled." >&2
+    exit 2
+}
+git cat-file blob "origin/main:$file" | grep -qF -- "$2" || {
+    echo "pageswait: '$2' is not in origin/main's $file, so the live page never will be: nothing polled. The marker is a fixed string, copied from the page." >&2
+    exit 2
+}
 
 for i in $(seq 18); do
     if curl -fsS "$url?t=$(date +%s)" 2>/dev/null | grep -qF -- "$2"; then
