@@ -9,24 +9,32 @@
 # catalogue). <marker> is a fixed string, not a pattern. Before polling, it
 # fetches origin and checks the marker is in origin/main's copy of the page
 # (a folder's index.html), since the site is served as committed; a marker
-# that isn't exits 2 at once rather than after three minutes. Run it from
-# any clone or worktree of the repo. Each request carries a cache-buster.
+# that isn't, or a folder named without its slash, exits 2 at once rather
+# than after three minutes. Each request carries a cache-buster.
 # Exits 0 once the marker appears, printing how long that took, or 1 after
 # three minutes.
 
 [ $# -eq 2 ] || { echo "usage: bin/pageswait <path> <fixed-string marker>" >&2; exit 2; }
 url="https://docs.restech.unsw.edu.au/iris/$1"
 
-git fetch -q origin 2>/dev/null || echo "pageswait: couldn't fetch origin; checking the marker against origin/main as last fetched." >&2
-# A folder, the catalogue's "" included, serves its index.html.
-file=${1%/}
-[ "$(git cat-file -t "origin/main:$file" 2>/dev/null)" = blob ] || file="${file:+$file/}index.html"
-[ "$(git cat-file -t "origin/main:$file" 2>/dev/null)" = blob ] || {
-    echo "pageswait: origin/main has no $file to serve: nothing polled." >&2
-    exit 2
-}
-git cat-file blob "origin/main:$file" | grep -qF -- "$2" || {
-    echo "pageswait: '$2' is not in origin/main's $file, so the live page never will be: nothing polled. The marker is a fixed string, copied from the page." >&2
+# The repo this script is in, so it runs from any clone, worktree or folder.
+repo=$(dirname "$(readlink -f "$0")")
+git -C "$repo" fetch -q origin 2>/dev/null || echo "pageswait: couldn't fetch origin; checking the marker against origin/main as last fetched." >&2
+is_blob() { [ "$(git -C "$repo" cat-file -t "origin/main:$1" 2>/dev/null)" = blob ]; }
+# A folder, the catalogue's "" included, serves its index.html. Pages
+# answers a folder without its slash with a 301, which curl -f doesn't
+# follow, so that path would never go live.
+case $1 in
+    "" | */) file="${1}index.html" ;;
+    *) file=$1
+       if ! is_blob "$file" && is_blob "$file/index.html"; then
+           echo "pageswait: $1 is a folder, which Pages serves as $1/ (a 301 here): run bin/pageswait $1/ <marker>. Nothing polled." >&2
+           exit 2
+       fi ;;
+esac
+is_blob "$file" || { echo "pageswait: origin/main has no $file to serve: nothing polled." >&2; exit 2; }
+git -C "$repo" cat-file blob "origin/main:$file" | grep -qF -- "$2" || {
+    echo "pageswait: '$2' is not in origin/main's $file: nothing polled. The marker is a fixed string, copied from the page." >&2
     exit 2
 }
 
