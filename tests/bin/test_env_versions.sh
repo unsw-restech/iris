@@ -63,9 +63,10 @@ pin() {
 make_tree clean
 expect pass "$scratch/clean" "$name"
 
-# The repo's own lib/katana.sh and envs/ pass.
+# The repo's own lib/katana.sh, envs/ and lab sections pass.
 make_tree repo
 cp lib/katana.sh "$scratch/repo/lib/katana.sh"
+cp index.html "$scratch/repo/index.html"
 rm -rf "$scratch/repo/envs"
 cp -r envs "$scratch/repo/envs"
 git -C "$scratch/repo" add -A

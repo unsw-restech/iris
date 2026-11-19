@@ -67,6 +67,7 @@ declare -gA IRIS_ENV_DIGESTS=(
 # workflow already in a lab keeps the version its form pins.
 declare -gA IRIS_LAB_ENVS=(
     [microct-lab]=microct/1
+    [kglmf]=microct/1
 )
 
 # iris_is_env_version <word>: whether <word> names an environment version,

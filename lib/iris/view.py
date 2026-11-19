@@ -1,7 +1,7 @@
-"""iris-view: a run's label volume over its raw volume, in napari.
+"""iris-view: a run's label volume over its image set or raw volume, in napari.
 
-Run in a Virtual Desktop. The raw volume comes through the volume reader
-(iris.volume), so it reads exactly as inference read it, and the label
+Run in a Virtual Desktop. The images come through the readers in
+iris.volume, so they read exactly as inference read them, and the label
 volume is read one slice at a time from its BigTIFF, so scrolling never
 loads either whole. With no run directory it lists recent runs, from the
 run index, to pick from.
@@ -21,15 +21,17 @@ import tifffile
 
 from iris import rundir, runs
 from iris.record import indexed_runs, iris_home, run_index
-from iris.volume import open_volume
+from iris.volume import holds_image_set, open_image_set, open_volume
 
 
 def load_run(run_dir):
-    """The raw volume and the label volume of the run in `run_dir`, as lazy
-    (z, y, x) dask arrays. The dataset is the folder holding runs/. The
-    label BigTIFF stays open while the arrays are in use."""
+    """The dataset's image set if it holds one, its raw volume otherwise,
+    and the label volume of the run in `run_dir`, as lazy dask arrays with
+    one image or z-slice per page of the labels. The dataset is the folder
+    holding runs/. The label BigTIFF stays open while the arrays are in use."""
     run_dir = Path(run_dir)
-    raw = open_volume(rundir.dataset_of(run_dir)).data
+    dataset = rundir.dataset_of(run_dir)
+    raw = (open_image_set(dataset) if holds_image_set(dataset) else open_volume(dataset)).data
     tif = tifffile.TiffFile(run_dir / rundir.LABELS)
     pages = tif.pages
     lock = threading.Lock()  # one file handle, so one seek and read at a time
@@ -85,8 +87,8 @@ def pick_run(home):
 
 
 def intensity_range(run_dir):
-    """The volume's (min, max) from the run's dataset record, so napari
-    need not read the volume to set its contrast, or None."""
+    """The images' (min, max) from the run's dataset record, so napari
+    need not read them all to set its contrast, or None."""
     try:
         intensity = runs.read_run(run_dir).dataset_extras()["intensity"]
         return intensity["min"], intensity["max"]
@@ -95,13 +97,15 @@ def intensity_range(run_dir):
 
 
 def show(run_dir):
-    """Open napari on the run's volume with its label volume over it, until
-    its window is closed."""
+    """Open napari on the run's image set or volume with its label volume
+    over it, until its window is closed. Its slider steps through the images
+    or z-slices."""
     import napari  # slow to import, so only once there is a run to show
 
     raw, labels = load_run(run_dir)
     viewer = napari.Viewer(title=f"iris-view {run_dir}")
-    viewer.add_image(raw, name="volume", contrast_limits=intensity_range(run_dir))
+    name = "images" if holds_image_set(rundir.dataset_of(Path(run_dir))) else "volume"
+    viewer.add_image(raw, name=name, contrast_limits=intensity_range(run_dir))
     viewer.add_labels(labels, name="labels", opacity=0.5)
     napari.run()
 

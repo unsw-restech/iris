@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cell Segmentation — IRIS</title>
+  <title>Nuclei Segmentation (U-Net) — IRIS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../assets/iris.css">
@@ -17,18 +17,145 @@
   <a href="../../#workflows" class="nav-back">← Back to catalogue</a>
 </nav>
 <div class="page">
-  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / <a href="../../#kglmf">KGLMF</a> / Cell Segmentation</div>
+  <div class="breadcrumb"><a href="../../">IRIS</a> / <a href="../../#workflows">Workflows</a> / <a href="../../#kglmf">KGLMF</a> / Nuclei Segmentation (U-Net)</div>
   <span class="wf-domain imaging">Imaging</span>
-  <h1 class="wf-title">Cell Segmentation</h1>
-  <p class="wf-desc">Segment cells and nuclei in fluorescence microscopy images and measure each one, such as its size, shape and intensity, so a study can compare cell populations across conditions.</p>
-  <span class="run-note"><strong>Planned.</strong> This workflow has no form yet, so it cannot be run. This page describes what it will do.</span>
-  <h2>What it will take and produce</h2>
-  <table class="param-table">
-    <thead><tr><th></th><th>Description</th></tr></thead>
-    <tbody><tr><td>Input</td><td>Fluorescence microscopy images, transferred to your scratch.</td></tr><tr><td>Output</td><td>A cell and nucleus mask for each image and a table of each cell's measurements, with the run recorded.</td></tr></tbody>
-  </table>
-  <h2>Not settled yet</h2>
-  <p class="wf-desc">The method, its parameters and its environment are settled when this workflow is built.</p>
+  <h1 class="wf-title">Nuclei Segmentation (U-Net)</h1>
+  <p class="wf-desc" id="what">Label every image in a set of fluorescence microscopy images as background, nucleus or nucleus edge. IRIS trains a 2D U-Net on your training pairs and segments each image. Each run is recorded, so you can view the labels over the images and compare runs with different settings side by side.</p>
+  <div class="demonstration-notice"><strong>Demonstration workflow.</strong> This workflow shows what IRIS can do for KGLMF, the Katharina Gaus Light Microscopy Facility. It is a demonstration on public data that did not come from KGLMF, and it has not been validated on the lab's images.</div>
+  <div id="owner">
+    <p class="wf-owner">Workflow owner: <a href="https://github.com/PatrickTung" target="_blank">Patrick Tung</a> · <a href="mailto:patrick.tung@unsw.edu.au">patrick.tung@unsw.edu.au</a></p>
+    <p class="wf-review">IRIS reviewed this workflow for safety and fit, not for its science: its workflow owner answers for its method and its results, so ask them about either.</p>
+  </div>
+
+  <div class="launch" id="run">
+    <div>
+      <a href="https://kod.restech.unsw.edu.au/pun/sys/OpenComposer/microscopy-cell-segmentation" class="run-btn" target="_blank">▶&nbsp; Run on Katana</a>
+      <span class="run-note">Opens the form in Katana OnDemand. Pick your dataset folder and submit: the other fields have working defaults.</span>
+    </div>
+    <div class="ready">
+      <div class="ready-title">You're ready when</div>
+      <ul class="checklist">
+        <li>Your dataset folder is inside your scratch, <code>/srv/scratch/&lt;zID&gt;</code></li>
+        <li>Its <code>images/</code> folder holds the images to segment</li>
+        <li><code>train/images/</code> and <code>train/labels/</code> hold the same file names</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <div class="col-when">Once per dataset</div>
+      <h3>1 · Transfer</h3>
+      <p>Lay out one dataset folder as in <a href="#data">The data it needs</a>, then send it to your scratch with Globus from your browser.</p>
+      <p><a href="../../guide/#stage">Transferring a dataset</a></p>
+    </div>
+    <div class="col">
+      <div class="col-when">Every run · two clicks</div>
+      <h3>2 · Run</h3>
+      <p>Click Run on Katana, pick the dataset folder and submit. You get an email when the job ends.</p>
+      <p>Change one setting at a time and keep the experiment name, so the runs compare.</p>
+    </div>
+    <div class="col">
+      <div class="col-when">After it finishes</div>
+      <h3>3 · View</h3>
+      <p>In a terminal in a Virtual Desktop, run <code>module load iris</code>, then <code>iris-view</code> to step through your images with their labels over them and <code>iris-compare</code> to compare your runs.</p>
+      <p><a href="../../guide/#view">Viewing and comparing runs</a></p>
+    </div>
+  </div>
+
+  <details id="data">
+    <summary>The data it needs</summary>
+    <p>One dataset folder holding an image set and its training pairs. You can arrange your own images this way:</p>
+    <ul>
+      <li><code>images/</code> holds the image set, the images to segment, read in file-name order.</li>
+      <li><code>train/images/</code> holds the training images.</li>
+      <li><code>train/labels/</code> holds one label slice per training image, with the same file name and size: 0 is unlabelled, then 1, 2, 3 and so on per class. The number of classes is read from your labels, up to 255.</li>
+      <li>Every image is a single-page, single-channel 2D TIFF. Training images and the image set share one size and one bit depth.</li>
+    </ul>
+    <p>The form checks this layout before it submits. Lay out and copy the folder to your scratch as in <a href="../../guide/#stage">Transferring a dataset</a>.</p>
+    <p>The prepared dataset is built from <a href="https://bbbc.broadinstitute.org/BBBC039" target="_blank">BBBC039</a>, a public collection of fluorescence images of U2OS nuclei. Its 100 training fields become the training pairs and its 50 test fields the image set, so the images segmented are ones the model did not train on. Its label slices hold 1 for background, 2 for nucleus and 3 for nucleus edge. BBBC039's recommended citation is:</p>
+    <p>We used image set BBBC039v1 Caicedo et al. 2018, available from the Broad Bioimage Benchmark Collection [Ljosa et al., Nature Methods, 2012].</p>
+  </details>
+
+  <details id="fields">
+    <summary>What each form field does</summary>
+    <!-- The memory, walltime and epochs defaults are provisional, the reference workflow's, until #235's timing run measures them on the prepared dataset. -->
+    <table class="param-table">
+      <thead><tr><th>Field</th><th>Default</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>Dataset folder</td><td>—</td><td>Your dataset in scratch. The form checks its layout before it submits.</td></tr>
+        <tr><td>Experiment name</td><td><code>microscopy-cell-segmentation</code></td><td>Groups runs you want to compare. Use a new name for a new dataset or question.</td></tr>
+        <tr><td>Epochs</td><td><code>50</code></td><td>Passes over the training patches. Raise it if Dice is still rising at the end.</td></tr>
+        <tr><td>Patch size</td><td><code>256</code></td><td>Images are cut into square patches of 128, 256 or 512 pixels. Larger patches see more context.</td></tr>
+        <tr><td>Learning rate</td><td><code>0.001</code></td><td>Lower it if the loss jumps around.</td></tr>
+        <tr><td>Validation patches (%)</td><td><code>20</code></td><td>Labelled patches held out to score the model with per-class Dice and IoU.</td></tr>
+        <tr><td>GPUs</td><td><code>1</code></td><td>Any GPU type on Katana. 0 runs on CPU, for a small test only.</td></tr>
+        <tr><td>CPU cores</td><td><code>8</code></td><td>Used to read the images and prepare patches.</td></tr>
+        <tr><td>Memory</td><td><code>16 GB</code></td><td>Raise it if the job runs out of memory.</td></tr>
+        <tr><td>Walltime</td><td><code>2 h</code></td><td>Covers training and segmenting the image set. Up to 12 hours runs on any node.</td></tr>
+        <tr><td colspan="3"><strong>Under advanced options</strong></td></tr>
+        <tr><td>Batch size</td><td><code>16</code></td><td>Patches per training step. Lower it if the GPU runs out of memory.</td></tr>
+        <tr><td>Random seed</td><td>blank</td><td>Blank picks a new validation split each run and records its seed. Set it to repeat a split.</td></tr>
+        <tr><td>PBS job name</td><td><code>iris_microscopy_cell_segmentation</code></td><td>Your label for the job in the queue.</td></tr>
+        <tr><td>Mail events</td><td>When the job ends or ends abnormally</td><td>When PBS emails you.</td></tr>
+      </tbody>
+    </table>
+    <p>To start from an earlier run's settings, open <strong>History</strong> in the form's top bar, click the <strong>Script Name</strong> in the run's row (not its job ID), then <strong>Load parameters</strong>.</p>
+  </details>
+
+  <details>
+    <summary>Editing the workflow code for one run</summary>
+    <p>The form's script pane holds this workflow's code, <code>run.py</code>, below the comment <code># Edit the workflow code below</code>. To try a different model architecture, loss, augmentation or training loop, edit it there before you submit: the job runs the code exactly as it appears in the pane. The change belongs to that run alone, which makes it an <strong>edited run</strong>; the workflow itself is unchanged. Record keeping and reading and writing images stay in IRIS, out of the pane, and an edited run uses the same Python packages.</p>
+    <ul>
+      <li><strong>Change the fields whenever you like.</strong> A field change rewrites only the lines that hold that field, so your edits to the code are kept.</li>
+      <li><strong>Only the workflow code can be edited.</strong> The rest of the pane is shaded and locked: the <code>#PBS</code> lines at its top, the <code>python</code> line at its bottom and every other line the form writes. Hover over a locked line to see the field that sets it, or <em>Fixed by the form</em>, and click a field's line to go to that field.</li>
+      <li><strong>To rerun an edited run</strong>, open <strong>History</strong>, click the <strong>Script Name</strong> in its row, then <strong>Load parameters</strong>: it restores the fields and your edited code, and the job output says the run is edited.</li>
+      <li>Every run directory keeps the code its run ran as <code>run.py</code>, and your changes as <code>run.diff</code>. The job writes both and prints the diff near the top of its output before the code starts, so a run whose code crashes, even one Python cannot read, still shows them. In the rare case the job cannot tell which commit the form showed, it warns, writes no <code>run.diff</code>, and <code>run.json</code> records that whether the run is edited is unknown.</li>
+    </ul>
+  </details>
+
+  <details id="run-directory">
+    <summary>What a run writes and how to view it</summary>
+    <p>Each run writes a run directory into your dataset, <code>runs/&lt;job number&gt;/</code>:</p>
+    <table class="param-table">
+      <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td><code>labels.tif</code></td><td>The labels: one uint8 page per image, in file-name order, each pixel holding its class number</td></tr>
+        <tr><td><code>model.pt</code></td><td>The trained weights</td></tr>
+        <tr><td><code>params.json</code></td><td>Every form field, and the seed used</td></tr>
+        <tr><td><code>metrics.json</code></td><td>Training loss and per-class Dice and IoU, per epoch and final</td></tr>
+        <tr><td><code>dataset.json</code></td><td>What the run read: the dataset folder's path, file count, total size and newest change, then under <code>extras</code> the image set's shape, type and intensity statistics, the file name of each page of <code>labels.tif</code> in order, and how many training pairs it read</td></tr>
+        <tr><td><code>run.json</code></td><td>The experiment, job ID, how the run ended and whether it is an edited run</td></tr>
+        <tr><td><code>commit.txt</code></td><td>The IRIS commit that ran, as the form showed it</td></tr>
+        <tr><td><code>run.py</code></td><td>The workflow code the run ran, as submitted from the form</td></tr>
+        <tr><td><code>run.diff</code></td><td>Your changes to that code against the commit in <code>commit.txt</code>; empty unless the run is edited, and missing if the job could not tell which commit the form showed</td></tr>
+        <tr><td><code>lib_commit.txt</code></td><td>Only if IRIS was updated between opening the form and the job starting: the commit of the IRIS code outside the pane that the run used</td></tr>
+      </tbody>
+    </table>
+    <p>The job output sits beside it, as <code>runs/&lt;job ID&gt;.OU</code>. When the job succeeds, the output ends with the commands to run in a terminal in a Virtual Desktop: <code>module load iris</code>, then <code>iris-view</code> with the run directory, which shows the labels over your images in napari, with a slider to step through every image, and <code>iris-compare</code>, which opens your runs in MLflow. The <a href="../../guide/#view">guide</a> covers the Virtual Desktop to start, both commands, and copying a run directory home.</p>
+    <p>To cite a run, use the commit in its <code>commit.txt</code>, as in <a href="#cite">Cite this workflow</a>.</p>
+  </details>
+
+  <details id="cite">
+    <summary>Cite this workflow</summary>
+    <p>This workflow has no citable version and is never minted: it is a demonstration workflow, so it has no DOI of its own.</p>
+    <p>If you publish results from a run, cite IRIS with this workflow's name, Nuclei Segmentation (U-Net), and the commit in the run's <code>commit.txt</code>. For an edited run, publish the run's <code>run.py</code> or <code>run.diff</code> alongside. Either way, acknowledge Katana and cite its DOI. <a href="https://github.com/unsw-restech/iris#citing-iris" target="_blank">The exact wording</a></p>
+    <p>A run on the prepared dataset also credits BBBC039, in the words under <a href="#data">The data it needs</a>.</p>
+  </details>
+
+  <details>
+    <summary>Something went wrong</summary>
+    <ul>
+      <li><strong>The form won't submit.</strong> Its warning names the rule your dataset folder broke, and your values are kept. Fix the folder and submit again. A stray <code>.DS_Store</code> or <code>Thumbs.db</code> in one of the <code>train/</code> folders counts as a file-name mismatch: delete it.</li>
+      <li><strong>The job stopped at once with "the IRIS imaging environment is missing".</strong> Nothing is wrong with your data. Email the <a href="#owner">workflow owner</a> with the job ID.</li>
+      <li><strong>The job stopped before training with an <code>ERROR:</code> line about your dataset.</strong> It names the file and what's wrong: a file that isn't a single-page, single-channel 2D TIFF, an image at a different size or bit depth from the others, a label slice that doesn't match its image, label values that aren't whole numbers from 0, more than 255 classes, or labels that are all 0. Any other file in <code>images/</code>, such as a <code>.DS_Store</code>, stops the job the same way: delete it.</li>
+      <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. <strong>Load parameters</strong> in <strong>History</strong> keeps your other settings.</li>
+      <li><strong>The job ran out of GPU memory.</strong> Lower the batch size under advanced options, or the patch size.</li>
+      <li><strong><code>iris-view</code> says there is no label volume.</strong> The run hasn't finished, or it failed: read the end of its <code>runs/&lt;job ID&gt;.OU</code>.</li>
+      <li><strong>The job output doesn't end with the <code>iris-view</code> line.</strong> The job stopped at its first error, which is the last thing in the output. The same commands are printed near the start of the output, so the run directory they name may be incomplete.</li>
+      <li><strong>Anything else.</strong> Email the <a href="#owner">workflow owner</a> with the job ID and the end of the job output.</li>
+    </ul>
+  </details>
 </div>
 <footer>
   <span>IRIS · UNSW ResTech</span>
