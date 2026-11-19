@@ -11,7 +11,7 @@ You need no write access to the repo. The route is fork and pull request, with w
 3. **Build on a fork** (you): fork `unsw-restech/iris`, turn on Actions on your fork, make a branch and follow [Adding a new workflow](#adding-a-new-workflow), one section per step: [scaffold](#1-scaffold), [page](#2-page), [owner](#3-owner), [new environment versions](#4-new-environment-versions), [test instance](#5-test-instance), [run proof](#6-run-proof), [CI and `ready`](#7-ci-and-ready).
 4. **Open a pull request** (you) from your fork's branch into `main`, filling in the PR template. The PR is the only routine approval.
 5. **Review batch** (maintainer): when the [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/#steps) says, the maintainer reviews every ready PR together for safety and fit, never your science, and merges it or closes it naming the criterion it failed ([Review batch](#8-review-batch)). The maintainer doesn't help during the build or go back and forth on a PR: the [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/#help) says where help comes from.
-6. **Register and mint** (you, now the workflow owner): register the workflow on WorkflowHub and mint its first citable version ([WorkflowHub](#9-workflowhub)). A demonstration workflow skips this step.
+6. **Register and mint** (you, now the workflow owner): register the workflow on WorkflowHub and mint its first citable version ([WorkflowHub](#9-workflowhub)). A demonstration workflow skips this step ([the contribute page](https://docs.restech.unsw.edu.au/iris/contribute/#mint)).
 
 ### When you need a proposal
 
@@ -265,7 +265,7 @@ Review covers safety and fit only, never your science. A PR that fails a criteri
 
 ### 9. WorkflowHub
 
-A demonstration workflow skips this section: it shows what IRIS can do for a lab on public data, so it is never registered on WorkflowHub or minted, and having no DOI is not a missed step.
+A demonstration workflow skips this section, as the contribute page's [Mint its DOI](https://docs.restech.unsw.edu.au/iris/contribute/#mint) step says: it is never registered or minted, so its missing DOI is not a missed step.
 
 Every other catalogue workflow has its own WorkflowHub entry, and each citable version is a frozen snapshot of `main` with its own DOI. There are no git tags (ADR-0002, `docs/adr/0002-citable-versions-are-frozen-from-main.md`). The workflow owner does every step, through one walkthrough run on the desktop from a clone at `main` (it needs `curl` and `python3`):
 
@@ -293,7 +293,7 @@ Once your PR merges, you are the workflow's **workflow owner**, named on its pag
 - **Answer issues about your workflow**, on GitHub Issues and from researchers who contact you, and fix it when it breaks.
 - **Review PRs that change its folder**; you are mentioned on each one ([Owner](#3-owner)).
 - **Keep it working**: update its library copy or move it to a newer environment version only when you choose, each with a new run ([Run proof](#6-run-proof)), and keep its page accurate.
-- **Register it on WorkflowHub and mint its citable versions** ([WorkflowHub](#9-workflowhub)), unless it is a demonstration workflow.
+- **Register it on WorkflowHub and mint its citable versions** ([WorkflowHub](#9-workflowhub)), unless it is a demonstration workflow, which the [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/#owner) says is never minted.
 
 The [contribute page](https://docs.restech.unsw.edu.au/iris/contribute/#unmaintained) owns the rules for an owner who stops answering, handing over and adoption. The mechanics:
 

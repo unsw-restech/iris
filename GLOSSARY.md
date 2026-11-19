@@ -178,7 +178,7 @@ _Avoid_: Stack, scan
 
 **Image set**:
 A folder of same-sized 2D images that a run segments, each independent of the others. Unlike a volume's slices, its images are not parts of one 3D object.
-_Avoid_: Stack, batch
+_Avoid_: Stack
 
 **Label volume**:
 An image or volume of the same shape as its source in which each pixel or voxel holds a class number. In training labels, 0 marks it as unlabelled. A label slice is a one-slice label volume.
