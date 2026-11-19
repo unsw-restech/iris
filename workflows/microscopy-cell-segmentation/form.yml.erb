@@ -33,8 +33,11 @@ form:
     help: "Groups the runs you want to compare, such as runs on one dataset with different settings. Every run is recorded in your tracking store, /srv/scratch/<%= ENV['USER'] %>/iris/tracking.db: to compare runs, run <%= [load_iris, iris_compare].compact.join(" and then ") %> in a terminal in a Virtual Desktop."
 
   # ── Training ──────────────────────────────────────────────────
-  # The epochs, memory and walltime defaults are provisional, the reference
-  # workflow's, until #235's timing run measures them on the prepared dataset.
+  # The epochs, memory and walltime defaults come from #235's timing run, job
+  # 9834140, on the prepared dataset at 1 V100, 8 CPUs and 16 GB: 50 epochs
+  # trained in 256 s, Dice levelling off from about epoch 40, and the 50 images
+  # segmented in 2 s, 4 min 40 s in all, using 3.3 GB. 16 GB is the smallest
+  # memory option, and 30 minutes leaves room for a slower GPU or a busier node.
   epochs:
     widget: number
     label: "Epochs"
@@ -106,7 +109,7 @@ form:
     widget: number
     label:   [ "Walltime hours (0 - 200)", "Walltime minutes (0 - 59)" ]
     size:    2
-    value:   [ 2, 0 ]
+    value:   [ 0, 30 ]
     min:     [ 0, 0 ]
     max:     [ 200, 59 ]
     step:    [ 1, 1 ]
