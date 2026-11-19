@@ -21,17 +21,53 @@ import tifffile
 
 from iris import rundir, runs
 from iris.record import indexed_runs, iris_home, run_index
-from iris.volume import holds_image_set, open_image_set, open_volume
+from iris.volume import IMAGE_SET, open_image_set, open_volume
+
+
+def recorded_files(run_dir):
+    """The image set's file names, in page order, that the run's dataset
+    record holds, or None for a run that read a volume or recorded none."""
+    try:
+        return runs.read_run(run_dir).dataset_extras()["image_set"]["files"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def open_images(run_dir):
+    """The layer name and lazy (page, y, x) images under the run's labels:
+    the image set its dataset record names, or its dataset's volume when
+    the record names none. An image set that no longer holds the files the
+    run recorded, in that order, raises ValueError naming one, so no label
+    page is shown over another image."""
+    dataset = rundir.dataset_of(run_dir)
+    files = recorded_files(run_dir)
+    if files is None:
+        return "volume", open_volume(dataset).data
+    images = open_image_set(dataset)
+    now = images["image"].values.tolist()
+    if now != files:
+        added = sorted(set(now) - set(files))
+        removed = sorted(set(files) - set(now))
+        change = (f"{added[0]} has been added" if added else f"{removed[0]} has gone" if removed
+                  else "its files have been renamed")
+        raise ValueError(f"{Path(dataset, IMAGE_SET)} no longer holds the {len(files)} images this run labelled: "
+                         f"{change}. Put the image set back as the run read it to view its labels.")
+    return "images", images.data
 
 
 def load_run(run_dir):
-    """The dataset's image set if it holds one, its raw volume otherwise,
-    and the label volume of the run in `run_dir`, as lazy dask arrays with
-    one image or z-slice per page of the labels. The dataset is the folder
-    holding runs/. The label BigTIFF stays open while the arrays are in use."""
+    """The images and the label volume of the run in `run_dir`, as lazy
+    dask arrays with one image or z-slice per page of the labels, as
+    open_images gives them. The dataset is the folder holding runs/. The
+    label BigTIFF stays open while the arrays are in use."""
+    _, raw, labels = open_run(run_dir)
+    return raw, labels
+
+
+def open_run(run_dir):
+    """load_run's arrays, after open_images's layer name."""
     run_dir = Path(run_dir)
-    dataset = rundir.dataset_of(run_dir)
-    raw = (open_image_set(dataset) if holds_image_set(dataset) else open_volume(dataset)).data
+    name, raw = open_images(run_dir)
     tif = tifffile.TiffFile(run_dir / rundir.LABELS)
     pages = tif.pages
     lock = threading.Lock()  # one file handle, so one seek and read at a time
@@ -43,7 +79,7 @@ def load_run(run_dir):
     first = pages[0]
     slices = [da.from_delayed(dask.delayed(read_slice)(z), shape=first.shape, dtype=first.dtype)
               for z in range(len(pages))]
-    return raw, da.stack(slices)
+    return name, raw, da.stack(slices)
 
 
 def recent_runs(home, limit=10):
@@ -96,15 +132,13 @@ def intensity_range(run_dir):
         return None
 
 
-def show(run_dir):
-    """Open napari on the run's image set or volume with its label volume
-    over it, until its window is closed. Its slider steps through the images
-    or z-slices."""
+def show(run_dir, name, raw, labels):
+    """Open napari on open_run's arrays for the run in `run_dir`, the
+    images layer called `name` and the label volume over it, until its
+    window is closed. Its slider steps through the images or z-slices."""
     import napari  # slow to import, so only once there is a run to show
 
-    raw, labels = load_run(run_dir)
     viewer = napari.Viewer(title=f"iris-view {run_dir}")
-    name = "images" if holds_image_set(rundir.dataset_of(Path(run_dir))) else "volume"
     viewer.add_image(raw, name=name, contrast_limits=intensity_range(run_dir))
     viewer.add_labels(labels, name="labels", opacity=0.5)
     napari.run()
@@ -119,8 +153,12 @@ def main():
     if not (run_dir / rundir.LABELS).is_file():
         sys.exit(f"No label volume at {run_dir / rundir.LABELS}: is the run still going, or did it fail?"
                  " Its log is next to it in runs/. Some workflows write no label volume, so have nothing to view.")
+    try:
+        opened = open_run(run_dir)
+    except (FileNotFoundError, ValueError) as e:
+        sys.exit(f"ERROR: {e}")
     print(f"Opening {run_dir} in napari. Close its window to quit.")
-    show(run_dir)
+    show(run_dir, *opened)
 
 
 if __name__ == "__main__":

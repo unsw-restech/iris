@@ -1,5 +1,6 @@
 """The shared library's tests: the importer, the store rebuild, iris-view's
-recent runs, the volume reader and a run whose run index can't be written.
+recent runs and the images it shows, the volume reader and a run whose run
+index can't be written.
 
 Their run directories are built as a job builds them, through the run
 directory module and RunRecord (run_dirs.py), and the volume reader's
@@ -22,14 +23,16 @@ from pathlib import Path
 from unittest import mock
 
 import numpy as np
+import tifffile
 
 from datasets import make_volume, two_class_labels, write_dataset
 from run_dirs import clone_with_entry, finished_run, record_code  # noqa: E402  (it puts lib/ on the path)
 
 from iris.compare import open_browser, start_ui  # noqa: E402
+from iris.dataset import dataset_record  # noqa: E402
 from iris.record import RunRecord  # noqa: E402
 from iris.tracking import StoreExists, import_runs, rebuild, store_uri  # noqa: E402
-from iris.view import recent_runs  # noqa: E402
+from iris.view import load_run, recent_runs  # noqa: E402
 from iris.volume import open_volume  # noqa: E402
 
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
@@ -445,6 +448,63 @@ class UnwritableRunIndex(unittest.TestCase):
             for name in ("params.json", "metrics.json", "dataset.json"):
                 json.loads((run_dir / name).read_text())
             self.assertEqual(json.loads((run_dir / "run.json").read_text())["run"]["status"], "FINISHED")
+
+
+class ViewImages(unittest.TestCase):
+    """Which images iris-view shows under a run's labels: the run's record
+    decides, not the folders its dataset holds now."""
+
+    IMAGE_SET = ["a.tif", "b.tif"]
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.code, self.commit = clone_with_entry(self.tmp)
+        self.dataset = self.tmp / "dataset"
+
+    def image_set_run(self):
+        (self.dataset / "images").mkdir(parents=True)
+        self.images = np.stack([np.full((7, 5), 40000 + i, dtype=np.uint16) for i in range(len(self.IMAGE_SET))])
+        for name, image in zip(self.IMAGE_SET, self.images):
+            tifffile.imwrite(self.dataset / "images" / name, image)
+        extras = {"image_set": {"shape": list(self.images.shape), "dtype": "uint16", "files": self.IMAGE_SET}}
+        run_dir = finished_run(self.tmp / "iris", self.dataset / "runs" / "1001", self.code, self.commit,
+                               dataset=dataset_record(self.dataset, extras))
+        tifffile.imwrite(run_dir / "labels.tif", np.ones(self.images.shape, dtype=np.uint8))
+        return run_dir
+
+    def test_an_image_set_run_shows_its_images_in_the_recorded_order(self):
+        raw, labels = load_run(self.image_set_run())
+        np.testing.assert_array_equal(np.asarray(raw), self.images)
+        self.assertEqual(labels.shape, self.images.shape)
+
+    def test_an_image_added_since_the_run_stops_it_with_one_line_naming_the_image(self):
+        run_dir = self.image_set_run()
+        tifffile.imwrite(self.dataset / "images" / "a0.tif", self.images[0])  # sorts between the two
+        with self.assertRaises(ValueError) as stopped:
+            load_run(run_dir)
+        message = str(stopped.exception)
+        self.assertNotIn("\n", message)
+        self.assertIn("a0.tif", message)
+
+    def test_an_image_removed_since_the_run_stops_it_with_one_line_naming_the_image(self):
+        run_dir = self.image_set_run()
+        (self.dataset / "images" / "b.tif").unlink()
+        with self.assertRaises(ValueError) as stopped:
+            load_run(run_dir)
+        self.assertNotIn("\n", str(stopped.exception))
+        self.assertIn("b.tif", str(stopped.exception))
+
+    def test_a_volume_run_shows_its_volume_beside_a_stray_images_folder(self):
+        vol = make_volume()
+        write_dataset(self.dataset, vol, two_class_labels())
+        (self.dataset / "images").mkdir()
+        tifffile.imwrite(self.dataset / "images" / "stray.tif", np.zeros((3, 4), dtype=np.uint8))
+        run_dir = finished_run(self.tmp / "iris", self.dataset / "runs" / "1001", self.code, self.commit)
+        tifffile.imwrite(run_dir / "labels.tif", np.ones(vol.shape, dtype=np.uint8))
+        raw, _ = load_run(run_dir)
+        np.testing.assert_array_equal(np.asarray(raw), vol)
 
 
 class VolumeReader(unittest.TestCase):

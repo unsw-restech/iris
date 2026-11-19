@@ -21,12 +21,15 @@ slice holds it. The image frame is no nucleus's outline: a nucleus it cuts has
 no edge along it.
 
 Every field is checked before anything is written, so a refused run leaves no
-dataset behind.
+dataset behind, and the dataset is built under a temporary name beside it and
+renamed into place, so a run killed halfway leaves none either.
 """
 
 import argparse
+import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -121,14 +124,28 @@ def prepare(images, labelled_images, metadata, output):
             raise Refused(f"{path}: {colours.shape[:2]} pixels, but {stem}.tif is {kinds[stem][0]}")
         labels[stem] = label_slice(colours)
 
-    image_set, train_images, train_labels = output / "images", output / "train" / "images", output / "train" / "labels"
-    for folder in (image_set, train_images, train_labels):
-        folder.mkdir(parents=True)
-    for stem in test:
-        shutil.copyfile(images / f"{stem}.tif", image_set / f"{stem}.tif")
-    for stem in training:
-        shutil.copyfile(images / f"{stem}.tif", train_images / f"{stem}.tif")
-        tifffile.imwrite(train_labels / f"{stem}.tif", labels[stem])
+    # Built under a temporary name beside the dataset, then renamed into
+    # place, so a run killed halfway leaves no dataset, only a hidden
+    # .<name>.*.partial folder that no later run reads.
+    output.parent.mkdir(parents=True, exist_ok=True)
+    building = Path(tempfile.mkdtemp(prefix=f".{output.name}.", suffix=".partial", dir=output.parent))
+    try:
+        umask = os.umask(0)
+        os.umask(umask)
+        building.chmod(0o777 & ~umask)  # as mkdir would have made it, not mkdtemp's owner-only
+        image_set, train_images, train_labels = (building / "images", building / "train" / "images",
+                                                 building / "train" / "labels")
+        for folder in (image_set, train_images, train_labels):
+            folder.mkdir(parents=True)
+        for stem in test:
+            shutil.copyfile(images / f"{stem}.tif", image_set / f"{stem}.tif")
+        for stem in training:
+            shutil.copyfile(images / f"{stem}.tif", train_images / f"{stem}.tif")
+            tifffile.imwrite(train_labels / f"{stem}.tif", labels[stem])
+        building.rename(output)
+    except BaseException:
+        shutil.rmtree(building, ignore_errors=True)
+        raise
     print(f"{output}: {len(training)} training pairs, {len(test)} images in the image set")
 
 

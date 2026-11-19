@@ -11,6 +11,7 @@ runs it in the container the workflow's form pins (bin/envrun); by hand:
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,6 +31,7 @@ ENTRY = WORKFLOW / "src" / "run.py"
 
 sys.path.insert(0, str(LIB / "tests"))
 import run_dirs  # noqa: E402  (it puts lib/ on the path)
+from datasets import NX, NY  # noqa: E402  (the image size every synthetic run uses)
 
 from iris import rundir  # noqa: E402
 from iris.tracking import import_runs, store_uri  # noqa: E402
@@ -38,7 +40,6 @@ from iris.view import load_run  # noqa: E402
 import mlflow  # noqa: E402  (after iris.tracking, which quiets its start-up hint)
 
 SLUG = "microscopy-cell-segmentation"
-NY, NX = 70, 50  # not a multiple of the patch size or of the U-Net's stride
 WRITTEN = ["field2.tif", "field10.tif", "a_first.tif", "field02.tif"]
 FILE_NAME_ORDER = ["a_first.tif", "field02.tif", "field10.tif", "field2.tif"]
 TRAINING = ["pair1.tif", "pair2.tif", "pair3.tif"]
@@ -277,6 +278,44 @@ def different_training_names(root):
     (root / "train" / "labels" / "pair1.tif").rename(root / "train" / "labels" / "pair9.tif")
 
 
+def no_training_images_folder(root):
+    shutil.rmtree(root / "train" / "images")
+
+
+def no_training_labels_folder(root):
+    shutil.rmtree(root / "train" / "labels")
+
+
+def no_training_pairs(root):
+    for pair in (root / "train").glob("*/*"):
+        pair.unlink()
+
+
+def label_wrong_size(root):
+    tifffile.imwrite(root / "train" / "labels" / "pair1.tif", np.ones((NY + 1, NX), dtype=np.uint8))
+
+
+def label_not_whole(root):
+    tifffile.imwrite(root / "train" / "labels" / "pair1.tif", np.full((NY, NX), 1.5, dtype=np.float32))
+
+
+def label_negative(root):
+    label = make_label().astype(np.int16)
+    label[0, 0] = -1
+    tifffile.imwrite(root / "train" / "labels" / "pair1.tif", label)
+
+
+def label_too_many_classes(root):
+    label = make_label().astype(np.uint16)
+    label[0, 0] = 256
+    tifffile.imwrite(root / "train" / "labels" / "pair1.tif", label)
+
+
+def labels_all_unlabelled(root):
+    for label in (root / "train" / "labels").iterdir():
+        tifffile.imwrite(label, np.zeros((NY, NX), dtype=np.uint8))
+
+
 class DatasetErrors(unittest.TestCase):
     """Each broken dataset stops the job before training, with one line
     naming what to fix. They run side by side: most of each is Python
@@ -296,6 +335,14 @@ class DatasetErrors(unittest.TestCase):
         training_image_not_a_tiff: "pair1.tif",
         label_multi_page: "pair1.tif",
         different_training_names: "pair1.tif",
+        no_training_images_folder: "train/images",
+        no_training_labels_folder: "train/labels",
+        no_training_pairs: "No training pairs",
+        label_wrong_size: "pair1.tif",
+        label_not_whole: "whole numbers",
+        label_negative: "pair1.tif",
+        label_too_many_classes: "256 classes",
+        labels_all_unlabelled: "no class",
     }
 
     @classmethod

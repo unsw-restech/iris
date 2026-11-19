@@ -14,6 +14,10 @@ class FormTest < Minitest::Test
   SCRATCH = "/srv/scratch/" + ENV["USER"].to_s
   SLUG = "microscopy-cell-segmentation"
   JOB_NAME = "iris_microscopy_cell_segmentation"
+  # The first bytes of each kind of file: the check reads no further.
+  TIFF = "II*\x00\x08\x00\x00\x00"
+  BIG_TIFF = "MM\x00+\x00\x08\x00\x00"
+  PNG = "\x89PNG\r\n\x1a\n"
 
   def setup
     skip "needs #{SCRATCH}" unless File.directory?(SCRATCH)
@@ -21,10 +25,10 @@ class FormTest < Minitest::Test
     @tmp = Dir.mktmpdir("iris-form-test-", SCRATCH)
     @ds = File.join(@tmp, "dataset")
     FileUtils.mkdir_p([File.join(@ds, "images"), File.join(@ds, "train", "images"), File.join(@ds, "train", "labels")])
-    %w[field01.tif field02.tif].each { |n| FileUtils.touch(File.join(@ds, "images", n)) }
+    %w[field01.tif field02.tif].each { |n| File.binwrite(File.join(@ds, "images", n), TIFF) }
     %w[pair01.tif pair02.tif].each do |n|
-      FileUtils.touch(File.join(@ds, "train", "images", n))
-      FileUtils.touch(File.join(@ds, "train", "labels", n))
+      File.binwrite(File.join(@ds, "train", "images", n), TIFF)
+      File.binwrite(File.join(@ds, "train", "labels", n), TIFF)
     end
   end
 
@@ -76,6 +80,34 @@ class FormTest < Minitest::Test
     FileUtils.rm(Dir.glob(File.join(@ds, "images", "*")))
     FileUtils.mkdir_p(File.join(@ds, "images", "field01"))
     assert_match(/No image set/, check)
+  end
+
+  def test_a_big_tiff_in_either_byte_order_passes
+    File.binwrite(File.join(@ds, "images", "field03.tif"), BIG_TIFF)
+    assert_nil check
+  end
+
+  def test_rejects_an_image_that_is_not_a_tiff_and_names_it
+    File.binwrite(File.join(@ds, "images", "field03.png"), PNG)
+    msg = check
+    assert_match(/not TIFFs/, msg)
+    assert_includes msg, "field03.png"
+  end
+
+  def test_rejects_an_empty_image_file
+    FileUtils.touch(File.join(@ds, "images", "field03.tif"))
+    assert_includes check, "field03.tif"
+  end
+
+  def test_rejects_a_training_image_or_label_that_is_not_a_tiff_and_names_it
+    %w[images labels].each do |folder|
+      File.binwrite(File.join(@ds, "train", folder, "pair02.tif"), PNG)
+      msg = check
+      assert_match(/not TIFFs/, msg, folder)
+      assert_includes msg, File.join("train", folder), folder
+      assert_includes msg, "pair02.tif", folder
+      File.binwrite(File.join(@ds, "train", folder, "pair02.tif"), TIFF)
+    end
   end
 
   def test_rejects_missing_train_images_or_labels

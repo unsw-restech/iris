@@ -85,11 +85,6 @@ def read_tiff(path):
     return tifffile.imread(path)
 
 
-def holds_image_set(dataset):
-    """Whether the dataset holds an image set rather than a volume."""
-    return Path(dataset, IMAGE_SET).is_dir()
-
-
 def open_image_set(dataset):
     """Read every file in <dataset>/images/, in file-name order, as one lazy
     (image, y, x) DataArray whose "image" coordinate holds the file names.

@@ -232,15 +232,27 @@ check: |
   oc_assert(ds == scratch || ds.start_with?(scratch + "/"), "The dataset folder must be inside your scratch, " + scratch + ".")
   oc_assert(ds !~ /\s/, "The dataset folder's path cannot contain spaces: rename " + ds + ".")
   oc_assert(File.directory?(ds), "No folder at " + ds + ".")
+  files_in = lambda { |dir| Dir.children(dir).select { |f| File.file?(File.join(dir, f)) }.sort }
+  # The job reads every file as a TIFF, whatever its name, so each must
+  # start as a TIFF or BigTIFF does, in either byte order.
+  tiff_starts = ["II*\x00", "MM\x00*", "II+\x00", "MM\x00+"]
+  refuse_non_tiffs = lambda do |dir, names|
+    odd = names.reject { |f| tiff_starts.include?(File.binread(File.join(dir, f), 4).to_s) }
+    oc_assert(odd.empty?, "These files in " + dir + " are not TIFFs: " + odd.first(5).join(", ") + ". Every image and label must be a single-page, single-channel 2D TIFF.")
+  end
   image_set = File.join(ds, "images")
-  oc_assert(File.directory?(image_set) && Dir.children(image_set).any? { |f| File.file?(File.join(image_set, f)) }, "No image set in " + image_set + ". Copy the images to segment there.")
+  set_names = File.directory?(image_set) ? files_in.call(image_set) : []
+  oc_assert(!set_names.empty?, "No image set in " + image_set + ". Copy the images to segment there.")
+  refuse_non_tiffs.call(image_set, set_names)
   imgs = File.join(ds, "train", "images")
   labs = File.join(ds, "train", "labels")
   oc_assert(File.directory?(imgs) && File.directory?(labs), "Missing train/images or train/labels in " + ds + ".")
-  image_names = Dir.children(imgs).select { |f| File.file?(File.join(imgs, f)) }.sort
-  label_names = Dir.children(labs).select { |f| File.file?(File.join(labs, f)) }.sort
+  image_names = files_in.call(imgs)
+  label_names = files_in.call(labs)
   oc_assert(!image_names.empty?, "No training images in " + imgs + ".")
   oc_assert(image_names == label_names, "train/images and train/labels hold different file names: " + ((image_names - label_names) + (label_names - image_names)).first(5).join(", "))
+  refuse_non_tiffs.call(imgs, image_names)
+  refuse_non_tiffs.call(labs, label_names)
   oc_assert(@experiment.to_s =~ /\A[A-Za-z0-9._-]+( [A-Za-z0-9._-]+)*\z/, "The experiment name can hold only letters, digits, spaces, dots, dashes and underscores.")
   oc_assert(@job_name.to_s =~ /\A[A-Za-z0-9._-]+\z/, "The job name can hold only letters, digits, dots, dashes and underscores.")
   oc_assert(@time_1.to_i > 0 || @time_2.to_i > 0, "Walltime cannot be zero.")
