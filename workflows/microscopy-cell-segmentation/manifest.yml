@@ -1,0 +1,32 @@
+name: Nuclei Segmentation (U-Net)
+# The WorkflowHub entry's tags, which bin/workflowhub reads; OpenComposer ignores them.
+# A demonstration workflow is never minted, so they stay unused.
+tags: microscopy, nuclei, segmentation, U-Net, deep learning, imaging, HPC
+category: Imaging
+icon: bi-layers
+# The workflow owner, mentioned on every PR that touches this folder;
+# bin/manifest-owner gives the shape, and bin/check keeps it in step with
+# the page's wf-owner line.
+owner:
+  name: Patrick Tung
+  github: PatrickTung
+  email: patrick.tung@unsw.edu.au
+  orcid: 0000-0002-2741-3177
+description: |
+  A demonstration workflow, on public data that did not come from KGLMF.
+  Train a 2D U-Net from scratch on training pairs, then label every image in
+  an image set as background, nucleus or nucleus edge.
+
+  Pick a dataset folder in your scratch holding `images/` (the image set) and
+  `train/images/` with `train/labels/` (pairs with matching names, 0 =
+  unlabelled). Every image is a single-page, single-channel 2D TIFF. The job
+  runs in the pre-built IRIS imaging environment, so nothing is installed.
+
+  Each run writes a run directory, `{dataset}/runs/{job ID}/`: the labels, the
+  trained weights, the run's record and the IRIS commit that ran, as the
+  workflow page lists them:
+  https://docs.restech.unsw.edu.au/iris/workflows/microscopy-cell-segmentation/#run-directory
+  The job output, `runs/{job ID}.OU`, ends with the
+  `iris-view` line that opens the labels over the images in a Virtual Desktop.
+
+  Documentation: https://docs.restech.unsw.edu.au/iris/workflows/microscopy-cell-segmentation/
