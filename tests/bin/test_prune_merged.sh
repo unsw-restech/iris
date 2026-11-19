@@ -73,6 +73,17 @@ ssh_client=$!
 git -C "$clone" worktree add -q -b fresh "$clone/.claude/worktrees/agent-2" origin/main
 branch merged-locked "$fake/iris-5" && land merged-locked
 git -C "$clone" worktree lock "$fake/iris-5"
+# The harness's lock alone doesn't keep a harness worktree; the other
+# guards still do, and its reason on a worktree elsewhere is a plain lock.
+wt_harness_locked="$clone/.claude/worktrees/agent-3"
+branch merged-harness-locked "$wt_harness_locked" && land merged-harness-locked
+git -C "$clone" worktree lock --reason "claude agent agent-3 (pid 999999 start 1)" "$wt_harness_locked"
+wt_harness_dirty="$clone/.claude/worktrees/agent-4"
+branch merged-harness-dirty "$wt_harness_dirty" && land merged-harness-dirty
+git -C "$clone" worktree lock --reason "claude agent agent-4 (pid 999999 start 1)" "$wt_harness_dirty"
+echo new > "$wt_harness_dirty/stray"
+branch merged-claude-lock-outside "$fake/iris-9" && land merged-claude-lock-outside
+git -C "$clone" worktree lock --reason "claude agent agent-9 (pid 999999 start 1)" "$fake/iris-9"
 branch merged-missing "$fake/iris-6" && land merged-missing
 rm -rf "$fake/iris-6"
 tip=$(git -C "$clone" rev-parse --short origin/main)
@@ -87,6 +98,7 @@ has() { grep -qE -- "$2" <<< "$out" || { echo "prune-merged $1: no line matching
 lacks() { ! grep -qE -- "$2" <<< "$out" || { echo "prune-merged $1: has a line matching '$2'"; echo "$out" | sed 's/^/  /'; }; }
 
 [ "$rc" = 0 ] || echo "prune-merged: bare run exited $rc"
+lacks same-copy "running origin/main's copy"
 has plain '^  merged-plain$'
 has worktree "^  merged-wt  \(worktree $wt_plain\)$"
 has harness "^  merged-harness  \(worktree $wt_harness\)$"
@@ -94,6 +106,9 @@ lacks unmerged 'unmerged'
 has main '^  main: main itself, checked out in the main clone$'
 has fresh "^  fresh  \(worktree $clone/.claude/worktrees/agent-2\): no commits of its own in its reflog"
 has locked "^  merged-locked  \(worktree $fake/iris-5\): its worktree is locked$"
+has harness-locked "^  merged-harness-locked  \(worktree $wt_harness_locked\)$"
+has claude-lock-outside "^  merged-claude-lock-outside  \(worktree $fake/iris-9\): its worktree is locked$"
+has harness-dirty "^  merged-harness-dirty  \(worktree $wt_harness_dirty\): uncommitted or untracked files$"
 has missing "^  merged-missing  \(worktree $fake/iris-6\): its worktree folder is missing"
 has dirty "^  merged-dirty  \(worktree $fake/iris-2\): uncommitted or untracked files$"
 has untracked "^  merged-untracked  \(worktree $fake/iris-3\): uncommitted or untracked files$"
@@ -140,6 +155,10 @@ gone apply merged-wt "$wt_plain"
 gone apply merged-harness "$wt_harness"
 gone apply moved
 gone apply merged-mux "$fake/iris-7"
+gone apply merged-harness-locked "$wt_harness_locked"
+kept apply merged-claude-lock-outside "$fake/iris-9"
+kept apply merged-harness-dirty "$wt_harness_dirty"
+git -C "$clone" worktree list --porcelain | grep -qx "locked claude agent agent-4 (pid 999999 start 1)" || echo "prune-merged --apply: unlocked merged-harness-dirty's worktree"
 kept apply unmerged
 kept apply main
 kept apply merged-dirty "$fake/iris-2"
@@ -216,3 +235,30 @@ for b in iris-fork main fork-unmerged; do
 done
 [ "$(git -C "$fake/fork-origin.git" for-each-ref --format='%(refname) %(objectname)')" = "$fork_remote" ] || echo "prune-merged --repo --apply: changed the fork origin's branches"
 [ "$(git -C "$clone" for-each-ref refs/heads)" = "$iris_branches" ] || echo "prune-merged --repo --apply: changed the clone it ran from"
+
+# A main clone whose checked-out copy is behind origin/main's, as after a
+# push <sha>:main that changes this script, runs origin/main's copy on the
+# clone, whatever branch it has checked out (spec-branch here), and leaves
+# no copy behind (#223's retro). A copy ahead of origin/main's, committed
+# on a branch or edited in place, runs as it is.
+newer="$fake/iris-newer"
+git -C "$clone" worktree add -q -b newer-copy "$newer" origin/main
+sed -i '1a echo "newer copy ran"' "$newer/bin/prune-merged"
+git -C "$newer" commit -qam "newer copy" && land newer-copy
+mkdir "$fake/tmp"
+out=$(TMPDIR="$fake/tmp" run)
+has newer-copy '^newer copy ran$'
+has newer-notice "running origin/main's copy"
+has newer-listing '^origin/main is at [0-9a-f]+ newer copy$'
+has newer-checked-out '^  spec-branch: checked out in the main clone$'
+[ -z "$(ls -A "$fake/tmp")" ] || echo "prune-merged, newer copy: left $(ls -A "$fake/tmp") in TMPDIR"
+sed -i '1a echo "ahead copy ran"' "$newer/bin/prune-merged"
+git -C "$newer" commit -qam "ahead copy"
+out=$(cd "$newer" && bin/prune-merged 2>&1)
+has ahead-copy '^ahead copy ran$'
+lacks ahead-notice "running origin/main's copy"
+sed -i '1a echo "edited copy ran"' "$clone/bin/prune-merged"
+out=$(run)
+has edited-copy '^edited copy ran$'
+lacks edited-notice "running origin/main's copy"
+git -C "$clone" checkout -q -- bin/prune-merged

@@ -511,6 +511,26 @@ manifest_icons() {
 }
 check "manifests use a built-in bi- icon" manifest_icons
 
+# OpenComposer's form writes a manifest's description into the page as raw
+# HTML, so the browser takes a <placeholder> for a tag and drops it (#220).
+# Only the parsed description counts, so a < in a YAML comment passes.
+# tests/bin/test_manifest_description.sh runs it on fixture trees.
+manifest_descriptions() {
+    need_ruby || return
+    ruby -ryaml -e '
+        ARGV.select { |f| File.file?(f) }.each do |f|
+            begin
+                manifest = YAML.safe_load(File.read(f))
+            rescue Psych::Exception => e
+                puts "#{f}: not readable as YAML: #{e.message}"
+                next
+            end
+            next unless manifest.is_a?(Hash) && manifest["description"].to_s.include?("<")
+            puts "#{f}: the description holds <, and the form treats the description as HTML; spell a placeholder {like this}"
+        end' workflows/*/manifest.yml
+}
+check "manifest descriptions hold no <" manifest_descriptions
+
 # Scripts run by path need the executable bit in git: bin/exec-bits says
 # why and holds the list, and .githooks/pre-commit refuses a commit it
 # prints for.

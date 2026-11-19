@@ -16,21 +16,37 @@
 # skips, naming why: main itself, the main clone's checked-out branch (a
 # running /implement-spec keeps its integration branch there), a branch
 # with no commits of its own in its reflog, and a branch whose worktree is
-# locked, missing, has uncommitted or untracked files, or is the working
+# locked (bar the harness's lock, below), missing, has uncommitted or
+# untracked files, or is the working
 # directory of a running process (a shell sitting in a removed worktree
 # fails each later call; /proc shows no Windows process, but git worktree
 # remove then fails and is reported). An ssh ControlMaster (mux) doesn't
 # count: it keeps the folder its first ssh ran in, such as the worktree a
 # bin/syspull ran from, until ControlPersist ends it, and never reads it.
-# An ssh command still running there counts like any process. The listing
+# An ssh command still running there counts like any process. Nor does the
+# harness's own lock ("claude agent agent-<id> (pid …)") on a worktree under
+# .claude/worktrees/: it holds for as long as the session that made it
+# lives, after its subagent has finished, and stays when that session dies,
+# so #223's six worktrees were removed by hand with --force --force. It
+# can't tell a running subagent's from a finished one's, so Clean up runs
+# last, once every subagent has reported. Any other lock reason, or one git
+# prints quoted, is skipped. The listing
 # ends with the --apply line for origin/main's tip. --apply fetches again, refuses if
 # origin/main has moved, then removes what a listing would show now: plain
-# `git worktree remove`, then `git branch -D`, each its own git command.
+# `git worktree remove`, after `git worktree unlock` for a harness lock, so
+# git still refuses a worktree that gained files since the listing (losing
+# that lock is the cost), then `git branch -D`, each its own git command.
 # -D, since -d checks against the branch's upstream or the main clone's
 # HEAD, not origin/main, which the listing has already checked. It deletes
 # local branches only, in either repo: GitHub deletes an iris branch when
 # it merges, and a fork branch, which it keeps, is left for a go-ahead.
-# Runs from any worktree of the repo; works in its main clone. --repo
+# Runs from any worktree of the repo; works in its main clone. A copy
+# behind origin/main's runs origin/main's instead, saying so: pushes go
+# <sha>:main, so the main clone's copy lags, and after 963ce8b changed this
+# script, Clean up ran the old copy and skipped what the new one removes
+# (#223's retro). Behind means the file is as committed and its last
+# commit is in origin/main, so a branch's edit, committed or not, runs as
+# it is. --repo
 # works instead in the main clone of the repo <path> is a worktree of,
 # with that repo's own origin/main, so its --apply line names the clone
 # as well as the sha: #179 left a fork worktree and branch that a session
@@ -38,7 +54,31 @@
 # carries (#179's retro).
 
 usage() { echo "usage: bin/prune-merged [--repo <path>] [--apply <sha>]" >&2; exit 2; }
-repo=$(dirname "$(readlink -f "$0")") repo_arg=
+# A copy behind origin/main's runs that one instead (see the header). It
+# runs from a temp file it deletes, named in PRUNE_MERGED_COPY, and is told
+# this repo through PRUNE_MERGED_FROM; both are cleared once read.
+if [ -n "${PRUNE_MERGED_FROM:-}" ] && [ "$0" = "${PRUNE_MERGED_COPY:-}" ] &&
+    [[ "$0" == "${TMPDIR:-/tmp}"/tmp.* ]]; then
+    rm -f "$0"
+    repo=$PRUNE_MERGED_FROM
+    unset PRUNE_MERGED_FROM PRUNE_MERGED_COPY
+else
+    unset PRUNE_MERGED_FROM PRUNE_MERGED_COPY
+    repo=$(git -C "$(dirname "$(readlink -f "$0")")" rev-parse --show-toplevel) || exit 2
+    # Behind: the file is as committed, its last commit is in origin/main,
+    # and origin/main's copy differs. A branch that edits it is ahead.
+    if git -C "$repo" fetch -q origin 2>/dev/null &&
+        last=$(git -C "$repo" log -1 --format=%H HEAD -- bin/prune-merged) && [ -n "$last" ] &&
+        git -C "$repo" merge-base --is-ancestor "$last" origin/main &&
+        git -C "$repo" diff --quiet HEAD -- bin/prune-merged &&
+        ! git -C "$repo" diff --quiet HEAD origin/main -- bin/prune-merged; then
+        copy=$(mktemp) || exit 2
+        git -C "$repo" show origin/main:bin/prune-merged > "$copy" || { rm -f "$copy"; exit 2; }
+        echo "prune-merged: running origin/main's copy, since $0 is behind it." >&2
+        PRUNE_MERGED_FROM=$repo PRUNE_MERGED_COPY=$copy exec bash "$copy" "$@"
+    fi
+fi
+repo_arg=
 while [ $# -gt 0 ]; do
     if [ "$1" = --apply ] && [ -z "${apply:-}" ] && [[ "${2:-}" =~ ^[0-9a-f]{7,40}$ ]]; then
         apply=$2
@@ -64,8 +104,9 @@ if [ -n "${apply:-}" ] && [[ "$tip" != "$apply"* ]]; then
     exit 1
 fi
 
-# Each branch's worktree, and which worktrees are locked or missing.
-declare -A wt_of locked missing
+# Each branch's worktree, which worktrees are locked or missing, and which
+# under .claude/worktrees/ hold only the harness's lock.
+declare -A wt_of locked missing harness_lock
 main_branch=
 in_main_record=1 path=
 while IFS= read -r line; do
@@ -74,6 +115,8 @@ while IFS= read -r line; do
         "branch refs/heads/"*)
             wt_of[${line#branch refs/heads/}]=$path
             [ -z "$in_main_record" ] || main_branch=${line#branch refs/heads/} ;;
+        "locked claude agent "*)
+            if [[ "$path" == "$main_clone/.claude/worktrees/"* ]]; then harness_lock[$path]=1; else locked[$path]=1; fi ;;
         locked*) locked[$path]=1 ;;
         prunable*) missing[$path]=1 ;;
         "") in_main_record= ;;
@@ -146,6 +189,9 @@ rc=0
 for b in "${remove[@]}"; do
     wt=${wt_of[$b]:-}
     if [ -n "$wt" ]; then
+        if [ -n "${harness_lock[$wt]:-}" ]; then
+            git worktree unlock "$wt" || { echo "prune-merged: kept $b, since its worktree $wt wasn't unlocked." >&2; rc=1; continue; }
+        fi
         git worktree remove "$wt" || { echo "prune-merged: kept $b, since its worktree $wt wasn't removed." >&2; rc=1; continue; }
         echo "Removed worktree $wt"
     fi
