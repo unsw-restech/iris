@@ -1,7 +1,10 @@
 """The BBBC039 preparation script, run as the IRIS maintainer runs it, on tiny
 made-up labelled images, asserting on the files it writes. A mistake here
-would silently train the model on wrong labels. bin/check runs it in
-microct/1 through tests/bin/test_prepare_bbbc039.sh.
+would silently train the model on wrong labels. bin/check runs it with the
+workflow's other tests, in microct/1, the version its form pins and the one
+the script runs in; by hand:
+
+    cd workflows/microscopy-cell-segmentation/tests && ../../../bin/envrun microct/1 python -m unittest test_prepare_bbbc039
 
 The labelled images are written as BBBC039 publishes its own: RGBA PNGs on
 black whose nuclei are the very dark reds (1, 0, 0), (2, 0, 0) and (3, 0, 0).
@@ -17,7 +20,7 @@ import numpy as np
 import tifffile
 from PIL import Image
 
-SCRIPT = Path(__file__).resolve().parent / "prepare_bbbc039.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "dataset" / "prepare_bbbc039.py"
 
 COLOURS = {".": (0, 0, 0, 255), "a": (1, 0, 0, 255), "b": (2, 0, 0, 255), "c": (3, 0, 0, 255)}
 CLASSES = {".": 1, "n": 2, "e": 3}  # background, nucleus, nucleus edge
