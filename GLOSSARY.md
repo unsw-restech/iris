@@ -84,6 +84,10 @@ _Avoid_: Group, team, facility
 The single microCT workflow every IRIS v1 design decision is tested against.
 _Avoid_: Demo, example workflow
 
+**Demonstration workflow**:
+A runnable workflow that shows what IRIS can do for a lab, on public data that did not come from that lab. It is proved by a real run like any other workflow, says on its page what it is, and is never minted.
+_Avoid_: Demo, sample workflow
+
 **Form**:
 The OpenComposer definition of a workflow on Katana OnDemand, where the researcher sets parameters and submits.
 _Avoid_: App, template
@@ -105,7 +109,7 @@ A frozen WorkflowHub snapshot of one workflow at one commit of `main`, with its 
 _Avoid_: Release, workflow version
 
 **Minting**:
-Making a citable version of a workflow public on WorkflowHub, which gives it its own DOI and makes that snapshot the official one to cite. The workflow owner mints the first straight after the workflow joins IRIS, then again only when its results would change.
+Making a citable version of a workflow public on WorkflowHub, which gives it its own DOI and makes that snapshot the official one to cite. The workflow owner mints the first straight after the workflow joins IRIS, then again only when its results would change. A demonstration workflow is never minted.
 _Avoid_: Releasing, tagging, publishing
 
 **Run**:
@@ -172,12 +176,16 @@ _Avoid_: IRIS environment, iris package
 A 3D image dataset; for IRIS v1, microCT data arriving as netCDF.
 _Avoid_: Stack, scan
 
+**Image set**:
+A folder of same-sized 2D images that a run segments, each independent of the others. Unlike a volume's slices, its images are not parts of one 3D object.
+_Avoid_: Stack, batch
+
 **Label volume**:
 An image or volume of the same shape as its source in which each pixel or voxel holds a class number. In training labels, 0 marks it as unlabelled. A label slice is a one-slice label volume.
 _Avoid_: Mask, annotation, ground truth
 
 **Dataset**:
-The folder in the researcher's scratch that a run reads, laid out as its workflow requires: for `microct-2d-segmentation`, one volume and its training pairs. A run reads one dataset.
+The folder in the researcher's scratch that a run reads, laid out as its workflow requires: for `microct-2d-segmentation`, one volume and its training pairs, and for `microscopy-cell-segmentation`, one image set and its training pairs. A run reads one dataset.
 _Avoid_: Project, input folder
 
 **Dataset record**:
