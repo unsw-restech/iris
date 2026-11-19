@@ -108,23 +108,19 @@ code { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--blue2); 
    <div class="unmaintained-banner"><strong>Unmaintained.</strong> This workflow can't be
    run: it broke and its workflow owner stopped answering. To bring it back, adopt it
    (link the contribute page's adoption steps).</div> */
-.unmaintained-banner {
+/* Demonstration notice: says on a demonstration workflow's page that it runs on public
+   data that did not come from the lab it shows IRIS to. It looks like the banner, closer
+   to the owner line below it, and is its own class, since bin/check reads the banner's
+   class as marking a workflow unmaintained. */
+.unmaintained-banner, .demonstration-notice {
   background: rgba(232,168,74,0.08); border: 1px solid rgba(232,168,74,0.35);
   border-left: 3px solid var(--amber); border-radius: 8px;
   padding: 14px 20px; margin-bottom: 40px; max-width: 640px;
   font-size: 14px; line-height: 1.6; color: var(--text);
 }
-.unmaintained-banner strong { color: var(--amber); }
+.demonstration-notice { margin-bottom: 24px; }
+.unmaintained-banner strong, .demonstration-notice strong { color: var(--amber); }
 .unmaintained-banner a { color: var(--blue2); }
-/* Demonstration notice: says on a demonstration workflow's page that it runs on public
-   data that did not come from the lab it shows IRIS to. */
-.demonstration-notice {
-  background: rgba(232,168,74,0.08); border: 1px solid rgba(232,168,74,0.35);
-  border-left: 3px solid var(--amber); border-radius: 8px;
-  padding: 14px 20px; margin-bottom: 24px; max-width: 640px;
-  font-size: 14px; line-height: 1.6; color: var(--text);
-}
-.demonstration-notice strong { color: var(--amber); }
 /* Launch block: the Run button with its "You're ready when" checklist beside it. */
 .launch { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: start; margin-bottom: 40px; }
 .launch .run-note { margin-bottom: 0; max-width: 260px; line-height: 1.6; }

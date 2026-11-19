@@ -47,7 +47,7 @@
       <div class="col-when">Once per dataset</div>
       <h3>1 · Transfer</h3>
       <p>Lay out one dataset folder as in <a href="#data">The data it needs</a>, then send it to your scratch with Globus from your browser.</p>
-      <p><a href="../../guide/#stage">Transferring a dataset</a></p>
+      <p><a href="../../guide/#send">Sending a dataset to Katana</a></p>
     </div>
     <div class="col">
       <div class="col-when">Every run · two clicks</div>
@@ -65,14 +65,15 @@
 
   <details id="data">
     <summary>The data it needs</summary>
-    <p>One dataset folder holding an image set and its training pairs. You can arrange your own images this way:</p>
+    <p>One dataset folder holding an image set and its training pairs, not a volume. You can arrange your own images this way, on your own computer:</p>
     <ul>
       <li><code>images/</code> holds the image set, the images to segment, read in file-name order.</li>
       <li><code>train/images/</code> holds the training images.</li>
-      <li><code>train/labels/</code> holds one label slice per training image, with the same file name and size: 0 is unlabelled, then 1, 2, 3 and so on per class. The number of classes is read from your labels, up to 255.</li>
-      <li>Every image is a single-page, single-channel 2D TIFF. Training images and the image set share one size and one bit depth.</li>
+      <li><code>train/labels/</code> holds one label slice per training image, with the same file name and size: 0 is unlabelled, then 1, 2, 3 and so on per class. The number of classes is read from your labels, up to 255. Pixels left at 0 are ignored, so you can label just part of an image.</li>
+      <li>Every image and label slice is a single-page, single-channel 2D TIFF. Training images and the image set share one size and one bit depth.</li>
+      <li>IRIS adds a <code>runs/</code> folder the first time you run on the dataset, with one folder per run.</li>
     </ul>
-    <p>The form checks this layout before it submits. Lay out and copy the folder to your scratch as in <a href="../../guide/#stage">Transferring a dataset</a>.</p>
+    <p>The form checks this layout before it submits, and that every file in these three folders is a TIFF. Copy the folder to anywhere in your scratch as in <a href="../../guide/#send">Sending a dataset to Katana</a>.</p>
     <p>The prepared dataset is built from <a href="https://bbbc.broadinstitute.org/BBBC039" target="_blank">BBBC039</a>, a public collection of fluorescence images of U2OS nuclei. Its 100 training fields become the training pairs and its 50 test fields the image set, so the images segmented are ones the model did not train on. Its label slices hold 1 for background, 2 for nucleus and 3 for nucleus edge. BBBC039's recommended citation is:</p>
     <p>We used image set BBBC039v1 Caicedo et al. 2018, available from the Broad Bioimage Benchmark Collection [Ljosa et al., Nature Methods, 2012].</p>
   </details>
@@ -146,12 +147,13 @@
   <details>
     <summary>Something went wrong</summary>
     <ul>
-      <li><strong>The form won't submit.</strong> Its warning names the rule your dataset folder broke, and your values are kept. Fix the folder and submit again. A stray <code>.DS_Store</code> or <code>Thumbs.db</code> in one of the <code>train/</code> folders counts as a file-name mismatch: delete it.</li>
+      <li><strong>The form won't submit.</strong> Its warning names the rule your dataset folder broke, and your values are kept. Fix the folder and submit again. A stray <code>.DS_Store</code> or <code>Thumbs.db</code> in one of the <code>train/</code> folders counts as a file-name mismatch, and one in <code>images/</code> as a file that isn't a TIFF: delete it.</li>
       <li><strong>The job stopped at once with "the IRIS imaging environment is missing".</strong> Nothing is wrong with your data. Email the <a href="#owner">workflow owner</a> with the job ID.</li>
-      <li><strong>The job stopped before training with an <code>ERROR:</code> line about your dataset.</strong> It names the file and what's wrong: a file that isn't a single-page, single-channel 2D TIFF, an image at a different size or bit depth from the others, a label slice that doesn't match its image, label values that aren't whole numbers from 0, more than 255 classes, or labels that are all 0. Any other file in <code>images/</code>, such as a <code>.DS_Store</code>, stops the job the same way: delete it.</li>
+      <li><strong>The job stopped before training with an <code>ERROR:</code> line about your dataset.</strong> It names the file and what's wrong: a file that isn't a single-page, single-channel 2D TIFF, an image at a different size or bit depth from the others, a label slice that doesn't match its image, label values that aren't whole numbers from 0, more than 255 classes, or labels that are all 0.</li>
       <li><strong>The job ran out of walltime.</strong> Submit again with more walltime. <strong>Load parameters</strong> in <strong>History</strong> keeps your other settings.</li>
       <li><strong>The job ran out of GPU memory.</strong> Lower the batch size under advanced options, or the patch size.</li>
       <li><strong><code>iris-view</code> says there is no label volume.</strong> The run hasn't finished, or it failed: read the end of its <code>runs/&lt;job ID&gt;.OU</code>.</li>
+      <li><strong><code>iris-view</code> says <code>images/</code> no longer holds the images this run labelled.</strong> An image has been added to the image set, removed or renamed since the run, so the labels would show over the wrong images. Put the image set back as the run read it: <code>dataset.json</code> in the run directory lists its file names.</li>
       <li><strong>The job output doesn't end with the <code>iris-view</code> line.</strong> The job stopped at its first error, which is the last thing in the output. The same commands are printed near the start of the output, so the run directory they name may be incomplete.</li>
       <li><strong>Anything else.</strong> Email the <a href="#owner">workflow owner</a> with the job ID and the end of the job output.</li>
     </ul>
