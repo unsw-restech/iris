@@ -48,11 +48,33 @@ class Download:
             text = "".join(f"{name}.png\n" for name in names)
             (self.metadata / f"{list_name}.txt").write_text(text)
 
+    def arguments(self):
+        return ["--images", str(self.images), "--labelled-images", str(self.labelled),
+                "--metadata", str(self.metadata), "--output", str(self.output)]
+
     def prepare(self):
-        return subprocess.run(
-            [sys.executable, str(SCRIPT), "--images", str(self.images), "--labelled-images", str(self.labelled),
-             "--metadata", str(self.metadata), "--output", str(self.output)],
-            capture_output=True, text=True, timeout=60)
+        return subprocess.run([sys.executable, str(SCRIPT), *self.arguments()],
+                              capture_output=True, text=True, timeout=60)
+
+    def prepare_killed_at_its_second_file(self):
+        """Run the script, killing it as walltime or a kill would just as it
+        writes its second file into the dataset."""
+        return subprocess.run([sys.executable, "-c", KILLED_AT_SECOND_FILE, str(SCRIPT), *self.arguments()],
+                              capture_output=True, text=True, timeout=60)
+
+
+KILLED_AT_SECOND_FILE = """
+import os, runpy, shutil, signal, sys
+copy, copies = shutil.copyfile, []
+def copy_then_die(*args, **kwargs):
+    copies.append(args)
+    if len(copies) == 2:
+        os.kill(os.getpid(), signal.SIGKILL)
+    return copy(*args, **kwargs)
+shutil.copyfile = copy_then_die
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+"""
 
 
 class PrepareTestCase(unittest.TestCase):
@@ -168,6 +190,19 @@ class Dataset(PrepareTestCase):
             self.assertEqual(page.dtype, np.uint16)
             np.testing.assert_array_equal(page, np.full((3, 3), 500))
 
+    def test_a_run_killed_halfway_leaves_no_dataset_and_the_next_run_builds_it_whole(self):
+        for name in ("train1", "train2", "test1"):
+            self.download.field(name, self.FIELD)
+        self.download.split(training=["train1", "train2"], test=["test1"])
+
+        killed = self.download.prepare_killed_at_its_second_file()
+
+        self.assertEqual(killed.returncode, -9, killed.stderr)
+        self.assertFalse(self.download.output.exists())
+        done = self.download.prepare()
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(len(list(self.download.output.rglob("*.tif"))), 5)
+
 
 class Refusals(PrepareTestCase):
     """Each stops with one line naming the problem, and writes no dataset."""
@@ -223,7 +258,7 @@ class Refusals(PrepareTestCase):
         self.download.split(training=["field1"], test=["field1"])
         self.assert_refused("field1")
 
-    def test_an_output_folder_that_already_exists(self):
+    def test_a_dataset_that_already_exists(self):
         self.download.field("train1", self.FIELD)
         self.download.split(training=["train1"])
         self.download.output.mkdir()
