@@ -12,3 +12,4 @@ Each catalogue workflow has its own WorkflowHub entry, imported from this repo, 
 
 - A citable version's commit can include unrelated changes to other workflows. That is harmless, since the run's own commit still pins exactly what ran.
 - Owners mint a new citable version only when their workflow's code or defaults change in a way that changes results, not on every merge.
+- A demonstration workflow is the one exception (#231): it has no WorkflowHub entry and is never minted, so its page lists no citable version and researchers cite IRIS with the workflow's name and their commit.

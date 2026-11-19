@@ -52,7 +52,7 @@ If you publish results from an IRIS run, find the commit in the run's `commit.tx
 
    > *<the citation for the DOI>*, run at IRIS commit `<commit>`.
 
-   **Until the workflow has a citable version** at or before your commit, cite IRIS instead, naming the workflow and the commit:
+   **Until the workflow has a citable version** at or before your commit, or if it is a demonstration workflow, which is never minted and has none, cite IRIS instead, naming the workflow and the commit:
 
    > UNSW Research Technology Services. *IRIS: Intelligent Research Imaging Suite, the UNSW ResTech AI Imaging Gateway*, workflow `<workflow>`, commit `<commit>`. https://github.com/unsw-restech/iris
 
