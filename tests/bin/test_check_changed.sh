@@ -17,7 +17,7 @@ trap 'rm -rf "$scratch"' EXIT
 
 repo="$scratch/repo"
 mkdir -p "$repo/bin" "$repo/tests/bin" "$repo/lib" "$repo/.github/workflows" "$repo/_archive/old" "$repo/envs/tools/1"
-cp bin/check-changed "$repo/bin/"
+cp bin/check-changed bin/check-passed bin/tracked-tree "$repo/bin/"
 printf '#!/bin/bash\necho run\n' > "$repo/bin/run"
 printf '#!/bin/bash\necho run-more\n' > "$repo/bin/run-more"
 echo 'name: ci' > "$repo/.github/workflows/ci.yml"
@@ -108,6 +108,87 @@ lacks test tests/bin/test_run.sh
 "$repo/bin/check-changed" HEAD > /dev/null
 code=$?
 [ "$code" = 1 ] || fail "a base given: exit $code, not 1"
+git -C "$repo" reset -q --hard origin/main
+
+# A recorded full pass nearest HEAD is the base (bin/check-passed --last):
+# only what changed since it is listed.
+passed="$repo/.git/iris/check-passed"
+# record_pass: records the working tree as a full pass on HEAD, as a
+# passing bin/check does.
+record_pass() { (cd "$repo" && bin/check-passed --record "$(bin/tracked-tree)"); }
+
+case="no pass recorded"
+echo '# more' >> "$repo/bin/run"
+listed
+has base "the merge-base with origin/main"
+git -C "$repo" checkout -q -- bin/run
+
+case="a pass on the branch"
+echo '# more' >> "$repo/bin/run-more"
+git -C "$repo" -c user.name=t -c user.email=t@t commit -q -am more
+record_pass
+echo '# more' >> "$repo/bin/run"
+listed
+has base "the full pass on $(git -C "$repo" rev-parse --short HEAD)"
+has test tests/bin/test_run.sh
+lacks test tests/bin/test_more.sh
+lacks file bin/run-more
+git -C "$repo" checkout -q -- bin/run
+
+case="nothing changed since the pass"
+listed
+[ "$code" = 1 ] || fail "$case: exit $code, not 1"
+has base "the full pass on $(git -C "$repo" rev-parse --short HEAD)"
+
+case="a pass that saw an edit since undone"
+echo '# edit' >> "$repo/bin/run"
+record_pass
+git -C "$repo" checkout -q -- bin/run
+listed
+has file bin/run
+lacks file bin/run-more
+
+case="a given base over a pass"
+"$repo/bin/check-changed" origin/main > "$scratch/given"
+grep -qxF "$(printf 'base\torigin/main')" "$scratch/given" || fail "$case: no line 'base origin/main'"
+grep -qxF "$(printf 'file\tbin/run-more')" "$scratch/given" || fail "$case: bin/run-more not listed"
+
+case="a pass off the branch"
+git -C "$repo" switch -q -c other origin/main
+echo '# other' >> "$repo/notes.md"
+git -C "$repo" -c user.name=t -c user.email=t@t commit -q -am other
+record_pass
+git -C "$repo" switch -q main
+git -C "$repo" branch -q -D other
+echo '# more' >> "$repo/bin/run"
+listed
+# The newest record is other's, not on main, so main's earlier pass is used.
+has base "the full pass on $(git -C "$repo" rev-parse --short HEAD)"
+lacks file notes.md
+git -C "$repo" checkout -q -- bin/run
+
+# A pass recorded later on an older commit, as a main clone records one on
+# the main a branch then merges: the pass nearest HEAD is still the base.
+case="a newer pass further back"
+git -C "$repo" switch -q --detach origin/main
+record_pass
+git -C "$repo" switch -q main
+echo '# more' >> "$repo/bin/run"
+listed
+has base "the full pass on $(git -C "$repo" rev-parse --short HEAD)"
+lacks file bin/run-more
+git -C "$repo" checkout -q -- bin/run
+
+# A record written by hand, since git keeps every tree a test can make.
+case="a pass whose tree git no longer holds"
+: > "$passed"
+echo "0123456789abcdef0123456789abcdef01234567 2026-01-01T00:00:00Z $(git -C "$repo" rev-parse --short HEAD)" >> "$passed"
+echo '# more' >> "$repo/bin/run"
+listed
+has base "the merge-base with origin/main"
+has file bin/run-more
+git -C "$repo" checkout -q -- bin/run
+rm -f "$passed"
 git -C "$repo" reset -q --hard origin/main
 
 case="an archived script"

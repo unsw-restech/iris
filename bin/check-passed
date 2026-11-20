@@ -12,7 +12,19 @@
 #   bin/check-passed <commit>           exit 0 if a recorded pass checked
 #                                       <commit>'s tree, 1 if not, 2 if
 #                                       <commit> isn't one
+#   bin/check-passed --last             print "<tree> <commit>" for the pass
+#                                       nearest HEAD: of the passes recorded
+#                                       on HEAD or an ancestor, whose tree
+#                                       git still holds, the one on the
+#                                       commit fewest steps back, the newest
+#                                       record on a tie; exit 1 if none.
+#                                       bin/check-changed takes it as
+#                                       --changed's base. Nearest, not
+#                                       newest: a pass recorded later on a
+#                                       main commit the branch merged would
+#                                       bring back the branch's whole diff
 #
+# Each record is a line "<tree> <when> <commit>", <commit> abbreviated.
 # By tree, not commit: the tree is the tracked files as the working tree
 # holds them, uncommitted edits and `git add -N` files included, so a pass
 # before committing every edit covers the commit that holds them, and any
@@ -22,7 +34,29 @@
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 2
 passed="$(git rev-parse --git-common-dir)/iris/check-passed"
-usage() { echo "usage: bin/check-passed --record <tree> | <commit>" >&2; exit 2; }
+usage() { echo "usage: bin/check-passed --record <tree> | --last | <commit>" >&2; exit 2; }
+
+# The pass nearest HEAD. One rev-list rather than a git call per record,
+# which would grow with the record, one line a full run.
+if [ "$1" = --last ]; then
+    [ $# -eq 1 ] || usage
+    [ -s "$passed" ] || exit 1
+    declare -A step=() full=()
+    n=0
+    while read -r c; do step[${c:0:7}]=$n; full[${c:0:7}]=$c; n=$((n + 1)); done < <(git rev-list -n 5000 HEAD)
+    # Each record on HEAD's line as "<steps back> <tree> <commit>", nearest
+    # first, newest first on a tie (sort -s keeps tac's order).
+    while read -r tree _ commit; do
+        key="${commit:0:7}"
+        if [ ${#commit} -lt 7 ] || [ -z "${step[$key]-}" ]; then continue; fi
+        # The record's short commit is a prefix of the ancestor's.
+        if [ "${full[$key]#"$commit"}" = "${full[$key]}" ]; then continue; fi
+        echo "${step[$key]} $tree $commit"
+    done < <(tac "$passed") | sort -s -n -k1,1 | while read -r _ tree commit; do
+        if git cat-file -e "$tree^{tree}" 2> /dev/null; then echo "$tree $commit"; exit 0; fi
+    done | grep . || exit 1
+    exit 0
+fi
 
 if [ "$1" = --record ]; then
     [ $# -eq 2 ] && [ -n "$2" ] || usage

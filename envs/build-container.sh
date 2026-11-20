@@ -5,14 +5,13 @@
 #
 #   envs/build-container.sh <env>/<n> <local name>
 #
-# envs/build-kind.sh picks the recipe from the lock alone (ADR-0010). A
-# version it calls a layer builds from envs/next.Dockerfile on top of the
-# version before it, pulled by the digest lib/katana.sh's digest map gives
-# it, so that version must be published first. One it calls fresh, a first
-# version or one whose lock changes or removes a line of the one before it,
-# builds from envs/<env>/1/Dockerfile and needs no other version; its note
-# naming what it changes is printed first. The context is envs/<env>/<n>/,
-# which holds its lock.
+# envs/build-kind.sh picks the recipe (ADR-0010), and this script makes no
+# choice of its own. A version it calls a layer builds from
+# envs/next.Dockerfile on top of the version before it, pulled by the digest
+# lib/katana.sh's digest map gives it, so that version must be published
+# first. One it calls fresh builds from the Dockerfile it names and needs
+# no other version published; its note saying why is printed first. The
+# context is envs/<env>/<n>/, which holds its lock.
 
 set -euo pipefail
 
@@ -30,13 +29,13 @@ recipe="$(envs/build-kind.sh "$VERSION")"
 kind="$(head -n1 <<< "$recipe")"
 note="$(sed -n 2p <<< "$recipe")"
 [ -z "$note" ] || echo "NOTE: $note"
-env="${VERSION%/*}"
 
-if [ "$kind" = fresh ]; then
-    echo "Building $VERSION fresh from envs/$env/1/Dockerfile."
-    docker buildx build "${args[@]}" -f "envs/$env/1/Dockerfile" "envs/$VERSION"
+if [ "${kind%% *}" = fresh ]; then
+    dockerfile="${kind#fresh }"
+    echo "Building $VERSION fresh from $dockerfile."
+    docker buildx build "${args[@]}" -f "$dockerfile" "envs/$VERSION"
 else
-    prev="$env/$((${VERSION##*/} - 1))"
+    prev="${VERSION%/*}/$((${VERSION##*/} - 1))"
     previous="$(iris_env_ref "$prev")" ||
         { echo "Publish $prev and put its digest in lib/katana.sh before building $VERSION as a layer on it."; exit 1; }
     echo "Building $VERSION as a layer on $previous."

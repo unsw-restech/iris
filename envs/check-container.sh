@@ -10,8 +10,9 @@
 # for a version whose lock pins torch:
 #   - PyTorch is compiled for sm_70, as the V100s need
 # and, for a version whose lock pins napari (iris-view):
-#   - Qt's xcb platform plugin, its GLX integration and the PyQt5 modules
-#     napari loads find every library they link
+#   - the lock pins one Qt binding, PyQt5 or PyQt6
+#   - that binding's xcb platform plugin, its GLX integration and the
+#     modules napari loads find every library they link
 #   - napari draws a frame on $DISPLAY, which Xvfb -ac provides in CI;
 #     offscreen Qt has no OpenGL and draws nothing
 # Needs Docker.
@@ -23,6 +24,19 @@ VERSION="${2:?usage: envs/check-container.sh <local name> <env>/<n>}"
 ENVS="$(cd "$(dirname "$0")" && pwd)"
 LOCK="$ENVS/$VERSION/requirements.lock"
 [ -f "$LOCK" ] || { echo "No $LOCK."; exit 1; }
+
+# The Qt binding napari draws with is whichever one the lock pins, read
+# before any Docker run so a lock with neither fails at once.
+QT=
+if grep -qiE '^napari==' "$LOCK"; then
+    # Each binding pinned, by its name before ==, any case, written PyQt5 or PyQt6.
+    pinned=$(sed -nE 's/^pyqt([56])[[:space:]]*==.*/PyQt\1/Ip' "$LOCK" | sort -u | tr '\n' ' ')
+    case "$pinned" in
+        "PyQt5 "|"PyQt6 ") QT="${pinned% }" ;;
+        "") echo "FAILED: envs/$VERSION/requirements.lock pins napari but neither PyQt5 nor PyQt6."; exit 1 ;;
+        *) echo "FAILED: envs/$VERSION/requirements.lock pins both PyQt5 and PyQt6; pin one."; exit 1 ;;
+    esac
+fi
 
 in_container() {
     docker run --rm -v "$ENVS:/recipe:ro" -v /tmp/.X11-unix:/tmp/.X11-unix \
@@ -46,7 +60,7 @@ else
     echo "No torch in the lock, so no GPU arch check."
 fi
 
-if ! grep -qiE '^napari==' "$LOCK"; then
+if [ -z "$QT" ]; then
     echo "No napari in the lock, so no Qt or drawing checks."
     echo "Container checks passed."
     exit 0
@@ -54,14 +68,20 @@ fi
 
 : "${DISPLAY:?set DISPLAY to an X server that accepts any client, e.g. Xvfb :99 -ac}"
 
-echo "== Qt libraries"
+case "$QT" in
+    PyQt5) modules="Core Gui Widgets OpenGL Svg" ;;
+    PyQt6) modules="Core Gui Widgets OpenGL OpenGLWidgets Svg" ;;
+esac
+
+echo "== Qt libraries ($QT)"
 # shellcheck disable=SC2016  # expanded inside the container
-missing=$(in_container bash -c 'q=$(python -c "import os, PyQt5; print(os.path.dirname(PyQt5.__file__))")
-    ldd "$q"/Qt{Core,Gui,Widgets,OpenGL,Svg}.abi3.so "$q"/Qt5/plugins/platforms/libqxcb.so \
-        "$q"/Qt5/plugins/xcbglintegrations/*.so | grep "not found" | sort -u')
+missing=$(in_container bash -c 'b=$1; q=$(python -c "import os, $b; print(os.path.dirname($b.__file__))")
+    libs=(); for m in $2; do libs+=("$q/Qt$m.abi3.so"); done
+    ldd "${libs[@]}" "$q/Qt${b#PyQt}/plugins/platforms/libqxcb.so" \
+        "$q/Qt${b#PyQt}"/plugins/xcbglintegrations/*.so | grep "not found" | sort -u' _ "$QT" "$modules")
 if [ -n "$missing" ]; then
     echo "$missing"
-    echo "FAILED: Qt can't find the libraries above; add their Debian packages to the first version's Dockerfile."
+    echo "FAILED: Qt can't find the libraries above; add their Debian packages to envs/$VERSION/Dockerfile, the version's own beside its lock, since a published Dockerfile is never edited."
     exit 1
 fi
 echo "all found"

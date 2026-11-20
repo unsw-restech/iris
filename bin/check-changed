@@ -1,12 +1,24 @@
 #!/bin/bash
 # Which of bin/check's checks a change reaches, for bin/check --changed:
-# the files changed since <base> (the merge-base of origin/main and HEAD
-# if not given), in the working tree, untracked ones included, and the
-# checks that cover them. Run from anywhere in the clone.
+# the files changed since <base>, in the working tree, untracked ones
+# included, and the checks that cover them. Run from anywhere in the clone.
 #
 #   bin/check-changed [<base>]
 #
+# With no <base>, the base is the tree of the full bin/check pass nearest
+# HEAD (bin/check-passed --last), and with none, the merge-base of
+# origin/main and HEAD. A pass covered every
+# check on its tree, so only what changed since needs its slow checks
+# again: on an integration branch, which changes lib/ and workflows/
+# since origin/main, the merge-base reached nearly every slow check, and
+# #231's --changed runs took as long as full ones. The pass is matched by
+# tree, uncommitted edits included, so an edit it saw and later undone
+# counts as changed.
+#
 # Prints tab-separated lines:
+#   base<TAB><what>       first, what the files changed since: "the full
+#                         pass on <commit>", "the merge-base with
+#                         origin/main" or the <base> given
 #   file<TAB><path>       each changed file
 #   test<TAB><path>       each tests/bin/test_*.sh that is changed or holds
 #                         a changed file's whole path, as bin/envrun is in
@@ -27,9 +39,15 @@ cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 [ $# -le 1 ] || { echo "usage: bin/check-changed [<base>]" >&2; exit 2; }
 if [ $# = 1 ]; then
     base="$(git rev-parse --verify -q "$1^{commit}")" || { echo "bin/check-changed: no commit $1" >&2; exit 2; }
+    since="$1"
+elif pass="$(bin/check-passed --last)"; then
+    base="${pass%% *}"
+    since="the full pass on ${pass#* }"
 else
     base="$(git merge-base origin/main HEAD)" || { echo "bin/check-changed: no merge-base of origin/main and HEAD" >&2; exit 2; }
+    since="the merge-base with origin/main"
 fi
+printf 'base\t%s\n' "$since"
 
 mapfile -t changed < <({ git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u)
 [ ${#changed[@]} -gt 0 ] || exit 1

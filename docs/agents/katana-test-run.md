@@ -16,7 +16,14 @@ It runs from `/pun/sys/`, since the pilot's only users are testers (Patrick, 202
 
 ## A test-instance run
 
-The test instance serves the IRIS maintainer's dev clone, `~/iris`, and runs as them (ADR-0012), so push and pull the dev clone first if the run needs new code:
+The test instance serves the IRIS maintainer's dev clone, `~/iris`, and runs as them (ADR-0012), so the run's code must be checked out there. Code on `main` gets there by the dev-clone pull. Code not yet on `main` goes there as a branch, such as an integration branch whose new workflow is proved before the one push to `main` that turns its card Active, so the live site never shows a runnable workflow as Planned (IRIS maintainer, 2026-11-19):
+
+- **Push the branch**, never `main`: `git push origin <branch>`. A branch push deploys nothing.
+- **Check it out detached** once `ssh katana 'cd ~/iris && git status --porcelain'` prints nothing and no job of the IRIS maintainer's is running from the dev clone, since a running job reads its library there: `ssh katana 'cd ~/iris && git fetch -q origin'`, then `ssh katana 'cd ~/iris && git switch --detach origin/<branch>'`, each its own command.
+- **Switch back** with `ssh katana 'cd ~/iris && git switch main'` as soon as step 4 has written the run proof, since every test-instance run until then runs the branch.
+- **Delete the GitHub branch** once its work is in `origin/main`, with the IRIS maintainer's go-ahead naming it: `git push origin --delete <branch>`.
+
+Then:
 
 1. Check it's linked: `ssh katana 'ls -l ~/ondemand/dev/'` lists `OpenComposer-iris-test`. If it doesn't, `ssh katana 'ln -s /srv/scratch/katana_ai/iris/OpenComposer-iris-test ~/ondemand/dev/'`; an existing `~/ondemand/dev` needs no web server restart (#174).
 2. The IRIS maintainer submits from `https://kod.restech.unsw.edu.au/pun/dev/OpenComposer-iris-test/<slug>` and gives you the job ID. Its navbar reads "IRIS test instance", the IRIS instance's "IRIS".
@@ -27,7 +34,7 @@ The test instance serves the IRIS maintainer's dev clone, `~/iris`, and runs as 
    ```
 
    `payload_json` holds the rendered script.
-4. For a run proof, once the job has ended and its `.OU` is in `runs/`, run `ssh katana '~/iris/bin/run-proof <run dir>'`: it makes the same checks itself and writes `workflows/<slug>/run-proof.json` in the dev clone, or says why it can't (CONTRIBUTING's [Run proof](../../CONTRIBUTING.md#6-run-proof)). The dev clone only ever pulls, so copy the file into the desktop clone, `ssh katana 'cat ~/iris/workflows/<slug>/run-proof.json' > workflows/<slug>/run-proof.json`, commit it there, and remove the dev clone's copy, with the IRIS maintainer's go-ahead naming it, before the next dev-clone pull, which won't overwrite a file git doesn't track (a proof already committed is simply restored with `git -C ~/iris checkout -- <path>`).
+4. For a run proof, once the job has ended and its `.OU` is in `runs/`, run `ssh katana '~/iris/bin/run-proof <run dir>'`: it makes the same checks itself and writes `workflows/<slug>/run-proof.json` in the dev clone, or says why it can't (CONTRIBUTING's [Run proof](../../CONTRIBUTING.md#6-run-proof)). The dev clone never commits, so copy the file into the desktop clone, `ssh katana 'cat ~/iris/workflows/<slug>/run-proof.json' > workflows/<slug>/run-proof.json`, commit it there, and remove the dev clone's copy, with the IRIS maintainer's go-ahead naming it, before the next dev-clone pull, which won't overwrite a file git doesn't track (a proof already committed is simply restored with `git -C ~/iris checkout -- <path>`).
 
 To see what an author with no clone gets, move `~/iris/workflows` aside, with the IRIS maintainer's go-ahead naming it, only once no job of theirs reads it, and move it back as soon as they've reloaded the pages. A Develop app runs in development mode, so its error page names the exception, which the fork's `misc/tests/serve`, in production mode, doesn't (#174).
 

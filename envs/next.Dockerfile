@@ -1,10 +1,10 @@
-# A later version of an environment, <env>/<n> for n > 1, whose lock keeps
-# every line of the lock before it (envs/build-kind.sh prints "layer"): the
-# version before it, pulled by digest, plus the packages <env>/<n>'s lock
-# adds, as one new layer. The registry stores the layers the two share only
-# once. pip installs only what is new: every other line is already
-# satisfied. A version that changes or removes a line is built fresh from
-# envs/<env>/1/Dockerfile instead (ADR-0010).
+# A later version of an environment, <env>/<n> for n > 1, that carries no
+# Dockerfile of its own and whose lock keeps every line of the lock before
+# it (envs/build-kind.sh prints "layer"): the version before it, pulled by
+# digest, plus the packages <env>/<n>'s lock adds, as one new layer. The
+# registry stores the layers the two share only once. pip installs only what
+# is new: every other line is already satisfied. Any other version is built
+# fresh, from the Dockerfile envs/build-kind.sh names (ADR-0010).
 #
 # envs/build-container.sh <env>/<n> builds it, with envs/<env>/<n>/ as the
 # context and PREVIOUS the version before it by digest alone

@@ -4,6 +4,8 @@ IRIS (Intelligent Research Imaging Suite) is the UNSW ResTech AI Imaging Gateway
 
 ## Language
 
+`bin/avoid-uses <file>...` lists every use of an _Avoid_ word below, in files or a ticket's text on standard input (`-`).
+
 **Pilot**:
 The period in which IRIS runs on the IRIS instance but only pilot testers, members of a group ResTech chooses, can run workflows.
 _Avoid_: Beta, test instance

@@ -3,8 +3,9 @@
 # each with its own copy of bin/check and bin/libcopy: a copy bin/libcopy
 # makes passes, and one edited by hand, missing a file, holding a file
 # that isn't the job side's, or recording a commit outside HEAD's history
-# fails, as does an imaging form with no copy. Prints each failed case and
-# nothing on success, so bin/check can run it.
+# fails, as does an imaging form with no copy, while a lib/ holding only
+# ignored files, or one deeper than a workflow's own, is no copy. Prints
+# each failed case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_library_copies.sh
 #
@@ -128,6 +129,29 @@ copied not-a-commit
 echo "0123456789abcdef0123456789abcdef01234567" > "$scratch/not-a-commit/workflows/seg/lib/copied-from"
 commit not-a-commit
 expect fail "$scratch/not-a-commit" "$name"
+
+# A lib/ holding only ignored files, such as the __pycache__/ a branch
+# switch leaves behind for a workflow the new branch lacks, is no copy; a
+# new copy not yet committed still is, so its hand edit fails.
+copied ignored
+printf '%s\n' '__pycache__/' > "$scratch/ignored/.gitignore"
+commit ignored
+mkdir -p "$scratch/ignored/workflows/gone/lib/iris/__pycache__"
+touch "$scratch/ignored/workflows/gone/lib/iris/__pycache__/record.cpython-313.pyc"
+expect pass "$scratch/ignored" "$name"
+
+copied untracked-copy
+mkdir -p "$scratch/untracked-copy/workflows/new"
+"$scratch/untracked-copy/bin/libcopy" new > /dev/null
+echo "# a fix" >> "$scratch/untracked-copy/workflows/new/lib/iris/record.py"
+expect fail "$scratch/untracked-copy" "$name"
+
+# Only a workflow's own lib/ is a copy, not a lib/ deeper in its folder.
+copied nested
+mkdir -p "$scratch/nested/workflows/seg/src/lib"
+echo "x = 1" > "$scratch/nested/workflows/seg/src/lib/a.py"
+commit nested
+expect pass "$scratch/nested" "$name"
 
 # A Windows working copy can hold CRLF files; the copy is compared as git
 # stores it.

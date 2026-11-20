@@ -56,6 +56,7 @@ iris/
 ├── .githooks/pre-push                # Refuses a push to main of a tree no full bin/check passed on, or whose forms, module, job library, library copies or the tests bin/katana-test runs no passing bin/katana-test tested, or whose digest map names an author's container, or with no bin/syspull listing since main last moved or the system clone was last deployed
 ├── ruff.toml                         # The Python lint rules bin/check applies
 ├── bin/
+│   ├── avoid-uses                    # List every use of a GLOSSARY.md Avoid word in files or a ticket's text, or of one a branch adds (bin/check runs it)
 │   ├── check                         # Every check to pass before committing
 │   ├── check-passed                  # Record the tree a full bin/check passed on; say whether a commit's tree passed (pre-push runs it)
 │   ├── ciwait                        # Wait for a pushed commit's CI run, check or containers (desktop)
@@ -205,6 +206,7 @@ CI on your fork builds your new version and publishes it under your own GitHub a
 
 - **A version that only adds packages is the cheap case**: its lock keeps every line of the one before, so it is built as one layer on it.
 - **A version that changes or removes a package** is not declined: it is built fresh rather than as a layer, `bin/check` prints a `NOTE:` naming what it changes and removes, and it needs the maintainer's review ([ADR-0010](docs/adr/0010-an-environment-version-may-change-its-labs-pins.md)). It is still the lab's next version, never a second environment.
+- **A version that changes its base Python or its system libraries**, such as the Debian packages a new Qt needs, carries its own `Dockerfile`, `envs/<env>/<n+1>/Dockerfile` beside its lock. It is built fresh from it even when its lock only adds, `bin/check` prints a `NOTE:` saying so, and later versions built fresh build from it. A published `Dockerfile`, the first version's included, is never edited.
 
 Then build it and pin it, all on your fork:
 

@@ -87,8 +87,12 @@ check_copy() {
 case "$1" in
     --check)
         [ $# -eq 1 ] || die "usage: bin/libcopy <slug> | bin/libcopy --check"
-        for d in workflows/*/lib; do
-            [ -d "$d" ] && check_copy "$d"
+        # Each lib/ git tracks or would add, so one holding only ignored
+        # files, as a branch switch leaves __pycache__/ behind, is no copy.
+        # A glob pathspec, whose * stops at /, so a src/lib/ is no copy.
+        git ls-files --cached --others --exclude-standard -- ':(glob)workflows/*/lib/**' |
+            cut -d/ -f1-3 | sort -u | while IFS= read -r d; do
+            check_copy "$d"
         done
         ;;
     -*|"") die "usage: bin/libcopy <slug> | bin/libcopy --check" ;;

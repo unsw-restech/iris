@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""Every use of a GLOSSARY.md _Avoid_ word, for a reader to judge.
+
+    bin/avoid-uses <file>...         each use in the files, - for standard
+                                     input, such as a ticket's text before
+                                     it is built:
+                                     gh issue view <n> -R unsw-restech/iris --json body --jq .body | bin/avoid-uses -
+    bin/avoid-uses --new [<base>]    each use, in tracked files, of a word
+                                     the _Avoid_ lists gained since <base>
+                                     (the merge-base of origin/main and
+                                     HEAD if not given); bin/check runs it
+    bin/avoid-uses --words           every _Avoid_ word, one a line
+
+Prints one line a use, <file>:<line>: "<word>", the Avoid word of <terms>: <text>,
+and exits 1 if there was one, 0 if none, 2 on a usage error. Most Avoid
+words have other senses (job, image, app), so a use in a ticket or a page
+is a question, not a mistake: the meaning decides.
+
+A word matches whole, in any case, across any whitespace between a
+phrase's words, and not inside a longer glossary term or Avoid word that
+holds it: "image" inside "Image set" is the term, and "container image",
+an Avoid word itself, is reported as that. An entry such as "Collection,
+except when quoting Globus" gives the word only. #231's session wrote this
+check by hand twice, and the first try printed 1.1 MB.
+
+GLOSSARY.md's _Avoid_ lines are no use of their words, but its terms and
+definitions are, so a new word another entry's definition still uses is
+listed. --new leaves out docs/adr/ (decisions keep their words),
+_archive/, the workflows' library copies (lib/ answers for them), and
+bin/check, this script and its test, which quote Avoid words, as
+bin/check's "name uses a glossary Avoid word" does, and binary files.
+"""
+
+import os
+import re
+import signal
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+EXCLUDE = [":(exclude)docs/adr", ":(exclude)_archive", ":(exclude)workflows/*/lib/*",
+           ":(exclude)bin/check", ":(exclude)bin/avoid-uses", ":(exclude)tests/bin/test_avoid_uses.sh"]
+
+
+def git(*args):
+    return subprocess.run(["git", "-C", ROOT, *args], capture_output=True, text=True)
+
+
+def parse(text):
+    """The glossary's terms, and its Avoid words as (word, term) pairs."""
+    terms, avoid, term = [], [], None
+    for line in text.splitlines():
+        line = line.rstrip("\r")
+        m = re.match(r"\*\*([^*]+)\*\*:", line)
+        if m:
+            term = m.group(1).strip()
+            terms.append(term)
+        elif line.startswith("_Avoid_:") and term:
+            for word in line[len("_Avoid_:"):].split(","):
+                word = word.strip()
+                if word and not word.lower().startswith("except "):
+                    avoid.append((word, term))
+    return terms, avoid
+
+
+def pattern(phrase):
+    """A phrase as a whole word, not part of a name or path (train/images/)."""
+    words = [re.escape(w) for w in phrase.split()]
+    return r"(?<![\w./-])" + r"\s+".join(words) + r"(?![\w/-]|\.\w)"
+
+
+def matchers(avoid, terms):
+    """Each Avoid word once, as (word, the terms listing it, its pattern,
+    the patterns of the longer phrases that hold it)."""
+    listed = {}
+    for word, term in avoid:
+        listed.setdefault(word.lower(), (word, []))[1].append(term)
+    phrases = {p.lower(): p for p in terms + [w for w, _ in avoid]}
+    out = []
+    for word, word_terms in listed.values():
+        own = re.compile(pattern(word), re.I)
+        longer = [re.compile(pattern(p), re.I) for k, p in phrases.items()
+                  if len(k.split()) > len(word.split()) and own.search(p)]
+        out.append((word, ", ".join(word_terms), own, longer))
+    return out
+
+
+def report(name, text, words):
+    """Prints each line of text, from file name, that uses one of words;
+    returns whether any did."""
+    lines = text.splitlines()
+    any_use = False
+    for word, word_terms, own, longer in words:
+        masked = text
+        for p in longer:
+            masked = p.sub(lambda m: re.sub(r"\S", " ", m.group(0)), masked)
+        shown_lines = set()
+        for m in own.finditer(masked):
+            n = text.count("\n", 0, m.start())
+            if n in shown_lines:
+                continue
+            shown_lines.add(n)
+            shown = lines[n].strip() if n < len(lines) else ""
+            if len(shown) > 160:
+                shown = shown[:157] + "..."
+            print(f'{name}:{n + 1}: "{word}", the Avoid word of {word_terms}: {shown}')
+            any_use = True
+    return any_use
+
+
+def read(path):
+    """A file's text, or None for a binary one."""
+    with open(path, "rb") as f:
+        data = f.read()
+    if b"\0" in data[:8192]:
+        return None
+    return data.decode("utf-8", "replace")
+
+
+def read_uses(path):
+    """A file's text to search, or None for a binary one. GLOSSARY.md's
+    _Avoid_ lines read as blank, since listing a word is no use of it; its
+    terms and definitions are uses like any other."""
+    text = read(path)
+    if text is not None and os.path.realpath(path) == os.path.join(ROOT, "GLOSSARY.md"):
+        text = re.sub(r"(?m)^_Avoid_:.*$", "", text)
+    return text
+
+
+def usage():
+    print("usage: bin/avoid-uses <file>... | --new [<base>] | --words", file=sys.stderr)
+    sys.exit(2)
+
+
+def new_words(avoid, base_arg):
+    """The Avoid words GLOSSARY.md has gained since the base."""
+    if base_arg is not None:
+        base = git("rev-parse", "--verify", "-q", base_arg + "^{commit}").stdout.strip()
+        if not base:
+            print(f"bin/avoid-uses: no commit {base_arg}", file=sys.stderr)
+            sys.exit(2)
+    else:
+        base = git("merge-base", "origin/main", "HEAD").stdout.strip()
+        if not base:
+            print("bin/avoid-uses: no merge-base of origin/main and HEAD", file=sys.stderr)
+            sys.exit(2)
+    before = git("show", base + ":GLOSSARY.md")
+    if before.returncode != 0:
+        return []
+    old = {w.lower() for w, _ in parse(before.stdout)[1]}
+    return [(w, t) for w, t in avoid if w.lower() not in old]
+
+
+def main(argv):
+    if not argv:
+        usage()
+    try:
+        terms, avoid = parse(read(os.path.join(ROOT, "GLOSSARY.md")) or "")
+    except OSError:
+        print("bin/avoid-uses: no GLOSSARY.md", file=sys.stderr)
+        sys.exit(2)
+
+    if argv[0] == "--words":
+        if len(argv) > 1:
+            usage()
+        for word, _, _, _ in matchers(avoid, terms):
+            print(word)
+        return 0
+
+    if argv[0] == "--new":
+        if len(argv) > 2:
+            usage()
+        avoid = new_words(avoid, argv[1] if len(argv) == 2 else None)
+        if not avoid:
+            return 0
+        tracked = git("ls-files", "-z", "--", ".", *EXCLUDE).stdout.split("\0")
+        names = sorted(f for f in tracked if f and os.path.isfile(os.path.join(ROOT, f)))
+        paths = [os.path.join(ROOT, f) for f in names]
+    else:
+        if argv[0].startswith("-") and argv[0] != "-":
+            usage()
+        names = paths = argv
+
+    words = matchers(avoid, terms)
+    any_use = False
+    for name, path in zip(names, paths):
+        try:
+            text = sys.stdin.read() if path == "-" else read_uses(path)
+        except OSError as e:
+            print(f"bin/avoid-uses: {name}: {e.strerror}", file=sys.stderr)
+            sys.exit(2)
+        if text is not None and report(name, text, words):
+            any_use = True
+    return 1 if any_use else 0
+
+
+if __name__ == "__main__":
+    # A reader that stops early, such as head, ends the run quietly.
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    sys.exit(main(sys.argv[1:]))
