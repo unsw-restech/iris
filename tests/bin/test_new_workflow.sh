@@ -130,7 +130,8 @@ done
 grep -qx '  #PBS -A iris-scaffold-test' "$d/form.yml.erb" || echo "fresh: the form's usage tag isn't iris-scaffold-test"
 grep -qx '    value: "scaffold-test"' "$d/form.yml.erb" || echo "fresh: the experiment name default isn't scaffold-test"
 grep -qx '    value: "iris_scaffold_test"' "$d/form.yml.erb" || echo "fresh: the job name default isn't iris_scaffold_test"
-grep -qx '  IRIS_ENV_VERSION=microct/1' "$d/form.yml.erb" || echo "fresh: the form doesn't pin microct-lab's version, microct/1"
+lab_version=$(. "$c/lib/katana.sh" && echo "${IRIS_LAB_ENVS[microct-lab]}")
+grep -qx "  IRIS_ENV_VERSION=$lab_version" "$d/form.yml.erb" || echo "fresh: the form doesn't pin microct-lab's version, $lab_version"
 cmp -s "$c/lib/iris-job.sh" "$d/lib/iris-job.sh" && [ -s "$d/lib/copied-from" ] ||
     echo "fresh: workflows/scaffold-test/lib/ isn't bin/libcopy's copy of the library's job side"
 [ ! -e "$d/run-proof.json" ] || echo "fresh: it copied the reference's run proof"

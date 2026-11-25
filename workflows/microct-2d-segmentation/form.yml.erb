@@ -199,7 +199,7 @@ script: |
   CODE="<%= code %>"
   COMMIT="<%= commit %>"
   [ -n "$CODE" ] || { echo "ERROR: the form could not locate its IRIS clone."; exit 1; }
-  IRIS_ENV_VERSION=microct/1
+  IRIS_ENV_VERSION=microct/2
   DATASET="#{dataset}"
   RUN_DIR="${DATASET%/}/runs/${PBS_JOBID%%.*}"
 

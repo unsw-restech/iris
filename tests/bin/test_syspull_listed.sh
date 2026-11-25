@@ -11,6 +11,7 @@
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
 fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
+. tests/bin/lib.sh
 
 # The listing names origin/main as $fake/main holds it, first, as Katana's
 # side of bin/syspull does. A file named ssh-down makes it fail as ssh does.
@@ -29,6 +30,10 @@ repo="$fake/repo"
 mkdir -p "$repo/bin" "$repo/lib" "$repo/.githooks"
 cp bin/syspull bin/syspull-pins.sh bin/pilot-readable.py "$repo/bin/"
 cp lib/katana.sh "$repo/lib/"
+# A digest map of IRIS's own, so a branch whose real map names an author's
+# container, as each author's pull request does, doesn't make pre-push
+# refuse every push to main here for that.
+digest_map "$repo/lib/katana.sh" "ct/1=sha256:$(printf 'a%.0s' {1..64})" || exit 1
 cp .githooks/pre-push "$repo/.githooks/"
 git -C "$repo" init -q -b main
 git -C "$repo" add -A
