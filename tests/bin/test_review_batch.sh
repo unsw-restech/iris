@@ -37,9 +37,11 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 # $fake/view-<n>.json, or fails as gh does when $fake/gh-down exists.
 # docker answers `buildx imagetools inspect` for a tag from
 # $fake/registry/<tag>, its digest, and `create --tag` writes the source's
-# digest there, or is denied as ghcr.io denies it when $fake/docker-denied
-# exists. gh, docker and ssh each record their arguments, one call a line,
-# in $fake/calls. gh refuses a call that doesn't name unsw-restech/iris,
+# digest there when given --prefer-index=false, or else, as buildx v0.38.1
+# did on the desktop (#261), a manifest list's digest followed by " list",
+# which inspect then reports with a list's media type; or create is denied
+# as ghcr.io denies it when $fake/docker-denied exists. gh, docker and ssh
+# each record their arguments, one call a line, in $fake/calls. gh refuses a call that doesn't name unsw-restech/iris,
 # as the current directory's repo may be another (#207), and records it
 # without the flag.
 mkdir "$fake/bin"
@@ -68,12 +70,28 @@ case "$3" in
     inspect)
         tag="${!#}"
         [ -f "$dir/registry/${tag##*:}" ] || { echo "ERROR: $tag: not found" >&2; exit 1; }
-        printf '{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"%s","size":1}\n' "$(cat "$dir/registry/${tag##*:}")" ;;
+        read -r digest kind < "$dir/registry/${tag##*:}"
+        type=application/vnd.oci.image.manifest.v1+json
+        [ "$kind" != list ] || type=application/vnd.docker.distribution.manifest.list.v2+json
+        printf '{"mediaType":"%s","digest":"%s","size":1}\n' "$type" "$digest" ;;
     create)
-        [ "$4" = --tag ] || exit 1
+        shift 3
+        dst="" index=1
+        while [ $# -gt 1 ]; do
+            case "$1" in
+                --tag) dst="$2"; shift 2 ;;
+                --prefer-index=false) index=""; shift ;;
+                *) exit 1 ;;
+            esac
+        done
+        [ -n "$dst" ] || exit 1
         [ ! -e "$dir/docker-denied" ] || { echo "ERROR: denied: permission_denied: write_package" >&2; exit 1; }
         mkdir -p "$dir/registry"
-        echo "${6##*@}" > "$dir/registry/${5##*:}" ;;
+        digest="${1##*@}"
+        # buildx's default, --prefer-index=true, wraps one source in a
+        # manifest list of its own digest and tags that (#261).
+        [ -z "$index" ] || digest="sha256:$(printf 'list of %s' "$digest" | sha256sum | cut -d' ' -f1) list"
+        echo "$digest" > "$dir/registry/${dst##*:}" ;;
     *) exit 1 ;;
 esac
 EOF
@@ -510,4 +528,6 @@ run --copy ct/3 "ghcr.io/alice-lab/iris-env@sha256:$b64"
 has "permission_denied" copy-denied
 has "one of the org's owners" copy-denied
 [ ! -e "$fake/registry/ct-3" ] || fail "review-batch copy-denied: tagged ct-3"
+# Every copy asks buildx for the source's own manifest, not a list (#261).
+grep -q 'imagetools create --prefer-index=false ' "$fake/calls" || fail "review-batch copy-denied: created without --prefer-index=false"
 show
