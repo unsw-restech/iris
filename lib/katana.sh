@@ -58,6 +58,7 @@ IRIS_TOOLS_ENV_VERSION=tools/1
 # digest alone (#138). A version's digest never changes once written.
 declare -gA IRIS_ENV_DIGESTS=(
     [microct/1]=sha256:c1022d8514acbdb80dc038a72ac193699fb1a4b7a75fa1b2905c7b41fd04eb4f
+    [microct/2]=ghcr.io/patricktung-unsw/iris-env@sha256:cd806149ace72b1bc86796d010daa9081b0916b5dd8bb6bf014bf138d44e62d7
     [tools/1]=sha256:02aec588cda0544f122b12a0ddeb6cd8e34a83724ed643b2712de46e4d3677ed
 )
 
@@ -66,7 +67,7 @@ declare -gA IRIS_ENV_DIGESTS=(
 # line each. Adding a lab is one line; labs may share an environment. A
 # workflow already in a lab keeps the version its form pins.
 declare -gA IRIS_LAB_ENVS=(
-    [microct-lab]=microct/1
+    [microct-lab]=microct/2
 )
 
 # iris_is_env_version <word>: whether <word> names an environment version,

@@ -33,8 +33,9 @@
 # With Apptainer, which the desktop's WSL has, as Katana does, the command
 # runs under `apptainer exec --cleanenv` in a container file cached by
 # digest in IRIS_ENV_CACHE (default ~/.cache/iris/envs): the first run
-# pulls it, about 4.7 GB, which takes some minutes, with no login, since
-# the package is public (#132).
+# pulls it, about 4.7 GB, which takes some minutes, with no login, not
+# even the user's Docker login (#201): IRIS's package is public (#132), and
+# an author's own, which a fork's pin names, is once the author makes it so.
 #
 # Without Apptainer, or with IRIS_CONTAINER_RUNTIME=docker, it runs under
 # `docker run` as this user, as CI does. A container Docker doesn't hold is
@@ -133,7 +134,19 @@ file="$cache/${ref##*@sha256:}.sif"
 if [ ! -f "$file" ]; then
     mkdir -p "$cache"
     echo "envrun: pulling $version ($ref) into $cache, once" >&2
-    apptainer pull --disable-cache --force "$file.part" "docker://$ref" >&2 ||
+    # --authfile at an empty config of its own: Apptainer otherwise reads
+    # ~/.docker/config.json, and a credsStore there naming Docker Desktop's
+    # Windows helper fails the pull with "error getting credentials" when
+    # no one is signed in to Windows. It ignores DOCKER_CONFIG, which
+    # docker_pull's retry uses (#201, seen on the desktop 2026-11-24).
+    authfile="$(mktemp)"
+    trap 'rm -f "$authfile"' EXIT
+    echo '{}' > "$authfile"
+    status=0
+    apptainer pull --disable-cache --force --authfile "$authfile" "$file.part" "docker://$ref" >&2 || status=$?
+    rm -f "$authfile"
+    trap - EXIT
+    [ "$status" = 0 ] ||
         { rm -f "$file.part"; echo "envrun: the pull of $version ($ref) failed" >&2; exit 1; }
     mv "$file.part" "$file"
 fi

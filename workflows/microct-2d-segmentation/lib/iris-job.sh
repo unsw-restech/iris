@@ -18,9 +18,13 @@
 #                prints how to compare runs but no iris-view line
 #   ENVS_FOLDER  the environments folder, lib/katana.sh's IRIS_ENVS_FOLDER
 #                unless set; the library's tests point it at a stand-in
+#   OWN_ENVS_FOLDER  the workflow author's own environments folder,
+#                lib/katana.sh's iris_own_envs_folder unless set; the
+#                library's tests point it at a stand-in
 #
 # It creates runs/, stops the job with one line if the pinned version's
-# container file, <folder>/<env>/<n>.sif, is missing, then exports
+# container file, <folder>/<env>/<n>.sif, is missing, looking in the
+# author's own folder too when CODE isn't in the system clone, then exports
 # IRIS_ENV_VERSION and IRIS_ENV_DIGEST, the digest in <n>.digest beside the
 # file, for the run record, and creates the run directory. It then prints
 # what the job runs with, the commit being COMMIT or else the clone's HEAD,
@@ -42,6 +46,19 @@ IRIS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$IRIS_LIB/katana.sh"
 
 IRIS_ENV_FILE="$(iris_env_file "$IRIS_ENV_VERSION" "${ENVS_FOLDER-}")"
+# A run from a workflow author's own clone, as the test instance runs one,
+# may use their own container file of a version CI published under their
+# own account (#138), when the environments folder has none. A run from
+# the system clone never does.
+if [ ! -f "$IRIS_ENV_FILE" ] && ! iris_in_system_clone "$CODE"; then
+    IRIS_OWN_ENV_FILE="$(iris_env_file "$IRIS_ENV_VERSION" "${OWN_ENVS_FOLDER:-$(iris_own_envs_folder)}")"
+    if [ -f "$IRIS_OWN_ENV_FILE" ]; then
+        IRIS_ENV_FILE="$IRIS_OWN_ENV_FILE"
+    else
+        echo "ERROR: the IRIS environment $IRIS_ENV_VERSION is missing: there is no container file at $IRIS_ENV_FILE, nor your own at $IRIS_OWN_ENV_FILE. For help, see https://docs.restech.unsw.edu.au/iris/guide/#help" >&2
+        exit 1
+    fi
+fi
 if [ ! -f "$IRIS_ENV_FILE" ]; then
     echo "ERROR: the IRIS environment $IRIS_ENV_VERSION is missing: there is no container file at $IRIS_ENV_FILE. For help, see https://docs.restech.unsw.edu.au/iris/guide/#help" >&2
     exit 1
@@ -147,7 +164,7 @@ echo "Environment : $IRIS_ENV_VERSION (${IRIS_ENV_DIGEST:-digest unknown: no ${I
 echo "Container   : $IRIS_ENV_FILE"
 echo "Run dir     : $RUN_DIR"
 if iris_has_gpu; then
-    echo "GPU         : $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
+    echo "GPU         : $(nvidia-smi --query-gpu=name --format=csv,noheader | sed -n 1p)"
 else
     echo "GPU         : none, running on CPU"
 fi

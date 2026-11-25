@@ -23,16 +23,29 @@ cp lib/katana.sh "$repo/lib/katana.sh"
 digest_map "$repo/lib/katana.sh" "microct/1=$a" microct/2=unpublished || exit 1
 
 # apptainer adds its arguments to $fake/apptainer.log, one call a line, and
-# the registry login it was given to $fake/auth; its pull writes the
-# reference into the file it names.
+# the registry login it was given, with its --authfile's contents, to
+# $fake/auth, and that file's path to $fake/authfiles. Its pull writes the
+# reference into the file it names. As the desktop's Apptainer 1.5 does, a
+# pull fails on Docker Desktop's credential helper unless --authfile names
+# an empty config, since it reads ~/.docker/config.json's credsStore and
+# ignores DOCKER_CONFIG (#201).
 cat > "$fake/apptainer" <<'EOF'
 #!/bin/bash
 dir="$(dirname "$0")"
 printf '[%s]' "$@" >> "$dir/apptainer.log"; echo >> "$dir/apptainer.log"
 [ "$1" = pull ] || exit 0
-echo "user=${APPTAINER_DOCKER_USERNAME-} password=${APPTAINER_DOCKER_PASSWORD-}" >> "$dir/auth"
 shift
-while [[ "$1" == --* ]]; do shift; done
+authfile=""
+while [[ "$1" == --* ]]; do
+    [ "$1" != --authfile ] || { authfile="$2"; shift; }
+    shift
+done
+echo "user=${APPTAINER_DOCKER_USERNAME-} password=${APPTAINER_DOCKER_PASSWORD-} authfile=$(cat "$authfile" 2>/dev/null)" >> "$dir/auth"
+[ -z "$authfile" ] || echo "$authfile" >> "$dir/authfiles"
+if [ "$(cat "$authfile" 2>/dev/null)" != "{}" ]; then
+    echo 'FATAL:   While making image from oci registry: error fetching image to cache: ... conveyor failed to get: error getting credentials - err: exit status 1, out: `A specified logon session does not exist. It may already have been terminated.`' >&2
+    exit 255
+fi
 echo "container $2" > "$1"
 EOF
 printf '%s\n' '#!/bin/bash' 'printf "[%s]" "$@" >> "$(dirname "$0")/docker.log"; echo >> "$(dirname "$0")/docker.log"' > "$fake/docker"
@@ -61,7 +74,8 @@ log() { cat "$fake/$1.log" 2>/dev/null; }
 
 # With Apptainer, the first run pulls the version by digest alone into the
 # cache, with no login, since the package is public (#132): gh's token,
-# which the fake gh would give, is never used. It then runs the command in it under --cleanenv, the clone bound at its own
+# which the fake gh would give, is never used, nor any Docker login, since
+# its --authfile is an empty config of its own (#201). It then runs the command in it under --cleanenv, the clone bound at its own
 # path and the working folder kept.
 file="$cache/${a#sha256:}.sif"
 run -- microct/1 python -m unittest "a b" > /dev/null
@@ -74,7 +88,15 @@ has "first apptainer run" "$out" "[$file][python][-m][unittest][a b]"
 lacks "first apptainer run" "$out" "gho_secret"
 lacks "first apptainer run" "$out" "--nv"
 [ "$(cat "$file" 2>/dev/null)" = "container docker://$IRIS_ENV_REGISTRY@$a" ] || echo "first apptainer run: no container file at $file"
-[ "$(cat "$fake/auth" 2>/dev/null)" = "user= password=" ] || echo "first apptainer run: pulled with $(cat "$fake/auth")"
+[ "$(cat "$fake/auth" 2>/dev/null)" = "user= password= authfile={}" ] || echo "first apptainer run: pulled with $(cat "$fake/auth")"
+# The empty auth file is envrun's own, gone once the pull is done.
+if [ -s "$fake/authfiles" ]; then
+    while read -r f; do
+        [ ! -e "$f" ] || echo "first apptainer run: left its auth file $f"
+    done < "$fake/authfiles"
+else
+    echo "first apptainer run: pulled with no --authfile"
+fi
 # The second run pulls nothing.
 rm "$fake/apptainer.log"
 run -- microct/1 python -V > /dev/null
@@ -147,7 +169,10 @@ printf '[%s]' "$@" >> "$dir/apptainer.log"; echo >> "$dir/apptainer.log"
 if [ "$1" != pull ]; then sleep "${FAKE_EXEC_SLEEP:-0}"; exit 0; fi
 sleep "${FAKE_PULL_SLEEP:-0}"
 shift
-while [[ "$1" == --* ]]; do shift; done
+while [[ "$1" == --* ]]; do
+    [ "$1" != --authfile ] || shift
+    shift
+done
 echo "container $2" > "$1"
 EOF
 out="$(run FAKE_EXEC_SLEEP=5 -- --time-limit 1 microct/1 python -m unittest test_synthetic)" &&

@@ -1,18 +1,18 @@
 {
   "format": 1,
   "workflow": "microct-2d-segmentation",
-  "commit": "5e476a705cc697815ecc983d487b85e3ea36d9d6",
+  "commit": "624dd0039800e1086cbde2fccbfa68e355a45e3b",
   "job": {
-    "id": "9799312",
+    "id": "9869819",
     "exit_status": 0
   },
   "environment": {
-    "version": "microct/1",
-    "digest": "sha256:c1022d8514acbdb80dc038a72ac193699fb1a4b7a75fa1b2905c7b41fd04eb4f"
+    "version": "microct/2",
+    "digest": "sha256:cd806149ace72b1bc86796d010daa9081b0916b5dd8bb6bf014bf138d44e62d7"
   },
   "form_tests": {
     "test": "tests/test_form.rb",
     "result": "20 runs, 113 assertions, 0 failures, 0 errors, 0 skips"
   },
-  "written": "2026-11-15T23:01:06Z"
+  "written": "2026-11-24T02:51:12Z"
 }

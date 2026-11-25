@@ -18,6 +18,11 @@ IRIS_SYSTEM_CLONE=/srv/scratch/katana_ai/iris/code
 # in (ADR-0012), kept on one fork commit by bin/ocpull.
 IRIS_INSTANCE_CHECKOUT=/srv/scratch/katana_ai/iris/OpenComposer-iris
 IRIS_TEST_INSTANCE_CHECKOUT=/srv/scratch/katana_ai/iris/OpenComposer-iris-test
+# The IRIS maintainer's dev install, a third checkout of the fork, in their
+# home folder and named from it (AGENTS.md, #170). bin/ocpull reports its
+# commit and prints the line that moves it, but never moves it itself
+# (#159, #162, #179's retro).
+IRIS_DEV_INSTALL=ondemand/dev/OpenComposer
 # Katana's Python module (../available-modules.md), for the job library's
 # Katana test (lib/tests/katana/job_lib.pbs), which needs only the
 # standard library. Workflows and the researcher tools run in containers.
@@ -46,9 +51,14 @@ IRIS_TOOLS_ENV_VERSION=tools/1
 # that can't source bash reads it with a regex. <digest> is sha256:<64 hex>,
 # or "unpublished" until CI first publishes the version: CI builds every
 # unpublished version and prints the line to put here instead
-# (envs/README.md). A version's digest never changes once written.
+# (envs/README.md). On a workflow author's fork, CI publishes it under the
+# author's own GitHub account instead, and the line it prints names that
+# container in full, ghcr.io/<login>/iris-env@sha256:<64 hex>, until the
+# review batch copies it by digest into IRIS_ENV_REGISTRY and writes the
+# digest alone (#138). A version's digest never changes once written.
 declare -gA IRIS_ENV_DIGESTS=(
     [microct/1]=sha256:c1022d8514acbdb80dc038a72ac193699fb1a4b7a75fa1b2905c7b41fd04eb4f
+    [microct/2]=ghcr.io/patricktung-unsw/iris-env@sha256:cd806149ace72b1bc86796d010daa9081b0916b5dd8bb6bf014bf138d44e62d7
     [tools/1]=sha256:02aec588cda0544f122b12a0ddeb6cd8e34a83724ed643b2712de46e4d3677ed
 )
 
@@ -57,32 +67,69 @@ declare -gA IRIS_ENV_DIGESTS=(
 # line each. Adding a lab is one line; labs may share an environment. A
 # workflow already in a lab keeps the version its form pins.
 declare -gA IRIS_LAB_ENVS=(
-    [microct-lab]=microct/1
+    [microct-lab]=microct/2
 )
 
 # iris_is_env_version <word>: whether <word> names an environment version,
 # <env>/<n> with <n> counting from 1. iris_is_env_digest <word>: whether
-# <word> is a digest map value, sha256:<64 hex> or unpublished.
-# iris_form_pins <form>: the versions a form pins, one a line, from its
-# "  IRIS_ENV_VERSION=<env>/<n>" lines. bin/envpull-dm.sh, which runs on
-# the data mover and can't source this file, keeps its own copies of the
-# first and last.
+# <word> is a digest map value, sha256:<64 hex>, unpublished, or an
+# author's container, ghcr.io/<login>/iris-env@sha256:<64 hex>, <login>
+# lowercase and never the org's, whose own containers are their digest
+# alone. iris_is_author_env <word>: whether it is an author's container,
+# by the pattern IRIS_AUTHOR_ENV, which .githooks/pre-push takes from here
+# too. iris_form_pins <form>: the versions a form pins, one a line, from
+# its "  IRIS_ENV_VERSION=<env>/<n>" lines. bin/envpull-dm.sh, which runs
+# on the data mover and can't source this file, keeps its own copies of
+# the first and last, and bin/review-batch, which is Python, its own of
+# IRIS_AUTHOR_ENV; bin/check's "Katana constants" check compares both
+# pattern copies with it.
+IRIS_AUTHOR_ENV='^ghcr\.io/[a-z0-9]([a-z0-9-]*[a-z0-9])?/iris-env@sha256:[0-9a-f]{64}$'
 iris_is_env_version() { [[ "$1" =~ ^[a-z0-9-]+/[1-9][0-9]*$ ]]; }
-iris_is_env_digest() { [[ "$1" =~ ^(sha256:[0-9a-f]{64}|unpublished)$ ]]; }
+iris_is_author_env() {
+    [[ "$1" =~ $IRIS_AUTHOR_ENV ]] && [[ "$1" != "$IRIS_ENV_REGISTRY@"* ]]
+}
+iris_is_env_digest() { [[ "$1" =~ ^(sha256:[0-9a-f]{64}|unpublished)$ ]] || iris_is_author_env "$1"; }
 iris_form_pins() { tr -d '\r' < "$1" | sed -nE 's/^  IRIS_ENV_VERSION=(.*)$/\1/p'; }
+
+# The Python tests, as bin/check runs them (envs/README.md) and the
+# containers workflow's report on a new version does too (#150): a
+# workflow's tests have IRIS_TEST_TIME_LIMIT seconds, a first run's pull
+# aside. iris_py_tests <dir> <container|host>: <dir>'s test_*.py modules,
+# one a line without .py, that run in a container, or those that run with
+# the host's python3, the files holding the line "# bin/check: on the
+# host".
+IRIS_TEST_TIME_LIMIT=120
+iris_py_tests() {
+    local t on_host
+    for t in "$1"/test_*.py; do
+        [ -f "$t" ] || continue
+        on_host=container
+        grep -qx '# bin/check: on the host' <<< "$(tr -d '\r' < "$t")" && on_host=host
+        [ "$on_host" != "$2" ] || { t="${t##*/}"; echo "${t%.py}"; }
+    done
+}
 
 # iris_env_file <env>/<n> [<folder>]: prints the version's container file
 # in <folder>, IRIS_ENVS_FOLDER unless given.
 iris_env_file() { echo "${2:-$IRIS_ENVS_FOLDER}/$1.sif"; }
 
+# iris_own_envs_folder [<user>]: prints a workflow author's own environments
+# folder, in their own scratch, where containers are cached (AGENTS.md):
+# <user>'s, USER's unless given. It holds the container files of versions
+# CI published under the author's own account, laid out as the
+# environments folder is, which bin/envpull --own fills and a job from the
+# author's own clone runs (#138).
+iris_own_envs_folder() { echo "/srv/scratch/${1:-$USER}/.envs"; }
+
 # iris_env_ref <env>/<n>: prints the version's container by digest alone,
-# <registry>@sha256:<hex>, the form Apptainer and docker pull; fails with
-# one line on stderr if the version isn't in the digest map or is
-# unpublished.
+# <registry>@sha256:<hex>, the form Apptainer and docker pull, an author's
+# container as the map writes it; fails with one line on stderr if the
+# version isn't in the digest map or is unpublished.
 iris_env_ref() {
     local digest="${IRIS_ENV_DIGESTS[$1]-}"
     case "$digest" in
         sha256:*) echo "$IRIS_ENV_REGISTRY@$digest" ;;
+        ghcr.io/*@sha256:*) echo "$digest" ;;
         unpublished) echo "$1 is not published yet: its digest in lib/katana.sh is 'unpublished'" >&2; return 1 ;;
         *) echo "$1 is not in lib/katana.sh's digest map" >&2; return 1 ;;
     esac

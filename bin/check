@@ -231,7 +231,18 @@ check "dead placeholder cards" grep -n 'href="#"' index.html
 check "untracked file the checks can't see (git add -N it)" git ls-files --others --exclude-standard
 
 check "pre-transfer repo URL" grep -rn 'github\.com/PatrickTung/iris\|https://patricktung\.github\.io/iris' . --exclude-dir=.git --exclude-dir=_archive --exclude=AGENTS.md --exclude=check
-check "stale account or old repo" grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check
+# patricktung-unsw is also a workflow author's account, so a digest map
+# line, in lib/katana.sh or a workflow's library copy of it, naming its
+# own container, whole, which an author's pull request pins until the
+# review batch copies it, passes (#201); pre-push refuses one in
+# lib/katana.sh on main, and #256 has it refuse one in a copy too. Any
+# other mention fails, except in AGENTS.md, this file and the rule's own
+# test, which name the account to describe it.
+stale_account() {
+    grep -rn 'patricktung-unsw\|ares-pages' . --exclude-dir=.git --exclude=AGENTS.md --exclude=check --exclude=test_stale_account.sh |
+        grep -vE '^\./(workflows/[a-z0-9-]+/)?lib/katana\.sh:[0-9]+:    \[[a-z0-9-]+/[0-9]+\]=ghcr\.io/patricktung-unsw/iris-env@sha256:[0-9a-f]{64}$' || true
+}
+check "stale account or old repo" stale_account
 check "wrong WorkflowHub project; ours is 472" grep -rn 'workflowhub.eu/projects/24' . --include=*.html
 # Commit messages carry no AI attribution from any tool: a Co-authored-by
 # trailer makes an AI tool's account a GitHub contributor, and removing one
