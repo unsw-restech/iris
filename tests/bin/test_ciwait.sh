@@ -19,7 +19,10 @@ trap 'rm -rf "$fake"' EXIT
 # others. Each call must name unsw-restech/iris, not the current
 # directory's repo, or the fake rejects it (#207), or the repo in
 # $fake/ghrepo when there is one; it then drops the flag, so the cases
-# below read the arguments ciwait gave otherwise.
+# below read the arguments ciwait gave otherwise. pr view, for the PR in
+# $fake/pr, prints its head from $fake/prhead or its labels from
+# $fake/labels, one a line, as --jq would, and moves $fake/late-labels'
+# labels in after the first ask, as ready.yml labels a PR after its run.
 mkdir "$fake/bin"
 cat > "$fake/bin/gh" <<'FAKE'
 #!/bin/bash
@@ -50,6 +53,15 @@ case "$1 $2" in
         else
             echo "run $3 summary"
         fi ;;
+    "pr view")
+        [ "$3" = "$(cat "$dir/pr")" ] || { echo "fake gh: no pull request $3" >&2; exit 1; }
+        case "$5" in
+            headRefOid) cat "$dir/prhead" ;;
+            labels)
+                cat "$dir/labels"
+                if [ -f "$dir/late-labels" ]; then cat "$dir/late-labels" >> "$dir/labels"; rm "$dir/late-labels"; fi ;;
+            *) exit 1 ;;
+        esac ;;
 esac
 FAKE
 printf '#!/bin/sh\n' > "$fake/bin/sleep"
@@ -164,6 +176,44 @@ git -C "$repo" rev-parse HEAD > "$fake/sha"
 sha="$(git -C "$repo" rev-parse --short HEAD)"
 out="$(run)" || fail "branch commit: exit $?, expected 0"
 [ "$(tail -1 <<< "$out")" = "ciwait: check $sha passed" ] || { fail "branch commit: last line isn't the verdict:"; echo "$out" | sed 's/^/  /'; }
+
+# --pr waits on a pull request's head, which an author's fork holds, so it
+# isn't on origin, then for the ready label (#201).
+echo 257 > "$fake/pr"
+printf 'f%.0s' {1..40} > "$fake/prhead"
+cp "$fake/prhead" "$fake/sha"
+psha=fffffff
+echo "8 pull_request 201-author" > "$fake/runs"
+printf '%s\n' outside-folder ready > "$fake/labels"
+out="$(run --pr 257)" || { fail "--pr ready: exit $?, expected 0:"; echo "$out" | sed 's/^/  /'; }
+grep -qx "== check run 8 (pull_request, 201-author) for $psha" <<< "$out" || fail "--pr ready: didn't wait for the PR's run"
+[ "$(tail -1 <<< "$out")" = "ciwait: check $psha passed; #257 is ready" ] || { fail "--pr ready: last line isn't the verdict:"; echo "$out" | sed 's/^/  /'; }
+echo outside-folder > "$fake/labels"
+echo ready > "$fake/late-labels"
+out="$(run --pr 257)" || fail "--pr ready late: exit $?, expected 0"
+[ "$(tail -1 <<< "$out")" = "ciwait: check $psha passed; #257 is ready" ] || fail "--pr ready late: last line isn't the verdict"
+echo outside-folder > "$fake/labels"
+out="$(run --pr 257)"; rc=$?
+[ "$rc" = 2 ] && [ "$(tail -1 <<< "$out")" = "ciwait: check $psha passed; #257 isn't ready after 2 min" ] ||
+    { fail "--pr never ready: exit $rc, expected 2 saying so:"; echo "$out" | sed 's/^/  /'; }
+touch "$fake/fail-8"
+out="$(run --pr 257)"; rc=$?
+[ "$rc" = 1 ] && [ "$(tail -1 <<< "$out")" = "ciwait: check $psha failed (run 8)" ] ||
+    { fail "--pr failing run: exit $rc, expected 1 naming run 8:"; echo "$out" | sed 's/^/  /'; }
+rm "$fake/fail-8"
+out="$(run --pr 258)"; rc=$?
+[ "$rc" = 2 ] && grep -qF "ciwait: no head for #258" <<< "$out" || fail "--pr unknown: exit $rc, expected 2 saying so"
+for args in "--pr 257 HEAD" "HEAD --pr 257" "--pr 257 --repo ." "--pr" "--pr x" "--pr 257 --pr 258"; do
+    # shellcheck disable=SC2086
+    out="$(run $args)"; rc=$?
+    [ "$rc" = 2 ] && grep -qF usage: <<< "$out" || fail "$args: exit $rc, expected 2 with usage"
+done
+
+# A commit not on origin is refused, naming --pr for a fork's head.
+git -C "$repo" -c user.name=t -c user.email=t@t commit -q --allow-empty -m local
+out="$(run)"; rc=$?
+[ "$rc" = 2 ] && grep -qF "is not on origin; push it first, or, for a pull request's head on a fork, wait with --pr <n>" <<< "$out" ||
+    { fail "unpushed commit: exit $rc, expected 2 naming --pr:"; echo "$out" | sed 's/^/  /'; }
 
 # --repo waits on another clone's CI: its commit, its origin/main and its
 # only workflow, under the GitHub repo its origin's URL names, resolving a

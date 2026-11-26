@@ -15,6 +15,7 @@
 # pin in lib/katana.sh's digest map.
 #
 #   bin/ciwait [--repo <clone>] [--workflow <name>] [<commit>]
+#   bin/ciwait --pr <n>                           (a pull request's head)
 #   bin/ciwait --workflow containers 93d3a39
 #   bin/ciwait 93d3a39 --workflow containers      (the same)
 #   bin/ciwait --repo ../OpenComposer 7355ac8     (the fork's tests runs)
@@ -31,14 +32,25 @@
 # its commit, origin/main and workflows there and its GitHub repo from its
 # origin's URL: a session waiting on the fork's CI by hand watched only the
 # first run it listed, #250's blind spot (#176's retro).
+#
+# --pr waits on pull request <n>'s head as GitHub has it, which need not be
+# on origin: an author's PR comes from their own fork, and its runs are
+# iris's pull_request runs of that head (#201's wait was a loop of its
+# own). Once check's runs pass it waits up to two more minutes for the
+# `ready` label .github/workflows/ready.yml then adds, which the review
+# batch lists by, and the verdict says whether it came: "ciwait: check
+# <sha> passed; #<n> is ready", or, exiting 2, "...; #<n> isn't ready after
+# 2 min". It takes no commit and no --repo.
 
-usage() { echo "usage: bin/ciwait [--repo <clone>] [--workflow <name in .github/workflows/>] [<commit>]" >&2; exit 2; }
+usage() { echo "usage: bin/ciwait [--repo <clone> | --pr <n>] [--workflow <name in .github/workflows/>] [<commit>]" >&2; exit 2; }
 workflow=""
 commit=""
 clone=""
+pr=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --workflow) [ $# -ge 2 ] || usage; workflow="$2"; shift 2 ;;
+        --pr) [ $# -ge 2 ] && [ -z "$pr" ] && [[ "$2" =~ ^[1-9][0-9]*$ ]] || usage; pr="$2"; shift 2 ;;
         --repo)
             [ $# -ge 2 ] && [ -z "$clone" ] || usage
             # Resolved before the cd below, so a relative path is the caller's.
@@ -49,6 +61,7 @@ while [ $# -gt 0 ]; do
         *) [ -z "$commit" ] || usage; commit="$1"; shift ;;
     esac
 done
+[ -z "$pr" ] || { [ -z "$commit" ] && [ -z "$clone" ]; } || usage
 
 cd "$(dirname "$(readlink -f "$0")")/.." || exit 1
 # shellcheck source=bin/github-repo.sh
@@ -82,10 +95,15 @@ clean_log() {
 
 [ -f ".github/workflows/$workflow.yml" ] || usage
 git fetch -q origin || exit 2
-sha="$(git rev-parse "${commit:-HEAD}")" || exit 2
+if [ -n "$pr" ]; then
+    sha="$(gh pr view "$pr" -R "$repo" --json headRefOid --jq .headRefOid)" && [[ "$sha" =~ ^[0-9a-f]{40}$ ]] ||
+        { echo "ciwait: no head for #$pr" >&2; exit 2; }
+else
+    sha="$(git rev-parse "${commit:-HEAD}")" || exit 2
+fi
 
-if [ -z "$(git branch -r --contains "$sha" 2>/dev/null)" ]; then
-    echo "ciwait: ${sha:0:7} is not on origin; push it first" >&2
+if [ -z "$pr" ] && [ -z "$(git branch -r --contains "$sha" 2>/dev/null)" ]; then
+    echo "ciwait: ${sha:0:7} is not on origin; push it first, or, for a pull request's head on a fork, wait with --pr <n>" >&2
     exit 2
 fi
 
@@ -105,7 +123,7 @@ unseen() {
 
 # At origin/main's tip, wait for main's push run itself.
 main_tip=""
-[ "$sha" = "$(git rev-parse origin/main)" ] && main_tip=1
+[ -z "$pr" ] && [ "$sha" = "$(git rev-parse origin/main)" ] && main_tip=1
 list="" found=""
 for _ in $(seq 24); do
     list="$(unseen)" || exit 2
@@ -146,5 +164,17 @@ done
 if [ -n "$failed" ]; then
     echo "ciwait: $workflow ${sha:0:7} failed (run $failed)"
     exit 1
+fi
+if [ -n "$pr" ] && [ "$workflow" = check ]; then
+    for _ in $(seq 24); do
+        labels="$(gh pr view "$pr" -R "$repo" --json labels --jq '.labels[].name')" || exit 2
+        if grep -qx ready <<< "$labels"; then
+            echo "ciwait: $workflow ${sha:0:7} passed; #$pr is ready"
+            exit 0
+        fi
+        sleep 5
+    done
+    echo "ciwait: $workflow ${sha:0:7} passed; #$pr isn't ready after 2 min"
+    exit 2
 fi
 echo "ciwait: $workflow ${sha:0:7} passed"
