@@ -19,7 +19,10 @@
 # fails, a pull that fails, an author's container under Docker, chosen as
 # bin/envrun chooses it, and a copy naming a container main won't pin, and
 # a batch bin/check fails, pushing and copying nothing. --copy leaves a
-# tag already at the digest alone and refuses one at another. Prints each
+# tag already at the digest alone and refuses one at another, and, before
+# it writes, a dry run whose manifest isn't the version's own and a Docker
+# config with no login for ghcr.io, whose printed login and copy, run as
+# printed, copy it. Prints each
 # failed case and nothing on success, so bin/check can run it.
 #
 #   tests/bin/test_review_batch.sh
@@ -40,7 +43,10 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 # digest there when given --prefer-index=false, or else, as buildx v0.38.1
 # did on the desktop (#261), a manifest list's digest followed by " list",
 # which inspect then reports with a list's media type; or create is denied
-# as ghcr.io denies it when $fake/docker-denied exists. gh, docker and ssh
+# as ghcr.io denies it when $fake/docker-denied exists. `create --dry-run`
+# prints the manifest it would tag, and `login` writes a login to the
+# Docker config. gh also answers, unnamed, the
+# `auth token` and `api user` the printed login asks. gh, docker and ssh
 # each record their arguments, one call a line, in $fake/calls. gh refuses a call that doesn't name unsw-restech/iris,
 # as the current directory's repo may be another (#207), and records it
 # without the flag.
@@ -55,6 +61,9 @@ while [ $# -gt 0 ]; do
 done
 set -- "${args[@]}"
 echo "gh $*" >> "$dir/calls"
+# The login --copy prints asks gh for the token and the login, unnamed.
+[ "$*" = "auth token" ] && { echo gho_faketoken; exit 0; }
+[ "$*" = "api user --jq .login" ] && { echo maint; exit 0; }
 [ -n "$named" ] || { echo "fake gh: no -R unsw-restech/iris: $*" >&2; exit 1; }
 [ -e "$dir/gh-down" ] && { echo "error connecting to api.github.com" >&2; exit 1; }
 [ "$1 $2" = "pr list" ] && { cat "$dir/prs.json"; exit 0; }
@@ -65,6 +74,16 @@ cat > "$fake/bin/docker" <<'EOF'
 #!/bin/bash
 dir="$(dirname "$0")/.."
 echo "docker $*" >> "$dir/calls"
+config="${DOCKER_CONFIG:-$HOME/.docker}/config.json"
+if [ "$1" = login ]; then
+    [ "$2 $3" = "ghcr.io -u" ] && [ -n "$4" ] && [ "$5" = --password-stdin ] || exit 1
+    token="$(cat)"
+    [ -n "$token" ] || exit 1
+    mkdir -p "${config%/*}"
+    printf '{"auths":{"ghcr.io":{"auth":"%s"}}}\n' "$(printf '%s:%s' "$4" "$token" | base64)" > "$config"
+    echo "Login Succeeded"
+    exit 0
+fi
 [ "$1 $2" = "buildx imagetools" ] || exit 1
 case "$3" in
     inspect)
@@ -76,15 +95,33 @@ case "$3" in
         printf '{"mediaType":"%s","digest":"%s","size":1}\n' "$type" "$digest" ;;
     create)
         shift 3
-        dst="" index=1
+        dst="" index=1 dry=""
         while [ $# -gt 1 ]; do
             case "$1" in
                 --tag) dst="$2"; shift 2 ;;
                 --prefer-index=false) index=""; shift ;;
+                --dry-run) dry=1; shift ;;
                 *) exit 1 ;;
             esac
         done
         [ -n "$dst" ] || exit 1
+        if [ -n "$dry" ]; then
+            # The manifest it would push, then a newline, as buildx v0.38.1
+            # printed microct/1's on the desktop (2026-11-26, the retro of
+            # #201): the source's own with --prefer-index=false, the bytes
+            # its digest hashes, else a list holding it, or the list
+            # regardless when $fake/wraps exists, as a buildx that wrapped
+            # it anyway would.
+            hex="${1##*@sha256:}"
+            [ -f "$dir/manifests/$hex" ] || { echo "ERROR: ${1}: not found" >&2; exit 1; }
+            if [ -n "$index" ] || [ -e "$dir/wraps" ]; then
+                printf '{\n  "schemaVersion": 2,\n  "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",\n  "manifests": [\n    {\n      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",\n      "digest": "sha256:%s",\n      "size": %s,\n      "platform": {\n        "architecture": "amd64",\n        "os": "linux"\n      }\n    }\n  ]\n}\n' \
+                    "$hex" "$(wc -c < "$dir/manifests/$hex")"
+            else
+                cat "$dir/manifests/$hex"; echo
+            fi
+            exit 0
+        fi
         [ ! -e "$dir/docker-denied" ] || { echo "ERROR: denied: permission_denied: write_package" >&2; exit 1; }
         mkdir -p "$dir/registry"
         digest="${1##*@}"
@@ -116,7 +153,21 @@ esac
 EOF
 chmod +x "$fake/bin/"*
 
-a64=$(printf 'a%.0s' {1..64}) b64=$(printf 'b%.0s' {1..64})
+# Two containers' manifests, as buildx's dry run prints the source's own,
+# and their digests, which hash them as a registry does.
+mkdir "$fake/manifests"
+manifest() {
+    printf '{\n   "schemaVersion": 2,\n   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",\n   "config": {\n      "mediaType": "application/vnd.docker.container.image.v1+json",\n      "size": 8072,\n      "digest": "sha256:%s"\n   }\n}' \
+        "$(printf 'config %s' "$1" | sha256sum | cut -d' ' -f1)" > "$fake/manifests/new"
+    hex="$(sha256sum < "$fake/manifests/new" | cut -d' ' -f1)"
+    mv "$fake/manifests/new" "$fake/manifests/$hex"
+    echo "$hex"
+}
+a64=$(manifest a) b64=$(manifest b)
+# docker logged in to ghcr.io, in a Docker config of the test's own.
+export DOCKER_CONFIG="$fake/docker"
+mkdir "$DOCKER_CONFIG"
+echo '{"auths":{"ghcr.io":{"auth":"bWFpbnQ6dA=="}}}' > "$DOCKER_CONFIG/config.json"
 src="$fake/src" clone="$fake/iris"
 commit() { git -C "$src" add -A && git -C "$src" commit -qm "$1"; }
 
@@ -530,4 +581,52 @@ has "one of the org's owners" copy-denied
 [ ! -e "$fake/registry/ct-3" ] || fail "review-batch copy-denied: tagged ct-3"
 # Every copy asks buildx for the source's own manifest, not a list (#261).
 grep -q 'imagetools create --prefer-index=false ' "$fake/calls" || fail "review-batch copy-denied: created without --prefer-index=false"
+show
+rm "$fake/docker-denied"
+# created: whether --copy wrote anything, a create beyond its dry run.
+created() { awk '/imagetools create/ && !/ --dry-run / { found = 1 } END { exit !found }' "$fake/calls"; }
+
+# A dry run whose manifest isn't the version's own: refused before any
+# write, naming the digest buildx would have tagged (#201's first copy).
+touch "$fake/wraps"
+run --copy ct/4 "ghcr.io/alice-lab/iris-env@sha256:$a64"
+[ "$rc" = 1 ] || fail "review-batch copy-wraps: exit $rc, expected 1"
+has "buildx would tag ghcr.io/unsw-restech/iris-env:ct-4 at sha256:" copy-wraps
+has "not sha256:$a64" copy-wraps
+grep -q "imagetools create --dry-run --prefer-index=false --tag ghcr.io/unsw-restech/iris-env:ct-4 " "$fake/calls" ||
+    fail "review-batch copy-wraps: no dry run"
+! created || fail "review-batch copy-wraps: wrote the copy"
+[ ! -e "$fake/registry/ct-4" ] || fail "review-batch copy-wraps: tagged ct-4"
+rm "$fake/wraps"
+show
+
+# No login for ghcr.io in ~/.docker, whose credential helper is Docker
+# Desktop's: refused before any write, printing the login to a folder of
+# its own and the copy, which run as printed copy it (#261).
+mkdir -p "$fake/home/.docker"
+echo '{"credsStore": "desktop.exe"}' > "$fake/home/.docker/config.json"
+HOME="$fake/home" DOCKER_CONFIG="" run --copy ct/4 "ghcr.io/alice-lab/iris-env@sha256:$a64"
+[ "$rc" = 1 ] || fail "review-batch copy-no-login: exit $rc, expected 1"
+has "docker isn't logged in to ghcr.io: $fake/home/.docker/config.json holds no login for it" copy-no-login
+! created || fail "review-batch copy-no-login: wrote the copy"
+mapfile -t steps < <(sed -n 's/^  \(gh auth token | .*\|DOCKER_CONFIG=.*\)$/\1/p' <<< "$out")
+want=("gh auth token | DOCKER_CONFIG=~/.docker-ghcr docker login ghcr.io -u \"\$(gh api user --jq .login)\" --password-stdin"
+    "DOCKER_CONFIG=~/.docker-ghcr bin/review-batch --copy ct/4 ghcr.io/alice-lab/iris-env@sha256:$a64")
+[ "$(printf '%s\n' "${steps[@]}")" = "$(printf '%s\n' "${want[@]}")" ] ||
+    fail "review-batch copy-no-login: printed the steps $(printf '\n    %s' "${steps[@]}")"
+for step in "${steps[@]}"; do
+    rm -f "$fake/calls"
+    out="$(cd "$clone" && HOME="$fake/home" DOCKER_CONFIG="" IRIS_ENV_CACHE="$fake/cache" PATH="$fake/bin:$PATH" bash -c "$step" 2>&1)" ||
+        fail "review-batch copy-no-login: step '$step' failed"
+done
+grep -q '"ghcr.io"' "$fake/home/.docker-ghcr/config.json" 2> /dev/null || fail "review-batch copy-no-login: the login left no login in ~/.docker-ghcr"
+[ "$(cat "$fake/registry/ct-4" 2> /dev/null)" = "sha256:$a64" ] || fail "review-batch copy-no-login: the steps left ct-4 at '$(cat "$fake/registry/ct-4" 2> /dev/null)'"
+show
+# DOCKER_CONFIG naming a folder with no login: the login goes there.
+mkdir "$fake/docker-empty"
+DOCKER_CONFIG="$fake/docker-empty" run --copy ct/5 "ghcr.io/alice-lab/iris-env@sha256:$a64"
+[ "$rc" = 1 ] || fail "review-batch copy-no-login-config: exit $rc, expected 1"
+has "gh auth token | DOCKER_CONFIG=$fake/docker-empty docker login ghcr.io" copy-no-login-config
+has "DOCKER_CONFIG=$fake/docker-empty bin/review-batch --copy ct/5 " copy-no-login-config
+! created || fail "review-batch copy-no-login-config: wrote the copy"
 show

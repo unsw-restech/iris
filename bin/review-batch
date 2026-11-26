@@ -58,19 +58,28 @@ never move it to another digest.
 IRIS_ENV_REGISTRY tagged <env>-<n> with docker buildx imagetools, and
 checks the tag then has that digest. A tag already at that digest is left
 alone; one at another digest is refused, since a version's digest never
-changes once written. It needs docker logged in to ghcr.io with a token
+changes once written. Before it writes anything, buildx's --dry-run prints
+the manifest the copy would tag, and a copy whose manifest doesn't hash to
+the version's digest is refused, since a tag written at the wrong digest
+leaves a version in the org's package that only one of the org's owners
+can delete (#201's first copy). It passes --prefer-index=false, since
+buildx otherwise tags a manifest list of its own digest, not the
+version's (#261). It needs docker logged in to ghcr.io with a token
 that can write IRIS's package, as an account with write access to it: the
 package is the org's, so granting that access may need one of the org's
-owners (AGENTS.md, Org rights). On the desktop, Docker Desktop's Windows
-credential helper fails docker login with "A specified logon session does
-not exist" (#261), so log in to a Docker config folder of its own and run
---copy with DOCKER_CONFIG naming it, as CONTRIBUTING.md's Review batch
-step 3 shows. It passes --prefer-index=false, since buildx otherwise tags
-a manifest list of its own digest, not the version's (#261).
+owners (AGENTS.md, Org rights). A Docker config, DOCKER_CONFIG's or
+~/.docker's, with no login for ghcr.io is refused before the copy, with
+the login and the copy to run next: on the desktop, Docker Desktop's
+Windows credential helper fails docker login with "A specified logon
+session does not exist" (#261), so the login goes to a Docker config
+folder of its own, ~/.docker-ghcr unless DOCKER_CONFIG names one, and
+--copy runs with DOCKER_CONFIG naming it, as CONTRIBUTING.md's Review
+batch step 3 shows.
 
 Exit 0 done; 1 refused or failed, saying why; 2 usage, or gh or git failed.
 """
 import glob
+import hashlib
 import json
 import os
 import re
@@ -432,6 +441,30 @@ def apply(pairs):
           "bin/prune-merged then removes the batch's worktree and branch.")
 
 
+def require_login(version, ref):
+    """Refuses, printing the login and the copy to run next, unless the
+    Docker config docker reads has a login for the registry's host."""
+    host = registry().split("/")[0]
+    folder = os.environ.get("DOCKER_CONFIG")
+    path = os.path.join(folder or os.path.join(os.path.expanduser("~"), ".docker"), "config.json")
+    try:
+        with open(path) as f:
+            auths = json.load(f).get("auths") or {}
+    except (OSError, ValueError, AttributeError):
+        auths = {}
+    # docker login keys a login by the host it was given, a URL's included.
+    if any(re.sub(r"^https?://", "", k).split("/")[0] == host for k in auths):
+        return
+    login_folder = folder or "~/.docker-ghcr"
+    die("docker isn't logged in to %s: %s holds no login for it, so nothing copied. Docker Desktop's Windows "
+        "credential helper fails docker login on the desktop with \"A specified logon session does not "
+        "exist\" (#261), so log in to %s, then copy again, each its own command:\n\n"
+        "  gh auth token | DOCKER_CONFIG=%s docker login %s -u \"$(gh api user --jq .login)\" --password-stdin\n"
+        "  DOCKER_CONFIG=%s bin/review-batch --copy %s %s\n\n"
+        "The login keeps the gh token in %s/config.json; delete that folder once the batch is done."
+        % (host, path, login_folder, login_folder, host, login_folder, version, ref, login_folder))
+
+
 def copy(version, ref):
     reg = registry()
     digest = author_digest(ref)
@@ -451,7 +484,21 @@ def copy(version, ref):
     if now:
         die("%s is at %s, not %s; a version's digest never changes once written, so nothing copied" % (dst, now, digest))
     # --prefer-index=false: the header says why (#261).
-    p = subprocess.run(["docker", "buildx", "imagetools", "create", "--prefer-index=false", "--tag", dst, ref])
+    create = ["docker", "buildx", "imagetools", "create", "--prefer-index=false", "--tag", dst, ref]
+    # The dry run prints the manifest it would push, then a newline: buildx
+    # v0.38.1's of microct/1 on the desktop hashed, without that newline,
+    # to microct/1's digest (2026-11-26, the retro of #201).
+    p = subprocess.run(create[:4] + ["--dry-run"] + create[4:], stdout=subprocess.PIPE)
+    if p.returncode != 0:
+        die("buildx's dry run of the copy failed (above); nothing copied")
+    manifest = p.stdout[:-1] if p.stdout.endswith(b"\n") else p.stdout
+    dry_digest = "sha256:" + hashlib.sha256(manifest).hexdigest()
+    if dry_digest != digest:
+        die("buildx would tag %s at %s, not %s: the manifest its dry run printed isn't the version's own, so "
+            "nothing copied. Check what this buildx (docker buildx version) makes of the imagetools create "
+            "options in --copy" % (dst, dry_digest, digest))
+    require_login(version, ref)
+    p = subprocess.run(create)
     if p.returncode != 0:
         die("the copy failed (above). It needs docker logged in to ghcr.io with a token that can write %s, "
             "and the account behind it needs write access to that org package; if the registry denies it, "
