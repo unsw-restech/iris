@@ -64,7 +64,7 @@ chmod +x "$fake/ssh" "$fake/apptainer"
 # map <env>/<n>=<value>...: the scratch tree's digest map holds these alone,
 # and its researcher tools use microct/1.
 map() {
-    cp lib/katana.sh "$repo/lib/katana.sh"
+    katana_copy "$repo/lib/katana.sh"
     digest_map "$repo/lib/katana.sh" --tools microct/1 "$@" || exit 1
 }
 # pin <tree> <slug> <version>: <tree>'s form <slug> pins <version>.

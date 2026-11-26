@@ -1,12 +1,45 @@
 # Sourced from the repo root by the fixture tests of bin/check's site
 # checks, which build scratch trees each holding a copy of bin/check, which
-# checks the tree it sits in, and by every test that gives a scratch copy of
-# lib/katana.sh a digest map or a lab table of its own.
+# checks the tree it sits in, by every test that gives a scratch copy of
+# lib/katana.sh a digest map or a lab table of its own, and by every test
+# that copies lib/katana.sh, through katana_copy.
 
 # The opening lines of lib/katana.sh's digest map and lab table, which the
 # helpers below match whole.
 _DIGEST_MAP_OPEN='declare -gA IRIS_ENV_DIGESTS=('
 _LAB_TABLE_OPEN='declare -gA IRIS_LAB_ENVS=('
+
+# katana_copy <dest>: copies lib/katana.sh to <dest>, a file or a folder,
+# with each digest map line naming an author's container written as its
+# digest alone, as main always pins it. An author's pull request names its
+# container there, and a fixture copied from that as it is tests the
+# branch's map, not main's: two of tests/bin/test_check_passed.sh's
+# pre-push cases failed on author branches that way (5ff5995, then #201's
+# ad7d228). It is bin/libcopy's without_authors, the rewrite the review
+# batch makes, which bin/libcopy can't share since running it copies; keep
+# the two alike. bin/check's "tests copy lib/katana.sh through katana_copy"
+# holds every test to it. It returns 1 if the copy fails.
+katana_copy() {
+    local dest="$1" line key value in_map="" nl=$'\n' out=""
+    [ -d "$dest" ] && dest="${dest%/}/katana.sh"
+    cp lib/katana.sh "$dest" || return 1
+    while IFS= read -r line || { nl=""; [ -n "$line" ]; }; do
+        if [ "$line" = "$_DIGEST_MAP_OPEN" ]; then
+            in_map=1
+        elif [ -n "$in_map" ] && [ "$line" = ")" ]; then
+            in_map=""
+        elif [ -n "$in_map" ] && [[ "$line" =~ ^(    \[[^]]+\]=)([^[:space:]]+)$ ]]; then
+            # Kept before iris_is_author_env, whose own =~ resets them. It
+            # runs in a subshell, so the caller keeps none of what
+            # lib/katana.sh sets.
+            key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
+            if (. lib/katana.sh && iris_is_author_env "$value"); then line="$key${value#*@}"; fi
+        fi
+        out+="$line$nl"
+    done < lib/katana.sh
+    # Written over the copy, which keeps lib/katana.sh's mode, as cp alone did.
+    printf '%s' "$out" > "$dest"
+}
 
 # digest_map <file> [--tools <env>/<n>] [<env>/<n>=<value>]...: replaces the
 # whole digest map (IRIS_ENV_DIGESTS) in <file>, a scratch copy of

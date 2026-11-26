@@ -19,7 +19,7 @@ a=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 fake="$scratch/fake" repo="$scratch/repo" cache="$scratch/cache"
 mkdir -p "$fake" "$repo/bin" "$repo/lib" "$repo/workflows/seg"
 cp bin/envrun "$repo/bin/"
-cp lib/katana.sh "$repo/lib/katana.sh"
+katana_copy "$repo/lib/katana.sh"
 digest_map "$repo/lib/katana.sh" "microct/1=$a" microct/2=unpublished || exit 1
 
 # apptainer adds its arguments to $fake/apptainer.log, one call a line, and

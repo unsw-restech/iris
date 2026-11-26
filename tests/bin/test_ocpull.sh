@@ -10,6 +10,7 @@
 # bin/check name: ocpull test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+. tests/bin/lib.sh
 fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.com
@@ -83,7 +84,7 @@ C=$(git -C "$src" rev-parse --short HEAD)
 tools="$fake/iris"
 mkdir -p "$tools/bin" "$tools/lib/tests"
 cp bin/ocpull bin/ocpull-checkouts.sh bin/pilot-readable.py "$tools/bin/"
-cp lib/katana.sh "$tools/lib/"
+katana_copy "$tools/lib/"
 helper_at() {
     printf '# Render a form.yml.erb the way the IRIS fork of OpenComposer does at\n# %s, the commit bin/ocpull keeps the IRIS instance'"'"'s and the test\n' "$1" \
         > "$tools/lib/tests/form_helper.rb"

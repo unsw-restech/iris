@@ -349,6 +349,21 @@ run_dir_names() {
 }
 check "run directory file names come from iris.rundir" run_dir_names
 
+# A test copies lib/katana.sh through tests/bin/lib.sh's katana_copy, which
+# writes an author's container in the digest map as its digest alone, as
+# main pins it, so no fixture tests an author's branch's map instead of
+# main's: cp did, and failed two pre-push cases on author branches (#201's
+# ad7d228). It reads a cp of lib/katana.sh itself; a broken copy made with
+# grep or sed, as tests/bin/test_digest_map.sh's refusal cases make, keeps
+# the real map on purpose. A comment's prose is passed. tests/bin/test_katana_copies.sh
+# runs it on fixture trees, and is passed too, since its fixtures hold the
+# lines it fails.
+katana_copies() {
+    git grep -nE "^([^#]*[^[:alnum:]_#-])?cp( .*)?[ \"']lib/katana\.sh([ \"']|$)" -- 'tests/bin/*.sh' \
+        ':(exclude)tests/bin/lib.sh' ':(exclude)tests/bin/test_katana_copies.sh'
+}
+check "tests copy lib/katana.sh through katana_copy" katana_copies
+
 # lib/katana.sh holds Katana's constants for every script that can source
 # bash. The copies that must stay literal agree with it: a form's Ruby
 # test for the system clone

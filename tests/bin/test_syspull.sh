@@ -8,6 +8,7 @@
 # bin/check name: syspull test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+. tests/bin/lib.sh
 fake="$(mktemp -d)"
 trap 'rm -rf "$fake"' EXIT
 
@@ -44,7 +45,7 @@ chmod +x "$fake/ssh"
 repo="$fake/repo"
 mkdir -p "$repo/bin" "$repo/lib"
 cp bin/syspull bin/syspull-pins.sh bin/pilot-readable.py "$repo/bin/"
-cp lib/katana.sh "$repo/lib/"
+katana_copy "$repo/lib/"
 git -C "$repo" init -q
 
 # expect <exit code> <output substring> <arg>...

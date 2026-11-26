@@ -10,13 +10,14 @@
 # bin/check name: report workflows test
 
 cd "$(dirname "$(readlink -f "$0")")/../.." || exit 1
+. tests/bin/lib.sh
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
 repo="$scratch/repo"
 mkdir -p "$repo/bin" "$repo/lib" "$repo/envs"
 cp envs/report-workflows.sh "$repo/envs/"
-cp lib/katana.sh "$repo/lib/"
+katana_copy "$repo/lib/"
 cat > "$repo/bin/envrun" <<'EOF'
 #!/bin/bash
 echo "$PWD $*" >> "$(dirname "$0")/envrun.log"

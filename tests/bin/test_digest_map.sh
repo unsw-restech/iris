@@ -22,6 +22,10 @@ trap 'rm -rf "$scratch"' EXIT
 
 a=sha256:$(printf 'a%.0s' {1..64})
 f="$scratch/katana.sh"
+# What each copy starts as, so a case that compares with it holds on an
+# author's branch too.
+real="$scratch/real.sh"
+katana_copy "$real" || exit 1
 fail() { echo "digest map helper: $*"; }
 # map_of <file>: the lines between the map's opening line and its ")",
 # read here on its own rather than through lib.sh's, so the check doesn't
@@ -30,7 +34,7 @@ map_of() { sed -n '/^declare -gA IRIS_ENV_DIGESTS=($/,/^)$/p' "$1" | sed '1d;$d'
 
 # Replacing: exactly the entries given, in order; the tools line and
 # everything else untouched without --tools.
-cp lib/katana.sh "$f"
+katana_copy "$f"
 out="$(digest_map "$f" "ct/1=$a" ct/2=unpublished 2>&1)" || fail "refused a real lib/katana.sh: $out"
 [ -z "$out" ] || fail "printed on success: $out"
 [ "$(map_of "$f")" = "$(printf '    [ct/1]=%s\n    [ct/2]=unpublished' "$a")" ] ||
@@ -40,7 +44,7 @@ out="$(digest_map "$f" "ct/1=$a" ct/2=unpublished 2>&1)" || fail "refused a real
 grep -q '^declare -gA IRIS_LAB_ENVS=($' "$f" || fail "lost the lab table"
 
 # --tools sets the tools version; no entries empties the map.
-cp lib/katana.sh "$f"
+katana_copy "$f"
 digest_map "$f" --tools ct/1 > /dev/null || fail "refused --tools with no entries"
 grep -qx 'IRIS_TOOLS_ENV_VERSION=ct/1' "$f" || fail "--tools didn't set the tools version"
 [ -z "$(map_of "$f")" ] || fail "no entries left a map of: $(map_of "$f")"
@@ -63,9 +67,9 @@ out="$(digest_map "$f" --tools ct/1 ct/1=unpublished 2>&1)" && fail "passed on a
 grep -qF -- "$f" <<< "$out" || fail "no-tools-line failure doesn't name the file: $out"
 
 # Adding: one line at the top of the map, the rest kept.
-cp lib/katana.sh "$f"
+katana_copy "$f"
 out="$(digest_map_add "$f" ct/9=unpublished 2>&1)" || fail "digest_map_add refused a real lib/katana.sh: $out"
-[ "$(map_of "$f")" = "$(printf '    [ct/9]=unpublished\n'; map_of lib/katana.sh)" ] ||
+[ "$(map_of "$f")" = "$(printf '    [ct/9]=unpublished\n'; map_of "$real")" ] ||
     { fail "digest_map_add's map isn't the line plus the real map:"; map_of "$f" | sed 's/^/  /'; }
 
 # With SIGPIPE ignored, a writer whose reader exits early prints "Broken
@@ -115,12 +119,12 @@ sigpipe_ignored "_digest_map_open on an unclosed map" _digest_map_open test "$f"
 # table or no closing ")" (#211).
 # labs_of <file>: the lab table's lines, read here on its own as map_of is.
 labs_of() { sed -n '/^declare -gA IRIS_LAB_ENVS=($/,/^)$/p' "$1" | sed '1d;$d'; }
-cp lib/katana.sh "$f"
+katana_copy "$f"
 out="$(lab_table "$f" ct-lab=ct/1 mri-lab=mr/2 2>&1)" || fail "lab_table refused a real lib/katana.sh: $out"
 [ -z "$out" ] || fail "lab_table printed on success: $out"
 [ "$(labs_of "$f")" = "$(printf '    [ct-lab]=ct/1\n    [mri-lab]=mr/2')" ] ||
     { fail "lab table isn't the entries given:"; labs_of "$f" | sed 's/^/  /'; }
-[ "$(map_of "$f")" = "$(map_of lib/katana.sh)" ] || fail "lab_table changed the digest map"
+[ "$(map_of "$f")" = "$(map_of "$real")" ] || fail "lab_table changed the digest map"
 grep -v '^declare -gA IRIS_LAB_ENVS=(' lib/katana.sh > "$f"
 out="$(lab_table "$f" ct-lab=ct/1 2>&1)" && fail "lab_table passed on a file with no lab table"
 grep -qF -- "$f" <<< "$out" || fail "lab_table's no-table failure doesn't name the file: $out"
@@ -139,11 +143,11 @@ grep -qF 'lab table' <<< "$out" || fail "lab_table's unclosed-table failure does
 refuses() {
     local helper="$1" entry="$2"
     shift 2
-    cp lib/katana.sh "$f"
+    katana_copy "$f"
     out="$("$helper" "$f" "$@" "$entry" 2>&1)" && { fail "$helper took the entry '$entry'"; return; }
     grep -qF -- "$f" <<< "$out" || fail "$helper's refusal of '$entry' doesn't name the file: $out"
     grep -qF -- "$entry" <<< "$out" || fail "$helper's refusal of '$entry' doesn't name the entry: $out"
-    cmp -s "$f" lib/katana.sh || fail "$helper changed the file while refusing '$entry'"
+    cmp -s "$f" "$real" || fail "$helper changed the file while refusing '$entry'"
 }
 refuses digest_map "[microct/1]=unpublished"
 refuses digest_map "[microct/1]=unpublished" --tools ct/1

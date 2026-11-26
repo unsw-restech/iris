@@ -35,7 +35,7 @@ make_repo() {
     local r="$scratch/$1"
     mkdir -p "$r/bin" "$r/lib" "$r/workflows/seg/src" "$r/workflows/mri" "$r/envs/ct/1" "$r/envs/mr/2"
     cp bin/outside-folder "$r/bin/"
-    cp lib/katana.sh "$r/lib/katana.sh"
+    katana_copy "$r/lib/katana.sh"
     lab_table "$r/lib/katana.sh" ct-lab=ct/1 mri-lab=mr/2 || exit 1
     digest_map "$r/lib/katana.sh" "ct/1=sha256:$(printf 'a%.0s' {1..64})" "mr/2=sha256:$(printf 'b%.0s' {1..64})" || exit 1
     {

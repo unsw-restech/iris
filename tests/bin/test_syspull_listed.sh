@@ -29,7 +29,7 @@ chmod +x "$fake/ssh"
 repo="$fake/repo"
 mkdir -p "$repo/bin" "$repo/lib" "$repo/.githooks"
 cp bin/syspull bin/syspull-pins.sh bin/pilot-readable.py "$repo/bin/"
-cp lib/katana.sh "$repo/lib/"
+katana_copy "$repo/lib/"
 # A digest map of IRIS's own, so a branch whose real map names an author's
 # container, as each author's pull request does, doesn't make pre-push
 # refuse every push to main here for that.

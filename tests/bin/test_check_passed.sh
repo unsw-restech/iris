@@ -113,7 +113,7 @@ a64=$(printf 'a%.0s' {1..64})
 # branch whose real map names an author's container, as each author's pull
 # request does, doesn't make every case an author's.
 map_line() {
-    cp lib/katana.sh "$repo/lib/katana.sh"
+    katana_copy "$repo/lib/katana.sh"
     digest_map "$repo/lib/katana.sh" "ct/1=sha256:$a64" "ct/2=$1" || exit 1
     git -C "$repo" add lib/katana.sh; commit -m "ct/2 is $1"
     record
@@ -134,10 +134,10 @@ out="$(push refs/heads/main "$(git -C "$repo" rev-parse HEAD)" "$merged")" ||
 # <value> in its digest map, committed beside a lib/katana.sh with none.
 # Both maps are the fixture's own, as map_line's is.
 copy_line() {
-    cp lib/katana.sh "$repo/lib/katana.sh"
+    katana_copy "$repo/lib/katana.sh"
     digest_map "$repo/lib/katana.sh" "ct/1=sha256:$a64" || exit 1
     mkdir -p "$repo/workflows/seg/lib"
-    cp lib/katana.sh "$repo/workflows/seg/lib/katana.sh"
+    katana_copy "$repo/workflows/seg/lib/katana.sh"
     digest_map "$repo/workflows/seg/lib/katana.sh" "ct/1=sha256:$a64" "ct/2=$1" || exit 1
     git -C "$repo" add lib workflows; commit -m "seg's copy has ct/2 as $1"
     record

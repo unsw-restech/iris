@@ -176,7 +176,7 @@ author="ghcr.io/alice-lab/iris-env@sha256:$a64"
 # committed.
 rewritten() {
     make_tree "$1"
-    cp lib/katana.sh "$scratch/$1/lib/katana.sh"
+    katana_copy "$scratch/$1/lib/katana.sh"
     digest_map "$scratch/$1/lib/katana.sh" "ct/1=sha256:$b64" "ct/2=$author" \
         "ct/3=ghcr.io/unsw-restech/iris-env@sha256:$b64" || exit 1
     lab_table "$scratch/$1/lib/katana.sh" "ct-lab=$author" || exit 1

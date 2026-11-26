@@ -139,7 +139,7 @@ echo "All checks passed."
 EOF
 printf '#!/bin/bash\n[ "$1" = --tested ]\n' > "$src/bin/katana-test"
 chmod +x "$src/bin/check" "$src/bin/katana-test"
-cp lib/katana.sh "$src/lib/"
+katana_copy "$src/lib/"
 lab_table "$src/lib/katana.sh" ct-lab=ct/1 || exit 1
 digest_map "$src/lib/katana.sh" "ct/1=sha256:$b64" || exit 1
 printf '%s\n' '<div class="lab" id="ct-lab">' '    <a href="workflows/seg/" class="workflow-card">' \

@@ -27,7 +27,7 @@ make_tree() {
     local tree="$scratch/$1"
     site_tree "$tree" seg:ct-lab:active
     mkdir -p "$tree/lib" "$tree/module/modulefiles" "$tree/workflows/seg/tests"
-    cp lib/katana.sh "$tree/lib/katana.sh"
+    katana_copy "$tree/lib/katana.sh"
     sed 's/#PBS -A iris-microct-2d-segmentation/#PBS -A iris-seg/' workflows/microct-2d-segmentation/form.yml.erb \
         > "$tree/workflows/seg/form.yml.erb"
     printf '%s\n' 'class FormTest' "  SYSTEM_APPS_DIR = \"$clone/workflows\"" 'end' \

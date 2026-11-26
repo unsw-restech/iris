@@ -30,7 +30,7 @@ make_tree() {
     local tree="$scratch/$1"
     site_tree "$tree" seg:microct-lab:active
     mkdir -p "$tree/lib" "$tree/envs/microct/1"
-    cp lib/katana.sh "$tree/lib/katana.sh"
+    katana_copy "$tree/lib/katana.sh"
     cp envs/build-kind.sh "$tree/envs/build-kind.sh"
     digest_map "$tree/lib/katana.sh" --tools microct/1 microct/1=unpublished || exit 1
     lab_table "$tree/lib/katana.sh" microct-lab=microct/1 || exit 1
@@ -74,7 +74,7 @@ expect pass "$scratch/clean" "$name"
 
 # The repo's own lib/katana.sh and envs/ pass.
 make_tree repo
-cp lib/katana.sh "$scratch/repo/lib/katana.sh"
+katana_copy "$scratch/repo/lib/katana.sh"
 rm -rf "$scratch/repo/envs"
 cp -r envs "$scratch/repo/envs"
 git -C "$scratch/repo" add -A
