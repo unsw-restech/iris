@@ -82,6 +82,10 @@ _Avoid_: Domain, category
 The imaging facility or research group a workflow serves, such as the X-ray MicroCT Lab or BRIL. The catalogue groups its workflows by lab. A lab can span several modalities, so a workflow's lab and its modality are separate.
 _Avoid_: Group, team, facility
 
+**MWAC**:
+The Mark Wainwright Analytical Centre, which houses most of UNSW's major scientific instruments and the labs that run them, many of IRIS's labs among them. It is not itself a lab: a workflow serves one of its labs, never MWAC.
+_Avoid_: MWAC lab, the analytical centre
+
 **Reference workflow**:
 The single microCT workflow every IRIS v1 design decision is tested against.
 _Avoid_: Demo, example workflow
@@ -191,7 +195,7 @@ What a run notes about the dataset it read, so the researcher can find it again 
 _Avoid_: Fingerprint, checksum, manifest
 
 **Transfer**:
-Copying a dataset from where it was made, such as the researcher's own computer or an instrument PC, into their Katana scratch before its first run, and bringing run directories back. It sits outside the two-click launch.
+Copying a dataset from where it was made, such as the researcher's own computer, an instrument PC or the IDS, into their Katana scratch before its first run, and bringing run directories back. It sits outside the two-click launch.
 _Avoid_: Staging, upload, ingest, data movement
 
 **Files**:
@@ -201,6 +205,10 @@ _Avoid_: Files app, OnDemand Files app
 **Endpoint**:
 A computer or storage system Globus can transfer to or from: a researcher's computer running Globus Connect Personal, or Katana. Globus's own web app now says "collection"; IRIS keeps endpoint.
 _Avoid_: Collection, except when quoting Globus
+
+**IDS**:
+The Instrument Data Store, MWAC's storage where its instruments write each user's raw data. IRIS only ever reads from it, copying a dataset into the researcher's scratch before the first run; no run reads it or writes to it.
+_Avoid_: Instrument drive, IDS drive, Samba server
 
 **Training pair**:
 An image slice and its label slice, matched by filename, used to train a workflow's model.
